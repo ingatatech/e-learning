@@ -11,35 +11,33 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
 
-  /* Updated to blue theme as specified in documentation */
-  --primary: oklch(0.578 0.207 255.5); /* #3b82f6 - Blue-500 */
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.556 0 0); /* #6b7280 - Gray-500 */
+  /* Green theme */
+  --primary: oklch(0.77 0.17 152.0); /* #22c55e - Green-500 */
+  --primary-foreground: oklch(0.145 0 0);
+  --secondary: oklch(0.556 0 0); /* Gray-500 */
   --secondary-foreground: oklch(0.985 0 0);
 
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325); /* #ef4444 - Red-500 */
+  --destructive: oklch(0.577 0.245 27.325); /* Red-500 */
   --destructive-foreground: oklch(0.985 0 0);
 
-  /* Added success and warning colors for LMS */
-  --success: oklch(0.649 0.169 162.4); /* #10b981 - Emerald-500 */
+  --success: oklch(0.649 0.169 162.4); /* Emerald-500 */
   --success-foreground: oklch(0.985 0 0);
-  --warning: oklch(0.768 0.171 70.67); /* #f59e0b - Amber-500 */
+  --warning: oklch(0.768 0.171 70.67); /* Amber-500 */
   --warning-foreground: oklch(0.145 0 0);
 
-  /* Added gamification colors */
-  --gamification-bronze: oklch(0.627 0.118 70.67); /* #cd7f32 */
-  --gamification-silver: oklch(0.756 0 0); /* #c0c0c0 */
-  --gamification-gold: oklch(0.831 0.171 85.87); /* #ffd700 */
-  --gamification-platinum: oklch(0.898 0 0); /* #e5e4e2 */
+  --gamification-bronze: oklch(0.627 0.118 70.67);
+  --gamification-silver: oklch(0.756 0 0);
+  --gamification-gold: oklch(0.831 0.171 85.87);
+  --gamification-platinum: oklch(0.898 0 0);
 
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.578 0.207 255.5); /* Match primary */
-  --chart-1: oklch(0.578 0.207 255.5);
+  --ring: oklch(0.77 0.17 152.0);
+  --chart-1: oklch(0.77 0.17 152.0);
   --chart-2: oklch(0.649 0.169 162.4);
   --chart-3: oklch(0.768 0.171 70.67);
   --chart-4: oklch(0.577 0.245 27.325);
@@ -47,12 +45,12 @@
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.578 0.207 255.5);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.77 0.17 152.0);
+  --sidebar-primary-foreground: oklch(0.145 0 0);
   --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.578 0.207 255.5);
+  --sidebar-ring: oklch(0.77 0.17 152.0);
 }
 
 .dark {
@@ -63,8 +61,8 @@
   --popover: oklch(0.145 0 0);
   --popover-foreground: oklch(0.985 0 0);
 
-  /* Dark mode blue theme */
-  --primary: oklch(0.678 0.207 255.5); /* Lighter blue for dark mode */
+  /* Dark mode green theme */
+  --primary: oklch(0.85 0.14 152.0); /* #4ade80 - Green-400 */
   --primary-foreground: oklch(0.145 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
@@ -76,7 +74,6 @@
   --destructive: oklch(0.677 0.245 27.325);
   --destructive-foreground: oklch(0.145 0 0);
 
-  /* Dark mode success and warning */
   --success: oklch(0.749 0.169 162.4);
   --success-foreground: oklch(0.145 0 0);
   --warning: oklch(0.868 0.171 70.67);
@@ -84,20 +81,20 @@
 
   --border: oklch(0.269 0 0);
   --input: oklch(0.269 0 0);
-  --ring: oklch(0.678 0.207 255.5);
-  --chart-1: oklch(0.678 0.207 255.5);
+  --ring: oklch(0.85 0.14 152.0);
+  --chart-1: oklch(0.85 0.14 152.0);
   --chart-2: oklch(0.749 0.169 162.4);
   --chart-3: oklch(0.868 0.171 70.67);
   --chart-4: oklch(0.677 0.245 27.325);
   --chart-5: oklch(0.727 0.118 70.67);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.678 0.207 255.5);
+  --sidebar-primary: oklch(0.85 0.14 152.0);
   --sidebar-primary-foreground: oklch(0.145 0 0);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.678 0.207 255.5);
+  --sidebar-ring: oklch(0.85 0.14 152.0);
 }
 
 @theme inline {
@@ -120,7 +117,6 @@
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
 
-  /* Added success, warning, and gamification color tokens */
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
@@ -161,17 +157,11 @@
   }
 }
 
-/* Added custom animations for gamification */
 @keyframes badge-bounce {
-  0%,
-  20%,
-  53%,
-  80%,
-  100% {
+  0%, 20%, 53%, 80%, 100% {
     transform: translate3d(0, 0, 0);
   }
-  40%,
-  43% {
+  40%, 43% {
     transform: translate3d(0, -30px, 0);
   }
   70% {
@@ -183,23 +173,13 @@
 }
 
 @keyframes level-up {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.1);
-  }
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
 }
 
 @keyframes streak-fire {
-  0%,
-  100% {
-    transform: rotate(-3deg);
-  }
-  50% {
-    transform: rotate(3deg);
-  }
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
 }
 
 .animate-badge-bounce {

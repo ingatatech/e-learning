@@ -2,26 +2,24 @@
 "use client"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { LoginForm } from "@/components/forms/login-form"
-import Link from "next/link"
 import { BookOpen } from "lucide-react"
-import { useEffect } from "react"
+import { OTPVerificationForm } from "@/components/forms/verify-otp"
 import { useRouter } from "next/navigation"
 import { useAuth } from "../../../hooks/use-auth" 
+import { useEffect } from "react"
 
 export default function LoginPage() {
     const { user } = useAuth()
-    const router = useRouter()
-    
-    useEffect(() => {
-      if (user) {
-        router.push(`/${user.role}`) 
-      } else {
-        // stay on login/verify page
-      }
-    }, [user, router])
+  const router = useRouter()
+  
+  useEffect(() => {
+    if (user) {
+      router.push(`/${user.role}`) // redirect to dashboard based on role
+    } else {
+      // stay on login/verify page
+    }
+  }, [user, router])
 
-    
   return (
     <Card>
       <CardHeader className="text-center">
@@ -31,17 +29,11 @@ export default function LoginPage() {
           </div>
           <span className="text-xl font-bold text-primary">EduFlow</span>
         </div>
-        <CardTitle>Welcome Back</CardTitle>
-        <CardDescription>Sign in to your account to continue learning</CardDescription>
+        <CardTitle>Verify your account</CardTitle>
+        <CardDescription>Enter the OTP code sent to your email</CardDescription>
       </CardHeader>
       <CardContent>
-        <LoginForm />
-        <div className="mt-6 text-center text-sm">
-          <span className="text-muted-foreground">Don't have an account? </span>
-          <Link href="/register" className="text-primary hover:underline font-medium">
-            Sign up
-          </Link>
-        </div>
+        <OTPVerificationForm />
       </CardContent>
     </Card>
   )

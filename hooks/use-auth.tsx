@@ -2,6 +2,7 @@
 
 import { useState, useEffect, createContext, useContext, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
+import { set } from "react-hook-form"
 
 interface User {
   id: string
@@ -20,7 +21,8 @@ interface User {
 interface AuthContextType {
   user: User | null
   isLoading: boolean
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string) => Promise<{ success: boolean; message?: any } | undefined>
+  verifyOtp: (email: string, otp: string) => Promise<{ success: boolean; message?: any } | undefined>
   register: (data: RegisterData) => Promise<void>
   logout: () => Promise<void>
   refreshToken: () => Promise<void>
@@ -36,51 +38,72 @@ interface RegisterData {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
-  // Check if user is authenticated on mount
   useEffect(() => {
-    checkAuth()
-  }, [])
+  const storedUser = localStorage.getItem("Euser")
+  if (storedUser) {
+    setUser(JSON.parse(storedUser))
+  }
+}, [])
 
-  const checkAuth = async () => {
+
+  const login = async (email: string, password: string) => {
+    setIsLoading(true)
     try {
-      const response = await fetch("/api/auth/me")
-      if (response.ok) {
-        const data = await response.json()
-        setUser(data.user)
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        return { success: false, message: data.message || "Login failed" }
       }
+      setUser(data.user)
+      router.push(`/verify-otp?email=${email}`)
     } catch (error) {
-      console.error("Auth check failed:", error)
+      return { success: false, message: "Something went wrong. Try again." }
     } finally {
       setIsLoading(false)
     }
   }
 
-  const login = async (email: string, password: string) => {
-    const response = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, password }),
-    })
+    const verifyOtp = async (email: string, otp: string) => {
+    setIsLoading(true)
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/verify-otp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, otp }),
+      })
 
-    const data = await response.json()
+      const data = await response.json()
 
-    if (!response.ok) {
-      throw new Error(data.error || "Login failed")
+      if (!response.ok) {
+        return { success: false, message: data.message || "verification failed" }
+      }
+      setUser(data.user)
+      localStorage.setItem("Euser", JSON.stringify(data.user))
+      router.push(`${data.user.role}`)
+    } catch (error) {
+      return { success: false, message: "Something went wrong. Try again." }
+    } finally {
+      setIsLoading(false)
     }
-
-    setUser(data.user)
-    router.push(`/${data.user.role}`)
   }
-
-  const register = async (registerData: RegisterData) => {
+const register = async (registerData: RegisterData) => {
     const response = await fetch("/api/auth/register", {
       method: "POST",
       headers: {
@@ -101,7 +124,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" })
+      await fetch(`${API_BASE_URL}/auth/logout`, { method: "POST" })
+      setUser(null)
+      localStorage.removeItem("Euser")
+      router.push("/login")
     } catch (error) {
       console.error("Logout error:", error)
     } finally {
@@ -128,6 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isLoading,
         login,
+        verifyOtp,
         register,
         logout,
         refreshToken,
