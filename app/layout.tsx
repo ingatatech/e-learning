@@ -10,7 +10,7 @@ import Script from "next/script"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "EduFlow - Learning Management System",
+  title: "Ingata E-learning - Learning Management System",
   description:
     "A comprehensive Learning Management System with gamification, multi-language support, and advanced analytics",
   generator: "v0.app",

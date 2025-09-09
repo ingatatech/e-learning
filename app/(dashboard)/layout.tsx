@@ -31,7 +31,7 @@ export default function DashboardLayout({
       <Header user={user} />
       <div className="flex">
         <Sidebar userRole={user.role as "admin" | "instructor" | "student"} />
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 p-6 overflow-auto min-h-screen">{children}</main>
       </div>
     </div>
   )

@@ -11,7 +11,7 @@ export default function RegisterPage() {
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
             <BookOpen className="w-5 h-5 text-primary-foreground" />
           </div>
-          <span className="text-xl font-bold text-primary">EduFlow</span>
+          <span className="text-xl font-bold text-primary">Ingata E-learning</span>
         </div>
         <CardTitle>Create Your Account</CardTitle>
         <CardDescription>Join thousands of learners and start your educational journey</CardDescription>

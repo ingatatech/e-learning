@@ -19,9 +19,17 @@ import {
   CreditCard,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Home,
   GraduationCap,
   Trophy,
+  Building,
+  UserCheck,
+  UserPlus,
+  DollarSign,
+  PieChart,
+  BookPlus,
 } from "lucide-react"
 
 interface SidebarProps {
@@ -29,7 +37,14 @@ interface SidebarProps {
   className?: string
 }
 
-const navigationItems = {
+interface NavigationItem {
+  name: string
+  href?: string
+  icon: any
+  children?: NavigationItem[]
+}
+
+const navigationItems: Record<string, NavigationItem[]> = {
   student: [
     { name: "Dashboard", href: "/student", icon: Home },
     { name: "My Courses", href: "/student/courses", icon: BookOpen },
@@ -51,10 +66,39 @@ const navigationItems = {
   ],
   admin: [
     { name: "Dashboard", href: "/admin", icon: Home },
-    { name: "Users", href: "/admin/users", icon: Users },
-    { name: "Courses", href: "/admin/courses", icon: BookOpen },
-    { name: "Organizations", href: "/admin/organizations", icon: GraduationCap },
-    { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
+    {
+      name: "Users",
+      icon: Users,
+      children: [
+        { name: "Add User", href: "/admin/users/add", icon: UserPlus },
+        { name: "All Users", href: "/admin/users", icon: Users },
+      ],
+    },
+    { 
+      name: "Courses", 
+      icon: BookOpen,
+      children: [
+        { name: "Add Course", href: "/admin/courses/add", icon: BookPlus },
+        { name: "All Courses", href: "/admin/courses", icon: BookOpen },
+      ]
+    },
+    {
+      name: "Organizations",
+      icon: GraduationCap,
+      children: [
+        { name: "Add Organization", href: "/admin/organizations/add", icon: Building },
+        { name: "All Organizations", href: "/admin/organizations", icon: Building },
+      ],
+    },
+    {
+      name: "Analytics",
+      icon: BarChart3,
+      children: [
+        { name: "Overview", href: "/admin/analytics", icon: PieChart },
+        { name: "Revenue", href: "/admin/analytics/revenue", icon: DollarSign },
+        { name: "User Analytics", href: "/admin/analytics/users", icon: Users },
+      ],
+    },
     { name: "Gamification", href: "/gamification", icon: Trophy },
     { name: "Payments", href: "/admin/payments", icon: CreditCard },
     { name: "Settings", href: "/admin/settings", icon: Settings },
@@ -63,14 +107,83 @@ const navigationItems = {
 
 export function Sidebar({ userRole, className }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [expandedItems, setExpandedItems] = useState<string[]>([])
   const pathname = usePathname()
 
   const items = navigationItems[userRole] || []
 
+  const toggleExpanded = (itemName: string) => {
+    setExpandedItems((prev) =>
+      prev.includes(itemName) ? prev.filter((name) => name !== itemName) : [...prev, itemName],
+    )
+  }
+
+  const renderNavigationItem = (item: NavigationItem, level = 0) => {
+    const Icon = item.icon
+    const hasChildren = item.children && item.children.length > 0
+    const isExpanded = expandedItems.includes(item.name)
+
+    let isActive = false
+    if (item.href) {
+      // For exact matches
+      isActive = pathname === item.href
+    } else if (hasChildren) {
+      // For parent items, check if any child is active
+      isActive =
+        item.children?.some(
+          (child) => child.href && (pathname === child.href || pathname.startsWith(child.href + "/")),
+        ) || false
+    }
+
+    return (
+      <li key={item.name}>
+        {hasChildren ? (
+          <div>
+            <button
+              onClick={() => toggleExpanded(item.name)}
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground w-full",
+                isCollapsed && "justify-center",
+                level > 0 && "ml-4",
+              )}
+            >
+              <Icon className="h-4 w-4 flex-shrink-0" />
+              {!isCollapsed && (
+                <>
+                  <span className="flex-1 text-left">{item.name}</span>
+                  {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </>
+              )}
+            </button>
+            {isExpanded && !isCollapsed && item.children && (
+              <ul className="ml-4 mt-1 space-y-1">
+                {item.children.map((child) => renderNavigationItem(child, level + 1))}
+              </ul>
+            )}
+          </div>
+        ) : (
+          <Link
+            href={item.href || "#"}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+              isActive &&
+                "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground",
+              isCollapsed && "justify-center",
+              level > 0 && "ml-4",
+            )}
+          >
+            <Icon className="h-4 w-4 flex-shrink-0" />
+            {!isCollapsed && <span>{item.name}</span>}
+          </Link>
+        )}
+      </li>
+    )
+  }
+
   return (
     <div
       className={cn(
-        "flex flex-col border-r bg-sidebar text-sidebar-foreground transition-all duration-300",
+        "flex flex-col border-r bg-sidebar text-sidebar-foreground transition-all duration-300 h-[calc(100vh-4rem)] sticky top-16 left-0 z-40",
         isCollapsed ? "w-16" : "w-64",
         className,
       )}
@@ -82,7 +195,7 @@ export function Sidebar({ userRole, className }: SidebarProps) {
             <div className="w-8 h-8 bg-sidebar-primary rounded-lg flex items-center justify-center">
               <BookOpen className="w-5 h-5 text-sidebar-primary-foreground" />
             </div>
-            <span className="font-semibold text-sidebar-primary">EduFlow</span>
+            <span className="font-semibold text-sidebar-primary">Ingata E-learning</span>
           </div>
         )}
         <Button variant="ghost" size="sm" onClick={() => setIsCollapsed(!isCollapsed)} className="h-8 w-8 p-0">
@@ -91,30 +204,8 @@ export function Sidebar({ userRole, className }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4">
-        <ul className="space-y-2">
-          {items.map((item) => {
-            const Icon = item.icon
-            const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
-
-            return (
-              <li key={item.name}>
-                <Link
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                    isActive &&
-                      "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground",
-                    isCollapsed && "justify-center",
-                  )}
-                >
-                  <Icon className="h-4 w-4 flex-shrink-0" />
-                  {!isCollapsed && <span>{item.name}</span>}
-                </Link>
-              </li>
-            )
-          })}
-        </ul>
+      <nav className="flex-1 p-4 overflow-y-auto">
+        <ul className="space-y-2">{items.map((item) => renderNavigationItem(item))}</ul>
       </nav>
 
       {/* User Role Badge */}

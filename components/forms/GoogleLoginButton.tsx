@@ -34,6 +34,8 @@ export function GoogleLoginButton({ onError }: GoogleLoginButtonProps) {
           return;
         }
         setUser(data.user);
+        localStorage.setItem("Euser", JSON.stringify(data.user))
+        localStorage.setItem("Etoken", JSON.stringify(data.token))
         router.push(`/${data.user.role}`);
       } catch (err: any) {
         if (onError) onError(err.message || "Something went wrong");

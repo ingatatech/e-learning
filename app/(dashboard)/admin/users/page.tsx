@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,71 +16,42 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Search, UserPlus, MoreHorizontal, Edit, Trash2, Mail, Shield } from "lucide-react"
 import Link from "next/link"
+import { useAuth } from "@/hooks/use-auth"
 
 export default function UsersManagement() {
   const [searchTerm, setSearchTerm] = useState("")
+  const [users, setUsers] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const { token } = useAuth()
+  
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/all`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setUsers(data.users)
+        }
+      } catch (error) {
+        console.error("Failed to fetch users:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
 
-  // Mock users data - replace with real API
-  const users = [
-    {
-      id: "1",
-      firstName: "John",
-      lastName: "Doe",
-      email: "john.doe@example.com",
-      role: "student",
-      isActive: true,
-      isEmailVerified: true,
-      totalPoints: 1250,
-      level: 3,
-      createdAt: "2024-01-15",
-      lastLogin: "2024-03-15",
-    },
-    {
-      id: "2",
-      firstName: "Sarah",
-      lastName: "Wilson",
-      email: "sarah.wilson@example.com",
-      role: "instructor",
-      isActive: true,
-      isEmailVerified: true,
-      totalPoints: 2850,
-      level: 5,
-      createdAt: "2024-01-10",
-      lastLogin: "2024-03-14",
-    },
-    {
-      id: "3",
-      firstName: "Mike",
-      lastName: "Johnson",
-      email: "mike.johnson@example.com",
-      role: "student",
-      isActive: false,
-      isEmailVerified: false,
-      totalPoints: 450,
-      level: 1,
-      createdAt: "2024-02-20",
-      lastLogin: "2024-02-25",
-    },
-    {
-      id: "4",
-      firstName: "Emily",
-      lastName: "Davis",
-      email: "emily.davis@example.com",
-      role: "admin",
-      isActive: true,
-      isEmailVerified: true,
-      totalPoints: 0,
-      level: 1,
-      createdAt: "2024-01-01",
-      lastLogin: "2024-03-15",
-    },
-  ]
+    fetchUsers()
+  }, [])
 
   const filteredUsers = users.filter(
     (user) =>
-      user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()),
+      user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
   const getRoleBadgeColor = (role: string) => {
@@ -96,6 +67,28 @@ export default function UsersManagement() {
     }
   }
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">User Management</h1>
+            <p className="text-muted-foreground">Manage platform users and their permissions</p>
+          </div>
+          <Button asChild>
+            <Link href="/admin/users/add">
+              <UserPlus className="w-4 h-4 mr-2" />
+              Add User
+            </Link>
+          </Button>
+        </div>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-muted-foreground">Loading users...</div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -105,7 +98,7 @@ export default function UsersManagement() {
           <p className="text-muted-foreground">Manage platform users and their permissions</p>
         </div>
         <Button asChild>
-          <Link href="/admin/users/new">
+          <Link href="/admin/users/add">
             <UserPlus className="w-4 h-4 mr-2" />
             Add User
           </Link>
@@ -170,77 +163,85 @@ export default function UsersManagement() {
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Points</TableHead>
-                <TableHead>Level</TableHead>
-                <TableHead>Joined</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">
-                    {user.firstName} {user.lastName}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {user.email}
-                      {!user.isEmailVerified && <Mail className="w-4 h-4 text-yellow-500" />}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getRoleBadgeColor(user.role)}>
-                      {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={user.isActive ? "default" : "secondary"}>
-                      {user.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{user.totalPoints.toLocaleString()}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">Level {user.level}</Badge>
-                  </TableCell>
-                  <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem asChild>
-                          <Link href={`/admin/users/${user.id}`}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit User
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Shield className="mr-2 h-4 w-4" />
-                          Change Role
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-red-600">
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete User
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+          {filteredUsers.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No users found. Add your first user to get started.</p>
+              <Button asChild className="mt-4">
+                <Link href="/admin/users/add">
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Add User
+                </Link>
+              </Button>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Points</TableHead>
+                  <TableHead>Level</TableHead>
+                  <TableHead>Joined</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">
+                      {user.firstName} {user.lastName}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {user.email}
+                        {!user.isEmailVerified && <Mail className="w-4 h-4 text-yellow-500" />}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getRoleBadgeColor(user.role)}>
+                        {user.role?.charAt(0).toUpperCase() + user.role?.slice(1) || "N/A"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={user.isActive ? "default" : "secondary"}>
+                        {user.isActive ? "Active" : "Inactive"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{user.totalPoints?.toLocaleString() || 0}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">Level {user.level || 1}</Badge>
+                    </TableCell>
+                    <TableCell>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}</TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/admin/users/add?id=${user.id}`}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit User
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-red-600">
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete User
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

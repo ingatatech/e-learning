@@ -48,7 +48,7 @@ export function Header({ user }: HeaderProps) {
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               <BookOpen className="w-5 h-5 text-primary-foreground" />
             </div>
-            <h1 className="text-xl font-bold text-primary">EduFlow</h1>
+            <h1 className="text-xl font-bold text-primary">Ingata E-learning</h1>
           </Link>
 
           {/* Desktop Navigation */}

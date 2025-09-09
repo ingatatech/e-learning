@@ -21,6 +21,7 @@ interface User {
 interface AuthContextType {
   user: User | null
   setUser: (user: User | null) => void
+  token: string | null
   isLoading: boolean
   login: (email: string, password: string) => Promise<{ success: boolean; message?: any } | undefined>
   verifyOtp: (email: string, otp: string) => Promise<{ success: boolean; message?: any } | undefined>
@@ -43,6 +44,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
+  const [token, setToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
@@ -50,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const storedUser = localStorage.getItem("Euser")
   if (storedUser) {
     setUser(JSON.parse(storedUser))
+    setToken(JSON.parse(localStorage.getItem("Etoken") || ""))
   }
 }, [])
 
@@ -97,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       setUser(data.user)
       localStorage.setItem("Euser", JSON.stringify(data.user))
+      localStorage.setItem("Etoken", JSON.stringify(data.token))
       router.push(`${data.user.role}`)
     } catch (error) {
       return { success: false, message: "Something went wrong. Try again." }
@@ -154,6 +158,7 @@ const register = async (registerData: RegisterData) => {
       value={{
         user,
         setUser,
+        token,
         isLoading,
         login,
         verifyOtp,

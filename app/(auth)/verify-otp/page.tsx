@@ -27,7 +27,7 @@ export default function LoginPage() {
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
             <BookOpen className="w-5 h-5 text-primary-foreground" />
           </div>
-          <span className="text-xl font-bold text-primary">EduFlow</span>
+          <span className="text-xl font-bold text-primary">Ingata E-learning</span>
         </div>
         <CardTitle>Verify your account</CardTitle>
         <CardDescription>Enter the OTP code sent to your email</CardDescription>

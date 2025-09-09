@@ -15,7 +15,7 @@ export default function HomePage() {
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <BookOpen className="w-5 h-5 text-primary-foreground" />
               </div>
-              <h1 className="text-xl font-bold text-primary">EduFlow</h1>
+              <h1 className="text-xl font-bold text-primary">Ingata E-learning</h1>
             </div>
             <nav className="hidden md:flex items-center gap-6">
               <Link href="/courses" className="text-sm font-medium hover:text-primary transition-colors">
@@ -44,10 +44,10 @@ export default function HomePage() {
       <section className="py-20 px-4">
         <div className="container mx-auto text-center max-w-4xl">
           <Badge variant="secondary" className="mb-4">
-            🚀 Now with AI-Powered Learning
+            Now with AI-Powered Learning
           </Badge>
           <h1 className="text-4xl md:text-6xl font-bold mb-6 text-balance">
-            Transform Your Learning Journey with <span className="text-primary">EduFlow</span>
+            Transform Your Learning Journey with <span className="text-primary">Ingata E-learning</span>
           </h1>
           <p className="text-xl text-muted-foreground mb-8 text-pretty max-w-2xl mx-auto">
             Experience the future of education with our comprehensive Learning Management System. Gamified learning,
@@ -71,7 +71,7 @@ export default function HomePage() {
       <section className="py-20 px-4 bg-muted/30">
         <div className="container mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Why Choose EduFlow?</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Why Choose Ingata E-learning?</h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Built for modern learners with cutting-edge features that make education engaging and effective.
             </p>
@@ -242,7 +242,7 @@ export default function HomePage() {
             <CardHeader>
               <CardTitle className="text-3xl mb-4">Ready to Start Your Learning Journey?</CardTitle>
               <CardDescription className="text-primary-foreground/80 text-lg">
-                Join thousands of learners who are already transforming their careers with EduFlow.
+                Join thousands of learners who are already transforming their careers with Ingata E-learning.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -273,7 +273,7 @@ export default function HomePage() {
                 <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                   <BookOpen className="w-5 h-5 text-primary-foreground" />
                 </div>
-                <h3 className="text-lg font-bold text-primary">EduFlow</h3>
+                <h3 className="text-lg font-bold text-primary">Ingata E-learning</h3>
               </div>
               <p className="text-muted-foreground">
                 Transforming education through innovative technology and gamified learning experiences.
@@ -356,7 +356,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="border-t mt-8 pt-8 text-center text-muted-foreground">
-            <p>&copy; 2024 EduFlow. All rights reserved.</p>
+            <p>&copy; 2024 Ingata E-learning. All rights reserved.</p>
           </div>
         </div>
       </footer>

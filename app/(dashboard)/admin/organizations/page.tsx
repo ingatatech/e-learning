@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,48 +17,91 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Search, Building, MoreHorizontal, Edit, Trash2, Users, BookOpen } from "lucide-react"
 import Link from "next/link"
+import { useAuth } from "@/hooks/use-auth"
 
 export default function OrganizationsManagement() {
   const [searchTerm, setSearchTerm] = useState("")
+  const [organizations, setOrganizations] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const { token } = useAuth()
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+  const [orgToDelete, setOrgToDelete] = useState<number | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
-  // Mock organizations data
-  const organizations = [
-    {
-      id: "1",
-      name: "Tech University",
-      tin: "123456789",
-      address: "123 Tech Street, Silicon Valley, CA",
-      contactInfo: { phone: "+1-555-0123", website: "techuni.edu" },
-      userCount: 1250,
-      courseCount: 45,
-      isActive: true,
-      createdAt: "2024-01-15",
-    },
-    {
-      id: "2",
-      name: "Business Academy",
-      tin: "987654321",
-      address: "456 Business Ave, New York, NY",
-      contactInfo: { phone: "+1-555-0456", website: "bizacademy.com" },
-      userCount: 890,
-      courseCount: 32,
-      isActive: true,
-      createdAt: "2024-02-10",
-    },
-    {
-      id: "3",
-      name: "Creative Institute",
-      tin: "456789123",
-      address: "789 Art District, Los Angeles, CA",
-      contactInfo: { phone: "+1-555-0789", website: "creativeinst.org" },
-      userCount: 567,
-      courseCount: 28,
-      isActive: false,
-      createdAt: "2024-01-20",
-    },
-  ]
 
-  const filteredOrganizations = organizations.filter((org) => org.name.toLowerCase().includes(searchTerm.toLowerCase()))
+const handleDeleteClick = (id: number) => {
+  setOrgToDelete(id)
+  setIsDeleteOpen(true)
+}
+
+const confirmDelete = async () => {
+  if (!orgToDelete) return
+  setIsDeleting(true)
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/organizations/${orgToDelete}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) throw new Error("Failed to delete organization")
+    setOrganizations((prev) => prev.filter((o) => o.id !== orgToDelete))
+  } catch (err: any) {
+    console.error(err)
+  } finally {
+    setIsDeleting(false)
+    setIsDeleteOpen(false)
+    setOrgToDelete(null)
+  }
+}
+
+  useEffect(() => {
+    const fetchOrganizations = async () => {
+      if (typeof window === "undefined") return;
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/organizations`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      })
+        if (response.ok) {
+          const data = await response.json()
+          setOrganizations(data.organizations)
+        }
+      } catch (error) {
+        console.error("Failed to fetch organizations:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchOrganizations()
+  }, [])
+
+  const filteredOrganizations = organizations.filter((org) =>
+    org.name?.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Organizations</h1>
+            <p className="text-muted-foreground">Manage organizations and their settings</p>
+          </div>
+          <Button asChild>
+            <Link href="/admin/organizations/add">
+              <Building className="w-4 h-4 mr-2" />
+              Add Organization
+            </Link>
+          </Button>
+        </div>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-muted-foreground">Loading organizations...</div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -68,7 +112,7 @@ export default function OrganizationsManagement() {
           <p className="text-muted-foreground">Manage organizations and their settings</p>
         </div>
         <Button asChild>
-          <Link href="/admin/organizations/new">
+          <Link href="/admin/organizations/add">
             <Building className="w-4 h-4 mr-2" />
             Add Organization
           </Link>
@@ -99,7 +143,7 @@ export default function OrganizationsManagement() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {organizations.reduce((sum, org) => sum + org.userCount, 0).toLocaleString()}
+              {organizations.reduce((sum, org) => sum + (org.userCount || 0), 0).toLocaleString()}
             </div>
           </CardContent>
         </Card>
@@ -108,7 +152,9 @@ export default function OrganizationsManagement() {
             <CardTitle className="text-sm font-medium">Total Courses</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{organizations.reduce((sum, org) => sum + org.courseCount, 0)}</div>
+            <div className="text-2xl font-bold">
+              {organizations.reduce((sum, org) => sum + (org.courseCount || 0), 0)}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -135,88 +181,111 @@ export default function OrganizationsManagement() {
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Organization</TableHead>
-                <TableHead>TIN</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Users</TableHead>
-                <TableHead>Courses</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredOrganizations.map((org) => (
-                <TableRow key={org.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{org.name}</div>
-                      <div className="text-sm text-muted-foreground">{org.address}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-mono">{org.tin}</TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      <div>{org.contactInfo.phone}</div>
-                      <div className="text-muted-foreground">{org.contactInfo.website}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Users className="w-4 h-4 text-muted-foreground" />
-                      {org.userCount.toLocaleString()}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <BookOpen className="w-4 h-4 text-muted-foreground" />
-                      {org.courseCount}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={org.isActive ? "default" : "secondary"}>
-                      {org.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{new Date(org.createdAt).toLocaleDateString()}</TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem asChild>
-                          <Link href={`/admin/organizations/${org.id}`}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit Organization
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link href={`/admin/organizations/${org.id}/users`}>
-                            <Users className="mr-2 h-4 w-4" />
-                            Manage Users
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-red-600">
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete Organization
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+          {filteredOrganizations.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">
+                No organizations found. Add your first organization to get started.
+              </p>
+              <Button asChild className="mt-4">
+                <Link href="/admin/organizations/add">
+                  <Building className="w-4 h-4 mr-2" />
+                  Add Organization
+                </Link>
+              </Button>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Organization</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>address</TableHead>
+                  <TableHead>Courses</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredOrganizations.map((org) => (
+                  <TableRow key={org.id}>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{org.name}</div>
+                        <div className="text-sm text-muted-foreground truncate">{org.description}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div>{org.phoneNumber}</div>
+                        <div className="text-muted-foreground">{org.website}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        {(org.address)}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <BookOpen className="w-4 h-4 text-muted-foreground" />
+                        {org.courseCount || 0}
+                      </div>
+                    </TableCell>
+                    <TableCell>{org.createdAt ? new Date(org.createdAt).toLocaleDateString() : "N/A"}</TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/admin/organizations/add?id=${org.id}`}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit Organization
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/admin/organizations/${org.id}/users`}>
+                              <Users className="mr-2 h-4 w-4" />
+                              Manage Users
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteClick(org.id)}>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete Organization
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
+
+      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Delete Organization</DialogTitle>
+      <DialogDescription>
+        Are you sure you want to delete this organization? This action cannot be undone.
+      </DialogDescription>
+    </DialogHeader>
+    <DialogFooter className="flex gap-2">
+      <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>Cancel</Button>
+      <Button className="bg-red-600 text-white" onClick={confirmDelete} disabled={isDeleting}>
+        {isDeleting ? "Deleting..." : "Delete"}
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+
     </div>
   )
 }
