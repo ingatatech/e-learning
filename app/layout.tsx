@@ -6,6 +6,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/hooks/use-auth"
 import { Suspense } from "react"
+import Script from "next/script" 
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -29,6 +30,12 @@ export default function RootLayout({
           </ThemeProvider>
           <Analytics />
         </Suspense>
+
+        {/* Google Identity SDK */}
+        <Script
+          src="https://accounts.google.com/gsi/client"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   )

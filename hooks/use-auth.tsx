@@ -20,6 +20,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null
+  setUser: (user: User | null) => void
   isLoading: boolean
   login: (email: string, password: string) => Promise<{ success: boolean; message?: any } | undefined>
   verifyOtp: (email: string, otp: string) => Promise<{ success: boolean; message?: any } | undefined>
@@ -152,6 +153,7 @@ const register = async (registerData: RegisterData) => {
     <AuthContext.Provider
       value={{
         user,
+        setUser,
         isLoading,
         login,
         verifyOtp,
