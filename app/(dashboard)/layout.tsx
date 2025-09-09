@@ -12,7 +12,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { user, isLoading } = useAuth()
+  const { user, isLoading, token } = useAuth()
 
   if (isLoading) {
     return (
@@ -22,7 +22,7 @@ export default function DashboardLayout({
     )
   }
 
-  if (!user) {
+  if (!user || !token) {
     return null // Middleware will redirect to login
   }
 
@@ -30,7 +30,7 @@ export default function DashboardLayout({
     <div className="min-h-screen bg-background">
       <Header user={user} />
       <div className="flex">
-        <Sidebar userRole={user.role as "admin" | "instructor" | "student"} />
+        <Sidebar userRole={user.role as "admin" | "system-administrator" | "instructor" | "student"} />
         <main className="flex-1 p-6 overflow-auto min-h-screen">{children}</main>
       </div>
     </div>

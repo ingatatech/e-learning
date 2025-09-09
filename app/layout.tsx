@@ -12,7 +12,7 @@ import "./globals.css"
 export const metadata: Metadata = {
   title: "Ingata E-learning - Learning Management System",
   description:
-    "A comprehensive Learning Management System with gamification, multi-language support, and advanced analytics",
+    "A comprehensive Learning Management System with gamification, and advanced analytics",
   generator: "v0.app",
 }
 

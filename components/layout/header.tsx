@@ -41,7 +41,7 @@ export function Header({ user }: HeaderProps) {
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto px-4 py-4">
+      <div className="mx-auto px-10 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
@@ -51,25 +51,6 @@ export function Header({ user }: HeaderProps) {
             <h1 className="text-xl font-bold text-primary">Ingata E-learning</h1>
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-6">
-            <Link href="/courses" className="text-sm font-medium hover:text-primary transition-colors">
-              Courses
-            </Link>
-            <Link href="/leaderboard" className="text-sm font-medium hover:text-primary transition-colors">
-              Leaderboard
-            </Link>
-            {user?.role === "instructor" && (
-              <Link href="/instructor" className="text-sm font-medium hover:text-primary transition-colors">
-                Instructor
-              </Link>
-            )}
-            {user?.role === "admin" && (
-              <Link href="/admin" className="text-sm font-medium hover:text-primary transition-colors">
-                Admin
-              </Link>
-            )}
-          </nav>
 
           {/* Right Side */}
           <div className="flex items-center gap-4">

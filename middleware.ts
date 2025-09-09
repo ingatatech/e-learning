@@ -5,9 +5,9 @@ import jwt from "jsonwebtoken"
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"
 
 // Define protected routes
-const protectedRoutes = ["/session"]
+const protectedRoutes = ["/admindd"]
 // const protectedRoutes = ["/admin", "/instructor", "/student", "/profile", "/settings"]
-const authRoutes = ["/login", "/register"]
+const authRoutes = ["/login", "/verify-otp"]
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -24,12 +24,14 @@ export function middleware(request: NextRequest) {
       const dashboardUrl = `/${decoded.role}`
       return NextResponse.redirect(new URL(dashboardUrl, request.url))
     } catch (error) {
+      console.log(error)
       // Invalid token, continue to auth route
     }
   }
 
   // If accessing protected route without token, redirect to login
   if (isProtectedRoute && !accessToken) {
+    console.log("Protected route accessed without token")
     return NextResponse.redirect(new URL("/login", request.url))
   }
 
@@ -49,6 +51,7 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL("/admin", request.url))
       }
     } catch (error) {
+      console.log(error)
       // Invalid token, redirect to login
       return NextResponse.redirect(new URL("/login", request.url))
     }

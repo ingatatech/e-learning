@@ -25,7 +25,6 @@ import {
   GraduationCap,
   Trophy,
   Building,
-  UserCheck,
   UserPlus,
   DollarSign,
   PieChart,
@@ -33,7 +32,7 @@ import {
 } from "lucide-react"
 
 interface SidebarProps {
-  userRole: "admin" | "instructor" | "student"
+  userRole: "admin" | "system-administrator" | "instructor" | "student"
   className?: string
 }
 

@@ -16,6 +16,7 @@ interface User {
   level: number
   streakDays: number
   organizationId?: string
+  firstLogin?: boolean
 }
 
 interface AuthContextType {
@@ -101,7 +102,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(data.user)
       localStorage.setItem("Euser", JSON.stringify(data.user))
       localStorage.setItem("Etoken", JSON.stringify(data.token))
-      router.push(`${data.user.role}`)
+      document.cookie = `accessToken=${data.token}; path=/;`
+      if (data.user.firstLogin) {
+        router.push("/change-password")
+      } else {
+        router.push(`/${data.user.role}`)
+      }
     } catch (error) {
       return { success: false, message: "Something went wrong. Try again." }
     } finally {
@@ -132,6 +138,7 @@ const register = async (registerData: RegisterData) => {
       await fetch(`${API_BASE_URL}/auth/logout`, { method: "POST" })
       setUser(null)
       localStorage.removeItem("Euser")
+      localStorage.removeItem("Etoken")
       router.push("/login")
     } catch (error) {
       console.error("Logout error:", error)

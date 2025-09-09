@@ -14,7 +14,7 @@ export default function LoginPage() {
     const router = useRouter()
     
     useEffect(() => {
-      if (user) {
+      if (user && !user.firstLogin) {
         router.push(`/${user.role}`) 
       } else {
         // stay on login/verify page
