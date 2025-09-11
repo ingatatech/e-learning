@@ -226,7 +226,7 @@ export function CourseCreationWizard() {
                   w-12 h-12 rounded-full flex items-center justify-center mb-2 transition-all relative
                   ${
                     index === currentStep
-                      ? "bg-primary-500 text-white shadow-lg scale-110"
+                      ? "bg-primary-500 text-gray-900 dark:text-white shadow-lg scale-110"
                       : index < currentStep
                         ? "bg-green-500 text-white"
                         : "bg-gray-200 text-gray-400 dark:bg-gray-700"
