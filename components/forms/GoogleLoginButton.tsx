@@ -36,13 +36,12 @@ export function GoogleLoginButton({ onError }: GoogleLoginButtonProps) {
         setUser(data.user);
         localStorage.setItem("Euser", JSON.stringify(data.user))
         localStorage.setItem("Etoken", JSON.stringify(data.accessToken))
-      document.cookie = `accessToken=${data.accessToken}; path=/;`
-      console.log(data.user)
-        if (data.user.firstLogin) {
-        router.push("/change-password")
-      } else {
-        router.push(`/${data.user.role}`)
-      }
+        document.cookie = `accessToken=${data.accessToken}; path=/;`
+          if (data.user.firstLogin) {
+          router.push("/change-password")
+        } else {
+          router.push(`/${data.user.role}`)
+        }
       } catch (err: any) {
         if (onError) onError(err.message || "Something went wrong");
       } finally {

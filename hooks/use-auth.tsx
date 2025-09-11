@@ -15,8 +15,11 @@ interface User {
   totalPoints: number
   level: number
   streakDays: number
-  organizationId?: string
-  firstLogin?: boolean
+  firstLofin: boolean
+  organization: {
+    id: string
+    name: string
+  }
 }
 
 interface AuthContextType {
@@ -135,7 +138,6 @@ const register = async (registerData: RegisterData) => {
 
   const logout = async () => {
     try {
-      await fetch(`${API_BASE_URL}/auth/logout`, { method: "POST" })
       setUser(null)
       localStorage.removeItem("Euser")
       localStorage.removeItem("Etoken")
