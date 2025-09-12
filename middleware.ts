@@ -1,31 +1,39 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
-import jwt from "jsonwebtoken"
+import { jwtVerify } from "jose"
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"
 
+// turn secret into Uint8Array because jose is picky
+const secret = new TextEncoder().encode(JWT_SECRET)
+
 // Define protected routes
-const protectedRoutes = ["/admindd"]
-// const protectedRoutes = ["/admin", "/instructor", "/student", "/profile", "/settings"]
+const protectedRoutes = ["/admin", "/instructor", "/student", "/profile", "/settings"]
 const authRoutes = ["/login", "/verify-otp"]
 
-export function middleware(request: NextRequest) {
+async function verifyToken(token: string) {
+  try {
+    const { payload } = await jwtVerify(token, secret)
+    return payload
+  } catch (err) {
+    console.error("Token verification failed:", err)
+    return null
+  }
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const accessToken = request.cookies.get("accessToken")?.value
 
-  // Check if route is protected
   const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route))
   const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route))
 
   // If accessing auth routes while logged in, redirect to dashboard
   if (isAuthRoute && accessToken) {
-    try {
-      const decoded = jwt.verify(accessToken, JWT_SECRET) as any
+    const decoded: any = await verifyToken(accessToken)
+    if (decoded) {
       const dashboardUrl = `/${decoded.role}`
       return NextResponse.redirect(new URL(dashboardUrl, request.url))
-    } catch (error) {
-      console.log(error)
-      // Invalid token, continue to auth route
     }
   }
 
@@ -37,23 +45,15 @@ export function middleware(request: NextRequest) {
 
   // If accessing protected route with token, verify it
   if (isProtectedRoute && accessToken) {
-    try {
-      const decoded = jwt.verify(accessToken, JWT_SECRET) as any
-
-      // Check role-based access
-      if (pathname.startsWith("/admin") && decoded.role !== "admin") {
-        return NextResponse.redirect(new URL(`/${decoded.role}`, request.url))
-      }
-      if (pathname.startsWith("/instructor") && !["admin", "instructor"].includes(decoded.role)) {
-        return NextResponse.redirect(new URL(`/${decoded.role}`, request.url))
-      }
-      if (pathname.startsWith("/student") && decoded.role === "admin") {
-        return NextResponse.redirect(new URL("/admin", request.url))
-      }
-    } catch (error) {
-      console.log(error)
-      // Invalid token, redirect to login
+    const decoded: any = await verifyToken(accessToken)
+    if (!decoded) {
       return NextResponse.redirect(new URL("/login", request.url))
+    }
+
+
+    // Role checks
+    if (!pathname.startsWith(`/${decoded.role}`)) {
+      return NextResponse.redirect(new URL(`/${decoded.role}`, request.url))
     }
   }
 

@@ -6,11 +6,27 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { BookOpen, Users, Star, Clock, Play, Edit, Eye, TrendingUp, Search, Filter, Grid3X3, List, Trophy, Target, Zap, Award } from "lucide-react"
+import {
+  BookOpen,
+  Users,
+  Star,
+  Clock,
+  Play,
+  Edit,
+  Eye,
+  TrendingUp,
+  Search,
+  Filter,
+  Grid3X3,
+  List,
+  Trophy,
+  Target,
+  Zap,
+  Award,
+} from "lucide-react"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import { CourseLevel, type Course } from "@/types"
-import { useAuth } from "@/hooks/use-auth"
 
 export default function CourseOverviewPage() {
   const [courses, setCourses] = useState<Course[]>([])
@@ -19,29 +35,115 @@ export default function CourseOverviewPage() {
   const [filterStatus, setFilterStatus] = useState<"all" | "published" | "draft">("all")
   const [sortBy, setSortBy] = useState<"title" | "students" | "rating" | "created">("created")
   const [loading, setLoading] = useState(true)
-  const { token, user } = useAuth()
 
+  // Mock data - replace with real API call
   useEffect(() => {
-    const fetcCourses = async () => {
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/instructor/${user?.id}/courses`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+    const mockCourses: Course[] = [
+      {
+        id: "1",
+        title: "Complete React Development Bootcamp",
+        description:
+          "Master React from basics to advanced concepts with hands-on projects and real-world applications.",
+        thumbnail: "/react-development-course.png",
+        level: CourseLevel.INTERMEDIATE,
+        price: 99.99,
+        isPublished: true,
+        duration: 2400, // 40 hours
+        enrollmentCount: 324,
+        rating: 4.9,
+        tags: ["React", "JavaScript", "Web Development", "Frontend"],
+        instructorId: "instructor-1",
+        createdAt: new Date("2024-01-15"),
+        updatedAt: new Date("2024-03-10"),
+        modules: [
+          {
+            id: "m1",
+            title: "React Fundamentals",
+            description: "",
+            order: 1,
+            courseId: "1",
+            createdAt: new Date(),
+            updatedAt: new Date(),
           },
-        })
-        if (response.ok) {
-          const data = await response.json()
-          setCourses(data.courses)
-        }
-      } catch (error) {
-        console.error("Failed to fetch users:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
+          {
+            id: "m2",
+            title: "State Management",
+            description: "",
+            order: 2,
+            courseId: "1",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: "m3",
+            title: "Advanced Patterns",
+            description: "",
+            order: 3,
+            courseId: "1",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+      },
+      {
+        id: "2",
+        title: "Advanced JavaScript Mastery",
+        description: "Deep dive into JavaScript concepts, ES6+, async programming, and modern development patterns.",
+        thumbnail: "https://bairesdev.mo.cloudinary.net/blog/2023/08/What-Is-JavaScript-Used-For.jpg",
+        level: CourseLevel.ADVANCED,
+        price: 129.99,
+        isPublished: true,
+        duration: 1800, // 30 hours
+        enrollmentCount: 256,
+        rating: 4.7,
+        tags: ["JavaScript", "ES6", "Async", "Programming"],
+        instructorId: "instructor-1",
+        createdAt: new Date("2024-02-01"),
+        updatedAt: new Date("2024-03-08"),
+        modules: [
+          {
+            id: "m4",
+            title: "Advanced Functions",
+            description: "",
+            order: 1,
+            courseId: "2",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: "m5",
+            title: "Async Programming",
+            description: "",
+            order: 2,
+            courseId: "2",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+      },
+      {
+        id: "3",
+        title: "Node.js Backend Development",
+        description: "Build scalable backend applications with Node.js, Express, and modern database technologies.",
+        thumbnail: "/nodejs-backend-development.jpg",
+        level: CourseLevel.ADVANCED,
+        price: 89.99,
+        isPublished: false,
+        duration: 0,
+        enrollmentCount: 0,
+        rating: 0,
+        tags: ["Node.js", "Backend", "API", "Database"],
+        instructorId: "instructor-1",
+        createdAt: new Date("2024-03-15"),
+        updatedAt: new Date("2024-03-15"),
+        modules: [],
+      },
+    ]
 
-    fetcCourses()
+    setTimeout(() => {
+      setCourses(mockCourses)
+      setLoading(false)
+    }, 1000)
   }, [])
 
   const filteredCourses = courses
@@ -128,7 +230,7 @@ export default function CourseOverviewPage() {
         {/* Course Thumbnail */}
         <div className="relative overflow-hidden">
           <img
-            src={ course.thumbnail || "/placeholder0.svg"}
+            src={course.thumbnail || "/placeholder.svg"}
             alt={course.title}
             className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
           />
@@ -162,7 +264,7 @@ export default function CourseOverviewPage() {
               {course.level.charAt(0).toUpperCase() + course.level.slice(1)}
             </Badge>
             <div className="text-right">
-              <div className="text-lg font-bold text-primary">{course.price == 0 || null ? "Free" : `${course.price} RWF`}</div>
+              <div className="text-lg font-bold text-primary">${course.price}</div>
               {course.isPublished && (
                 <div className="flex items-center gap-1 text-sm">
                   <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
@@ -191,7 +293,7 @@ export default function CourseOverviewPage() {
             </div>
             <div className="flex items-center gap-1 text-muted-foreground">
               <Clock className="w-4 h-4" />
-              <span>{course.duration > 0 ? formatDuration(course.duration) : "Not Set"}</span>
+              <span>{course.duration > 0 ? formatDuration(course.duration) : "Draft"}</span>
             </div>
           </div>
 
@@ -214,8 +316,7 @@ export default function CourseOverviewPage() {
             <Button className="flex-1" asChild>
               <Link href={`/instructor/courses/${course.id}`}>
                 <Play className="w-4 h-4 mr-2" />
-                {/* {course.isPublished ? "Manage" : "Continue"} */}
-                Manage
+                {course.isPublished ? "Manage" : "Continue"}
               </Link>
             </Button>
             <Button variant="outline" size="sm" asChild>

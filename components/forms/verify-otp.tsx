@@ -76,9 +76,6 @@ export function OTPVerificationForm() {
     e?.preventDefault()
     setError("")
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
       // Check if all fields are filled
       if (otp.some(digit => digit === "")) {
         setError("Please enter the complete verification code")

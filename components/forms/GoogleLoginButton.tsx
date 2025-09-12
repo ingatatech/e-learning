@@ -27,6 +27,7 @@ export function GoogleLoginButton({ onError }: GoogleLoginButtonProps) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token }),
+          credentials: "include",
         });
         const data = await res.json();
         if (!res.ok) {
@@ -36,9 +37,8 @@ export function GoogleLoginButton({ onError }: GoogleLoginButtonProps) {
         setUser(data.user);
         localStorage.setItem("Euser", JSON.stringify(data.user))
         localStorage.setItem("Etoken", JSON.stringify(data.accessToken))
-        document.cookie = `accessToken=${data.accessToken}; path=/;`
-          if (data.user.firstLogin) {
-          router.push("/change-password")
+        if (data.user.firstLogin) {
+        router.push("/change-password")
         } else {
           router.push(`/${data.user.role}`)
         }

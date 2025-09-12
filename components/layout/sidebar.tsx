@@ -6,30 +6,7 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import {
-  BookOpen,
-  BarChart3,
-  Users,
-  Settings,
-  Award,
-  TrendingUp,
-  Calendar,
-  MessageSquare,
-  FileText,
-  CreditCard,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  ChevronUp,
-  Home,
-  GraduationCap,
-  Trophy,
-  Building,
-  UserPlus,
-  DollarSign,
-  PieChart,
-  BookPlus,
-} from "lucide-react"
+import { BookOpen, BarChart3, Users, Settings, Award, TrendingUp, Calendar, MessageSquare, FileText, CreditCard, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Home, GraduationCap, Trophy, Building, UserPlus, DollarSign, PieChart, BookPlus, FileSearch } from "lucide-react"
 
 interface SidebarProps {
   userRole: "admin" | "system-administrator" | "instructor" | "student"
@@ -47,6 +24,7 @@ const navigationItems: Record<string, NavigationItem[]> = {
   student: [
     { name: "Dashboard", href: "/student", icon: Home },
     { name: "My Courses", href: "/student/courses", icon: BookOpen },
+    { name: "Explore Courses", href: "/courses", icon: FileSearch },
     { name: "Progress", href: "/student/progress", icon: TrendingUp },
     { name: "Achievements", href: "/student/achievements", icon: Award },
     { name: "Gamification", href: "/gamification", icon: Trophy },
@@ -55,7 +33,14 @@ const navigationItems: Record<string, NavigationItem[]> = {
   ],
   instructor: [
     { name: "Dashboard", href: "/instructor", icon: Home },
-    { name: "My Courses", href: "/instructor/courses", icon: BookOpen },
+    { 
+      name: "My Courses", 
+      icon: BookOpen,
+      children: [
+        { name: "Add Course", href: "/instructor/courses/create", icon: BookPlus },
+        { name: "All Courses", href: "/instructor/courses", icon: BookOpen }, 
+      ]
+    },
     { name: "Students", href: "/instructor/students", icon: Users },
     { name: "Analytics", href: "/instructor/analytics", icon: BarChart3 },
     { name: "Gamification", href: "/gamification", icon: Trophy },
@@ -194,7 +179,7 @@ export function Sidebar({ userRole, className }: SidebarProps) {
             <div className="w-8 h-8 bg-sidebar-primary rounded-lg flex items-center justify-center">
               <BookOpen className="w-5 h-5 text-sidebar-primary-foreground" />
             </div>
-            <span className="font-semibold text-sidebar-primary">Ingata E-learning</span>
+            <span className="font-semibold text-sidebar-primary pl-2">{userRole.charAt(0).toUpperCase() + userRole.slice(1)}</span>
           </div>
         )}
         <Button variant="ghost" size="sm" onClick={() => setIsCollapsed(!isCollapsed)} className="h-8 w-8 p-0">

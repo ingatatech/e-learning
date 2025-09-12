@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,95 +9,124 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Star, Clock, Users, Play, BookOpen } from "lucide-react"
 import Link from "next/link"
 import { Header } from "@/components/layout/header"
+import { useAuth } from "@/hooks/use-auth"
 
 export default function CoursesPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedLevel, setSelectedLevel] = useState("all")
   const [selectedCategory, setSelectedCategory] = useState("all")
+  const [courses, setCourses] = useState([])
+  const [loading, setLoading] = useState(false)
+  const { token, user } = useAuth()
+
+  useEffect(() => {
+    const fetcCourses = async () => {
+      if (!user || !token) return
+      setLoading(true)
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/organization/${user?.organization.id}/courses`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setCourses(data.courses)
+        }
+      } catch (error) {
+        console.error("Failed to fetch courses:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetcCourses()
+  }, [user, token])
 
   // Mock courses data
-  const courses = [
-    {
-      id: "1",
-      title: "Complete React Development Course",
-      description: "Master React from basics to advanced concepts with hands-on projects",
-      instructor: "Sarah Johnson",
-      instructorAvatar: "/placeholder.svg?height=40&width=40",
-      thumbnail: "/react-course-thumbnail.png",
-      level: "intermediate",
-      category: "Web Development",
-      price: 99,
-      originalPrice: 149,
-      rating: 4.9,
-      reviewCount: 1247,
-      studentCount: 3420,
-      duration: "12 weeks",
-      lessonsCount: 45,
-      tags: ["React", "JavaScript", "Frontend"],
-      isPopular: true,
-      lastUpdated: "2024-03-10",
-    },
-    {
-      id: "2",
-      title: "Python for Data Science",
-      description: "Learn Python programming and data analysis with real-world projects",
-      instructor: "Dr. Michael Chen",
-      instructorAvatar: "/placeholder.svg?height=40&width=40",
-      thumbnail: "/python-data-science-course.png",
-      level: "beginner",
-      category: "Data Science",
-      price: 79,
-      originalPrice: 120,
-      rating: 4.8,
-      reviewCount: 892,
-      studentCount: 2156,
-      duration: "10 weeks",
-      lessonsCount: 38,
-      tags: ["Python", "Data Science", "Analytics"],
-      isPopular: false,
-      lastUpdated: "2024-03-08",
-    },
-    {
-      id: "3",
-      title: "UI/UX Design Masterclass",
-      description: "Create stunning user interfaces and experiences with modern design principles",
-      instructor: "Emma Wilson",
-      instructorAvatar: "/placeholder.svg?height=40&width=40",
-      thumbnail: "/ui-ux-design-course.png",
-      level: "advanced",
-      category: "Design",
-      price: 129,
-      originalPrice: 199,
-      rating: 4.9,
-      reviewCount: 567,
-      studentCount: 1890,
-      duration: "8 weeks",
-      lessonsCount: 32,
-      tags: ["UI/UX", "Design", "Figma"],
-      isPopular: true,
-      lastUpdated: "2024-03-12",
-    },
-    {
-      id: "4",
-      title: "Node.js Backend Development",
-      description: "Build scalable backend applications with Node.js and Express",
-      instructor: "James Rodriguez",
-      instructorAvatar: "/placeholder.svg?height=40&width=40",
-      thumbnail: "/nodejs-backend-course.png",
-      level: "intermediate",
-      category: "Backend Development",
-      price: 89,
-      originalPrice: 139,
-      rating: 4.7,
-      reviewCount: 423,
-      studentCount: 1234,
-      duration: "9 weeks",
-      lessonsCount: 41,
-      tags: ["Node.js", "Express", "Backend"],
-      isPopular: false,
-      lastUpdated: "2024-03-05",
-    },
-  ]
+  // const courses = [
+  //   {
+  //     id: "1",
+  //     title: "Complete React Development Course",
+  //     description: "Master React from basics to advanced concepts with hands-on projects",
+  //     instructor: "Sarah Johnson",
+  //     instructorAvatar: "/placeholder.svg?height=40&width=40",
+  //     thumbnail: "/react-course-thumbnail.png",
+  //     level: "intermediate",
+  //     category: "Web Development",
+  //     price: 99,
+  //     originalPrice: 149,
+  //     rating: 4.9,
+  //     reviewCount: 1247,
+  //     studentCount: 3420,
+  //     duration: "12 weeks",
+  //     lessonsCount: 45,
+  //     tags: ["React", "JavaScript", "Frontend"],
+  //     isPopular: true,
+  //     lastUpdated: "2024-03-10",
+  //   },
+  //   {
+  //     id: "2",
+  //     title: "Python for Data Science",
+  //     description: "Learn Python programming and data analysis with real-world projects",
+  //     instructor: "Dr. Michael Chen",
+  //     instructorAvatar: "/placeholder.svg?height=40&width=40",
+  //     thumbnail: "/python-data-science-course.png",
+  //     level: "beginner",
+  //     category: "Data Science",
+  //     price: 79,
+  //     originalPrice: 120,
+  //     rating: 4.8,
+  //     reviewCount: 892,
+  //     studentCount: 2156,
+  //     duration: "10 weeks",
+  //     lessonsCount: 38,
+  //     tags: ["Python", "Data Science", "Analytics"],
+  //     isPopular: false,
+  //     lastUpdated: "2024-03-08",
+  //   },
+  //   {
+  //     id: "3",
+  //     title: "UI/UX Design Masterclass",
+  //     description: "Create stunning user interfaces and experiences with modern design principles",
+  //     instructor: "Emma Wilson",
+  //     instructorAvatar: "/placeholder.svg?height=40&width=40",
+  //     thumbnail: "/ui-ux-design-course.png",
+  //     level: "advanced",
+  //     category: "Design",
+  //     price: 129,
+  //     originalPrice: 199,
+  //     rating: 4.9,
+  //     reviewCount: 567,
+  //     studentCount: 1890,
+  //     duration: "8 weeks",
+  //     lessonsCount: 32,
+  //     tags: ["UI/UX", "Design", "Figma"],
+  //     isPopular: true,
+  //     lastUpdated: "2024-03-12",
+  //   },
+  //   {
+  //     id: "4",
+  //     title: "Node.js Backend Development",
+  //     description: "Build scalable backend applications with Node.js and Express",
+  //     instructor: "James Rodriguez",
+  //     instructorAvatar: "/placeholder.svg?height=40&width=40",
+  //     thumbnail: "/nodejs-backend-course.png",
+  //     level: "intermediate",
+  //     category: "Backend Development",
+  //     price: 89,
+  //     originalPrice: 139,
+  //     rating: 4.7,
+  //     reviewCount: 423,
+  //     studentCount: 1234,
+  //     duration: "9 weeks",
+  //     lessonsCount: 41,
+  //     tags: ["Node.js", "Express", "Backend"],
+  //     isPopular: false,
+  //     lastUpdated: "2024-03-05",
+  //   },
+  // ]
 
   const filteredCourses = courses.filter((course) => {
     const matchesSearch =
@@ -113,6 +142,20 @@ export default function CoursesPage() {
 
   const categories = ["Web Development", "Data Science", "Design", "Backend Development", "Mobile Development"]
   const levels = ["beginner", "intermediate", "advanced"]
+
+  // Show loading state
+    if (loading) {
+      return (
+        <div className="min-h-screen bg-background">
+          <Header />
+          <div className="container mx-auto px-4 py-8">
+            <div className="flex justify-center items-center h-64">
+              <p>Loading courses...</p>
+            </div>
+          </div>
+        </div>
+      )
+    }
 
   return (
     <div className="min-h-screen bg-background">
@@ -218,13 +261,13 @@ export default function CoursesPage() {
                     alt={course.instructor}
                     className="w-6 h-6 rounded-full"
                   />
-                  <span className="text-sm text-muted-foreground">{course.instructor}</span>
+                  {/* <span className="text-sm text-muted-foreground">{course.instructor}</span> */}
                 </div>
 
                 <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
                   <div className="flex items-center gap-1">
                     <Users className="w-4 h-4" />
-                    {course.studentCount.toLocaleString()}
+                    {course.enrollmentCount?.toLocaleString()}
                   </div>
                   <div className="flex items-center gap-1">
                     <BookOpen className="w-4 h-4" />

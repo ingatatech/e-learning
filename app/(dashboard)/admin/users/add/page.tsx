@@ -169,8 +169,11 @@ export default function AddUserPage() {
                 onChange={(e) => handleInputChange("email", e.target.value)}
                 placeholder="johndoe@example.com"
                 required
+                readOnly={!!userId}
+                disabled={!!userId}
               />
             </div>
+            {userId && <p className="text-muted-foreground text-sm">Email address is not allowed to be changed.</p>}
 
             <div className="space-y-2">
               <Label htmlFor="role">Role</Label>

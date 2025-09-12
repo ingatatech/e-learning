@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { use, useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -8,108 +8,136 @@ import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Play, Clock, Users, Star, Share2, Heart, CheckCircle, Lock } from "lucide-react"
+import { Play, Clock, Users, Star, Share2, Heart, CheckCircle, Lock, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { Header } from "@/components/layout/header"
+import { useAuth } from "@/hooks/use-auth"
+import { Course } from "@/types"
 
-export default function CourseDetailPage({ params }: { params: { id: string } }) {
+export default function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const [isEnrolled, setIsEnrolled] = useState(false)
+  const [isEnrolling, setIsEnrolling] = useState(false)
   const [currentProgress, setCurrentProgress] = useState(0)
+  const { token, user } = useAuth()
+  const { id } = use(params)
+  const [course, setCourse] = useState<Course | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Mock course data
-  const course = {
-    id: params.id,
-    title: "Complete React Development Course",
-    description: "Master React from basics to advanced concepts with hands-on projects and real-world applications",
-    longDescription: `
-      This comprehensive React course will take you from a complete beginner to an advanced React developer. 
-      You'll learn all the core concepts, best practices, and modern techniques used in professional React development.
+    useEffect(() => {
+    const fetchCourseAndEnrollment = async () => {
+      if (!token || !user) return
       
-      Throughout the course, you'll build multiple projects including a todo app, weather dashboard, e-commerce site, 
-      and a full-stack social media application. By the end, you'll have the skills and confidence to build any 
-      React application from scratch.
-    `,
-    instructor: {
-      name: "Sarah Johnson",
-      avatar: "/placeholder.svg?height=80&width=80",
-      title: "Senior React Developer",
-      bio: "Sarah has 8+ years of experience in frontend development and has worked with companies like Google and Netflix.",
-      rating: 4.9,
-      students: 15420,
-      courses: 12,
-    },
-    thumbnail: "/react-course-hero-image.jpg",
-    level: "intermediate",
-    category: "Web Development",
-    price: 99,
-    originalPrice: 149,
-    rating: 4.9,
-    reviewCount: 1247,
-    studentCount: 3420,
-    duration: "12 weeks",
-    totalHours: 24,
-    lessonsCount: 45,
-    projectsCount: 8,
-    certificateIncluded: true,
-    lastUpdated: "March 2024",
-    language: "English",
-    tags: ["React", "JavaScript", "Frontend", "Web Development"],
-    requirements: [
-      "Basic knowledge of HTML, CSS, and JavaScript",
-      "Familiarity with ES6+ features",
-      "A computer with internet connection",
-      "Code editor (VS Code recommended)",
-    ],
-    whatYouWillLearn: [
-      "Build modern React applications from scratch",
-      "Master React Hooks and Context API",
-      "Implement state management with Redux",
-      "Create responsive and interactive UIs",
-      "Handle API integration and data fetching",
-      "Deploy React applications to production",
-      "Write clean, maintainable React code",
-      "Debug and optimize React applications",
-    ],
-    modules: [
-      {
-        id: "1",
-        title: "Getting Started with React",
-        duration: "2 hours",
-        lessons: [
-          { id: "1", title: "Introduction to React", duration: "15 min", isCompleted: true, isFree: true },
-          { id: "2", title: "Setting up Development Environment", duration: "20 min", isCompleted: true, isFree: true },
-          { id: "3", title: "Your First React Component", duration: "25 min", isCompleted: false, isFree: false },
-          { id: "4", title: "JSX Fundamentals", duration: "30 min", isCompleted: false, isFree: false },
-        ],
+      try {
+        setLoading(true)
+        
+        // Fetch course details
+        const courseResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/get/${id}`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        
+        if (courseResponse.ok) {
+          const courseData = await courseResponse.json()
+          setCourse(courseData.course)
+          setError(null)
+          
+          // Fetch user enrollments
+          const enrollmentsResponse = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/enrollments/user-enrollments`,
+            {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              method: "POST",
+              body: JSON.stringify({
+                userId: user.id,
+              }),
+            }
+          )
+          
+          if (enrollmentsResponse.ok) {
+            const enrollmentsData = await enrollmentsResponse.json()
+            
+            // Check if current course is in user's enrollments
+            const enrolledCourse = enrollmentsData.enrollments.find(
+              (enrollment: any) => enrollment.courseId.toString() === id
+            )
+            
+            if (enrolledCourse) {
+              setIsEnrolled(true)
+              setCurrentProgress(enrolledCourse.progress || 0)
+            } else {
+              setIsEnrolled(false)
+            }
+          }
+        } else {
+          setError("Failed to fetch course details")
+        }
+      } catch (error) {
+        console.error("Failed to fetch course or enrollment:", error)
+        setError("An error occurred while fetching course details")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchCourseAndEnrollment()
+  }, [token, id, user])
+
+
+  const handleEnroll = async () => {
+    setIsEnrolling(true)
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/enrollments/enroll`, {
+      method: 'POST',
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
-      {
-        id: "2",
-        title: "React Components and Props",
-        duration: "3 hours",
-        lessons: [
-          { id: "5", title: "Functional vs Class Components", duration: "20 min", isCompleted: false, isFree: false },
-          { id: "6", title: "Props and PropTypes", duration: "25 min", isCompleted: false, isFree: false },
-          { id: "7", title: "Component Composition", duration: "30 min", isCompleted: false, isFree: false },
-          { id: "8", title: "Conditional Rendering", duration: "20 min", isCompleted: false, isFree: false },
-        ],
-      },
-      {
-        id: "3",
-        title: "State Management and Hooks",
-        duration: "4 hours",
-        lessons: [
-          { id: "9", title: "useState Hook", duration: "30 min", isCompleted: false, isFree: false },
-          { id: "10", title: "useEffect Hook", duration: "35 min", isCompleted: false, isFree: false },
-          { id: "11", title: "Custom Hooks", duration: "40 min", isCompleted: false, isFree: false },
-          { id: "12", title: "Context API", duration: "45 min", isCompleted: false, isFree: false },
-        ],
-      },
-    ],
+      body: JSON.stringify({
+        userId: user!.id,
+        courseId: course?.id,
+      }),
+    })
+
+    if (response.ok) {
+          setIsEnrolled(true)
+          setIsEnrolling(false)
+    } else {
+      console.error("Enrollment failed")
+      setIsEnrolling(false)
+    }
   }
 
-  const handleEnroll = () => {
-    setIsEnrolled(true)
-    // TODO: Implement actual enrollment logic
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex justify-center items-center h-64">
+            <p>Loading course details...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error state
+  if (error || !course) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex justify-center items-center h-64">
+            <p>{error || "Course not found"}</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -121,6 +149,12 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
           <div className="lg:col-span-2">
             <div className="mb-6">
+              <Button className="mb-6" variant="ghost" size="sm" asChild>
+                            <Link href="/courses/">
+                              <ArrowLeft className="w-4 h-4 mr-2" />
+                              Back to Courses
+                            </Link>
+                          </Button>
               <div className="flex items-center gap-2 mb-4">
                 <Badge variant="secondary">{course.category}</Badge>
                 <Badge variant="outline">{course.level}</Badge>
@@ -133,11 +167,11 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
                 <div className="flex items-center gap-1">
                   <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
                   <span className="font-medium">{course.rating}</span>
-                  <span className="text-muted-foreground">({course.reviewCount} reviews)</span>
+                  <span className="text-muted-foreground">({course.rating} reviews)</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Users className="w-5 h-5 text-muted-foreground" />
-                  <span>{course.studentCount.toLocaleString()} students</span>
+                  <span>{course.enrollmentCount.toLocaleString()} students</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Clock className="w-5 h-5 text-muted-foreground" />
@@ -147,12 +181,14 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
 
               <div className="flex items-center gap-4">
                 <Avatar className="w-12 h-12">
-                  <AvatarImage src={course.instructor.avatar || "/placeholder.svg"} />
-                  <AvatarFallback>SJ</AvatarFallback>
+                  <AvatarImage src={course.instructor?.avatar || "/placeholder.svg"} />
+                  <AvatarFallback>
+                    {course.instructor?.name?.split(' ').map(n => n[0]).join('') || 'IN'}
+                  </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-medium">{course.instructor.name}</p>
-                  <p className="text-sm text-muted-foreground">{course.instructor.title}</p>
+                  <p className="font-medium">{course.instructor?.name || "Instructor"}</p>
+                  <p className="text-sm text-muted-foreground">{course.instructor?.title || ""}</p>
                 </div>
               </div>
             </div>
@@ -183,9 +219,11 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
                       <span className="text-lg text-muted-foreground line-through">${course.originalPrice}</span>
                     )}
                   </div>
-                  <Badge className="bg-red-100 text-red-800">
-                    {Math.round(((course.originalPrice - course.price) / course.originalPrice) * 100)}% OFF
-                  </Badge>
+                  {course.originalPrice > course.price && (
+                    <Badge className="bg-red-100 text-red-800">
+                      {Math.round(((course.originalPrice - course.price) / course.originalPrice) * 100)}% OFF
+                    </Badge>
+                  )}
                 </div>
 
                 {isEnrolled ? (
@@ -201,8 +239,8 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <Button className="w-full" size="lg" onClick={handleEnroll}>
-                      Enroll Now
+                    <Button className="w-full" size="lg" onClick={handleEnroll} disabled={isEnrolling}>
+                      {isEnrolling ? "Enrolling..." : "Enroll Now"}
                     </Button>
                     <Button variant="outline" className="w-full bg-transparent">
                       Add to Wishlist
@@ -225,7 +263,7 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Certificate</span>
-                    <span className="font-medium">Included</span>
+                    <span className="font-medium">{course.certificateIncluded ? "Included" : "Not Included"}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Language</span>
@@ -273,7 +311,7 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {course.whatYouWillLearn.map((item, index) => (
+                  {course.whatYouWillLearn?.map((item, index) => (
                     <div key={index} className="flex items-start gap-3">
                       <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
                       <span className="text-sm">{item}</span>
@@ -289,7 +327,7 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2">
-                  {course.requirements.map((requirement, index) => (
+                  {course.requirements?.map((requirement, index) => (
                     <li key={index} className="flex items-start gap-3">
                       <div className="w-2 h-2 bg-muted-foreground rounded-full mt-2 flex-shrink-0" />
                       <span className="text-sm text-muted-foreground">{requirement}</span>
@@ -305,12 +343,12 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
               <CardHeader>
                 <CardTitle>Course Curriculum</CardTitle>
                 <CardDescription>
-                  {course.modules.length} modules • {course.lessonsCount} lessons • {course.totalHours} hours total
+                  {course.modules?.length || 0} modules • {course.lessonsCount} lessons • {course.totalHours} hours total
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Accordion type="single" collapsible className="w-full">
-                  {course.modules.map((module, moduleIndex) => (
+                  {course.modules?.map((module, moduleIndex) => (
                     <AccordionItem key={module.id} value={module.id}>
                       <AccordionTrigger className="text-left">
                         <div className="flex items-center justify-between w-full mr-4">
@@ -318,13 +356,13 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
                             {moduleIndex + 1}. {module.title}
                           </span>
                           <span className="text-sm text-muted-foreground">
-                            {module.lessons.length} lessons • {module.duration}
+                            {module.lessons?.length || 0} lessons • {module.duration}
                           </span>
                         </div>
                       </AccordionTrigger>
                       <AccordionContent>
                         <div className="space-y-2 pl-4">
-                          {module.lessons.map((lesson, lessonIndex) => (
+                          {module.lessons?.map((lesson) => (
                             <div key={lesson.id} className="flex items-center justify-between p-3 rounded-lg border">
                               <div className="flex items-center gap-3">
                                 {lesson.isCompleted ? (
@@ -363,29 +401,31 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
               <CardContent>
                 <div className="flex items-start gap-6">
                   <Avatar className="w-24 h-24">
-                    <AvatarImage src={course.instructor.avatar || "/placeholder.svg"} />
-                    <AvatarFallback>SJ</AvatarFallback>
+                    <AvatarImage src={course.instructor?.avatar || "/placeholder.svg"} />
+                    <AvatarFallback>
+                      {course.instructor?.name?.split(' ').map(n => n[0]).join('') || 'IN'}
+                    </AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
-                    <h3 className="text-xl font-bold mb-2">{course.instructor.name}</h3>
-                    <p className="text-muted-foreground mb-4">{course.instructor.title}</p>
+                    <h3 className="text-xl font-bold mb-2">{course.instructor?.name || "Instructor"}</h3>
+                    <p className="text-muted-foreground mb-4">{course.instructor?.title || ""}</p>
 
                     <div className="grid grid-cols-3 gap-4 mb-4">
                       <div className="text-center">
-                        <div className="text-2xl font-bold">{course.instructor.rating}</div>
+                        <div className="text-2xl font-bold">{course.instructor?.rating || 0}</div>
                         <div className="text-sm text-muted-foreground">Rating</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-2xl font-bold">{course.instructor.students.toLocaleString()}</div>
+                        <div className="text-2xl font-bold">{(course.instructor?.students || 0).toLocaleString()}</div>
                         <div className="text-sm text-muted-foreground">Students</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-2xl font-bold">{course.instructor.courses}</div>
+                        <div className="text-2xl font-bold">{course.instructor?.courses || 0}</div>
                         <div className="text-sm text-muted-foreground">Courses</div>
                       </div>
                     </div>
 
-                    <p className="text-muted-foreground leading-relaxed">{course.instructor.bio}</p>
+                    <p className="text-muted-foreground leading-relaxed">{course.instructor?.bio || ""}</p>
                   </div>
                 </div>
               </CardContent>

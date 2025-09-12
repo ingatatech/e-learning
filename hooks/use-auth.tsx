@@ -95,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ email, otp }),
+        credentials: "include",
       })
 
       const data = await response.json()
@@ -105,7 +106,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(data.user)
       localStorage.setItem("Euser", JSON.stringify(data.user))
       localStorage.setItem("Etoken", JSON.stringify(data.token))
-      document.cookie = `accessToken=${data.token}; path=/;`
       if (data.user.firstLogin) {
         router.push("/change-password")
       } else {
@@ -138,6 +138,7 @@ const register = async (registerData: RegisterData) => {
 
   const logout = async () => {
     try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, { method: "POST", credentials: "include" })
       setUser(null)
       localStorage.removeItem("Euser")
       localStorage.removeItem("Etoken")
