@@ -102,7 +102,7 @@ export default function CourseOverviewPage() {
       whileHover={{ y: -5 }}
       className="group"
     >
-      <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/20 relative">
+      <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/20 relative pt-0">
         {/* Gamification Elements */}
         <div className="absolute top-3 left-3 z-10 flex gap-2">
           {course.isPublished && (

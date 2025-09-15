@@ -8,7 +8,20 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { FileText, Video, Upload, ImageIcon, FileDown, Trash2, GripVertical, Clock, Save } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
+import {
+  FileText,
+  Video,
+  Upload,
+  ImageIcon,
+  FileDown,
+  Trash2,
+  GripVertical,
+  Clock,
+  Save,
+  Briefcase,
+  Zap,
+} from "lucide-react"
 import type { Lesson } from "@/types"
 
 interface ContentBlock {
@@ -340,6 +353,40 @@ export function LessonEditor({ lesson, onUpdate, onDelete }: LessonEditorProps) 
                     onChange={(e) => onUpdate({ videoUrl: e.target.value })}
                     placeholder="https://youtube.com/watch?v=..."
                   />
+                </div>
+
+                <div className="space-y-4 pt-4 border-t">
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-gray-900 dark:text-white">Lesson Type</h4>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="flex items-center gap-2">
+                          <Briefcase className="w-4 h-4" />
+                          Project Lesson
+                        </Label>
+                        <p className="text-sm text-gray-500">This lesson contains a hands-on project</p>
+                      </div>
+                      <Switch
+                        checked={lesson.isProject || false}
+                        onCheckedChange={(checked) => onUpdate({ isProject: checked })}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="flex items-center gap-2">
+                          <Zap className="w-4 h-4" />
+                          Exercise Lesson
+                        </Label>
+                        <p className="text-sm text-gray-500">This lesson includes practical exercises</p>
+                      </div>
+                      <Switch
+                        checked={lesson.isExercise || false}
+                        onCheckedChange={(checked) => onUpdate({ isExercise: checked })}
+                      />
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>

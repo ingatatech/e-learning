@@ -34,6 +34,8 @@ export function LessonBuilderStep({ modules, setModules, onNext, onPrevious }: L
       duration: 0,
       order: (currentModule?.lessons?.length || 0) + 1,
       moduleId,
+      isProject: false,
+      isExercise: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     }

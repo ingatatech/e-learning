@@ -31,7 +31,7 @@ export interface User {
   email: string
   firstName: string
   lastName: string
-  avatar?: string
+  profilePicUrl?: string
   role: UserRole
   isEmailVerified: boolean
   isActive: boolean
@@ -46,6 +46,8 @@ export interface User {
   badges?: UserBadge[]
   createdAt: Date
   updatedAt: Date
+  rating: number
+  bio?: string
 }
 
 export interface Organization {
@@ -80,6 +82,21 @@ export interface Course {
   enrollments?: Enrollment[]
   createdAt: Date
   updatedAt: Date
+  category: Category
+  originalPrice: number
+  reviewCount: number
+  studentCount: number
+  lessonsCount: number
+  isPopular: boolean
+  lastUpdated: string
+  instructorprofilePicUrl?: string
+  certificateIncluded: boolean
+  totalHours: number
+  projectsCount: number
+  language: string
+  about: string
+  whatYouWillLearn: string[]
+  requirements: string[]
 }
 
 export interface Module {
@@ -87,6 +104,7 @@ export interface Module {
   title: string
   description: string
   order: number
+  duration: number
   courseId: string
   course?: Course
   lessons?: Lesson[]
@@ -107,6 +125,10 @@ export interface Lesson {
   progress?: Progress[]
   createdAt: Date
   updatedAt: Date
+  isCompleted?: boolean
+  isFree?: boolean
+  isExercise: boolean
+  isProject: boolean
 }
 
 export interface Assessment {
@@ -146,6 +168,15 @@ export interface Enrollment {
   isCompleted: boolean
   certificateId?: string
   certificate?: Certificate
+}
+
+export interface Category {
+  id: string
+  name: string
+  description: string
+  courses: Course[]
+  createdAt: Date
+  updatedAt: Date
 }
 
 export interface Progress {

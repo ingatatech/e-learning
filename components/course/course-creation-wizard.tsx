@@ -5,10 +5,7 @@ import type React from "react"
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
-import { Badge } from "@/components/ui/badge"
-import { BookOpen, Users, PlayCircle, Trophy, CheckCircle, ArrowLeft, ArrowRight, Sparkles, Zap } from "lucide-react"
+import { BookOpen, Users, PlayCircle, Trophy, CheckCircle } from "lucide-react"
 import { CourseDetailsStep } from "./steps/course-details-step"
 import { ModuleManagementStep } from "./steps/module-management-step"
 import { LessonBuilderStep } from "./steps/lesson-builder-step"
@@ -159,8 +156,14 @@ export function CourseCreationWizard() {
       isPublished: false,
       duration: courseData.duration || 0,
       tags: courseData.tags || [],
-      instructorId: user!.id, 
-      organizationId: user!.organization.id, 
+      instructorId: user!.id,
+      organizationId: user!.organization.id,
+      certificateIncluded: courseData.certificateIncluded || false,
+      language: courseData.language || "English",
+      about: courseData.about || "",
+      whatYouWillLearn: courseData.whatYouWillLearn || [],
+      requirements: courseData.requirements || [],
+      categoryName: courseData.category || "",
       modules: modules.map((module, moduleIndex) => ({
         title: module.title,
         description: module.description || "",
@@ -171,6 +174,8 @@ export function CourseCreationWizard() {
           videoUrl: lesson.videoUrl || "",
           duration: lesson.duration || 0,
           order: lessonIndex + 1,
+          isProject: lesson.isProject || false,
+          isExercise: lesson.isExercise || false,
           assessments: (lesson.assessments || []).map((assessment) => ({
             title: assessment.title,
             description: assessment.description || "",
@@ -213,7 +218,6 @@ export function CourseCreationWizard() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
-
       {/* Step Navigation */}
       <div className="mb-8">
         <div className="flex items-center justify-between overflow-x-auto pb-4">

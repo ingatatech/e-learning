@@ -103,7 +103,6 @@ export function ReviewPublishStep({
   const completionPercentage = ((requiredCompleted + optionalCompleted) / completionChecks.length) * 100
 
   const handlePublish = async () => {
-    console.log("[v0] Publishing course...")
     if (onSubmit) {
       try {
         await onSubmit()
