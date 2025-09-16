@@ -194,20 +194,21 @@ export function CourseCreationWizard() {
     try {
       const formattedData = formatCourseDataForAPI()
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/create`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(formattedData),
-      })
+      console.log(formattedData)
+      // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/create`, {
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //     Authorization: `Bearer ${token}`,
+      //   },
+      //   body: JSON.stringify(formattedData),
+      // })
 
-      if (!response.ok) {
-        throw new Error("Failed to create course")
-      }
+      // if (!response.ok) {
+      //   throw new Error("Failed to create course")
+      // }
 
-      await response.json()
+      // await response.json()
     } catch (error) {
       console.error("[v0] Error creating course:", error)
       // Handle error (show error message, etc.)

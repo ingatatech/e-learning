@@ -339,10 +339,10 @@ export default function CoursesPage() {
             {/* Course Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredCourses.map((course) => (
-                <Card key={course.id} className="overflow-hidden hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group border-2 hover:border-primary/20 bg-gradient-to-b from-card to-card/50">
+                <Card key={course.id} className="pt-0 overflow-hidden hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group border-2 hover:border-primary/20 bg-gradient-to-b from-card to-card/50">
                   <div className="relative">
                     <img
-                      src={course.thumbnail || "/placeholder.svg"}
+                      src={course.thumbnail || "/placeholder0.svg"}
                       alt={course.title}
                       className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                     />

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -21,6 +21,7 @@ import {
   Save,
   Briefcase,
   Zap,
+  Check,
 } from "lucide-react"
 import type { Lesson } from "@/types"
 
@@ -38,15 +39,46 @@ interface LessonEditorProps {
 }
 
 export function LessonEditor({ lesson, onUpdate, onDelete }: LessonEditorProps) {
-  const [contentBlocks, setContentBlocks] = useState<ContentBlock[]>([
-    {
-      id: "block-1",
-      type: "text",
-      content: { text: lesson.content || "" },
-      order: 1,
-    },
-  ])
+  const [contentBlocks, setContentBlocks] = useState<ContentBlock[]>([])
   const [activeTab, setActiveTab] = useState("content")
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(true)
+
+  // Initialize content blocks from lesson content
+  useEffect(() => {
+    if (lesson.content) {
+      try {
+        const parsedContent = JSON.parse(lesson.content)
+        setContentBlocks(
+          parsedContent.map((block: any, index: number) => ({
+            id: `block-${Date.now()}-${index}`,
+            type: block.type,
+            content: block.data,
+            order: index + 1,
+          })),
+        )
+      } catch (error) {
+        // If content is not JSON, treat it as text
+        setContentBlocks([
+          {
+            id: `block-${Date.now()}`,
+            type: "text",
+            content: { text: lesson.content },
+            order: 1,
+          },
+        ])
+      }
+    } else {
+      // Default empty text block
+      setContentBlocks([
+        {
+          id: `block-${Date.now()}`,
+          type: "text",
+          content: { text: "" },
+          order: 1,
+        },
+      ])
+    }
+  }, [lesson.id]) // Only run when lesson id changes
 
   const addContentBlock = (type: ContentBlock["type"]) => {
     const newBlock: ContentBlock = {
@@ -56,6 +88,7 @@ export function LessonEditor({ lesson, onUpdate, onDelete }: LessonEditorProps) 
       order: contentBlocks.length + 1,
     }
     setContentBlocks([...contentBlocks, newBlock])
+    setHasUnsavedChanges(true)
   }
 
   const getDefaultContent = (type: ContentBlock["type"]) => {
@@ -82,6 +115,28 @@ export function LessonEditor({ lesson, onUpdate, onDelete }: LessonEditorProps) 
   const deleteContentBlock = (id: string) => {
     setContentBlocks((blocks) => blocks.filter((block) => block.id !== id))
   }
+
+  // Save handler
+  const handleSave = () => {
+  const content = {
+    version: '1.0',
+    blocks: contentBlocks.map((block) => ({
+      type: block.type,
+      data: block.content,
+      id: block.id, // preserve the ID for React keys
+      order: block.order,
+    }))
+  };
+
+  onUpdate({
+    content: JSON.stringify(content),
+    duration: lesson.duration,
+    videoUrl: lesson.videoUrl,
+    isProject: lesson.isProject,
+    isExercise: lesson.isExercise,
+  })
+  setHasUnsavedChanges(false)
+}
 
   const renderContentBlock = (block: ContentBlock) => {
     switch (block.type) {
@@ -421,13 +476,9 @@ export function LessonEditor({ lesson, onUpdate, onDelete }: LessonEditorProps) 
           Delete Lesson
         </Button>
         <div className="flex gap-2">
-          <Button variant="outline">
-            <Save className="w-4 h-4 mr-2" />
-            Save Draft
-          </Button>
-          <Button>
-            <Clock className="w-4 h-4 mr-2" />
-            Save & Continue
+          <Button onClick={handleSave} disabled={!hasUnsavedChanges}>
+            {hasUnsavedChanges ? <Clock className="w-4 h-4 mr-2" /> : <Check className="w-4 h-4 mr-2" />}
+            {hasUnsavedChanges ? "Save Changes" : "Saved"}
           </Button>
         </div>
       </div>

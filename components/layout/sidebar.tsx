@@ -176,10 +176,10 @@ export function Sidebar({ userRole, className }: SidebarProps) {
       <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
         {!isCollapsed && (
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-sidebar-primary rounded-lg flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-sidebar-primary-foreground" />
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              <BookOpen className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="font-semibold text-sidebar-primary pl-2">{userRole.charAt(0).toUpperCase() + userRole.slice(1)}</span>
+            <span className="font-semibold text-primary pl-2">{userRole.charAt(0).toUpperCase() + userRole.slice(1)}</span>
           </div>
         )}
         <Button variant="ghost" size="sm" onClick={() => setIsCollapsed(!isCollapsed)} className="h-8 w-8 p-0">

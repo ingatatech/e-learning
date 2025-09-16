@@ -208,7 +208,7 @@ export function CourseDetailsStep({
                 <div className="space-y-2">
                   <Label htmlFor="price" className="flex items-center gap-2">
                     <DollarSign className="w-4 h-4" />
-                    Price (USD) *
+                    Price (USD)
                   </Label>
                   <Input
                     id="price"
