@@ -42,9 +42,18 @@ interface LearningSidebarProps {
   currentStepId: string
   onStepSelect: (stepId: string) => void
   courseProgress: number
+  progressData: any
+  isStepCompleted: (stepId: string) => boolean
 }
 
-export function LearningSidebar({ modules, currentStepId, onStepSelect, courseProgress }: LearningSidebarProps) {
+export function LearningSidebar({
+  modules,
+  currentStepId,
+  onStepSelect,
+  courseProgress,
+  progressData,
+  isStepCompleted,
+}: LearningSidebarProps) {
   const [expandedModules, setExpandedModules] = useState<string[]>([])
 
   // Generate learning steps from lessons
@@ -53,36 +62,39 @@ export function LearningSidebar({ modules, currentStepId, onStepSelect, coursePr
 
     // Add content step if lesson has content
     if (lesson.content && lesson.content.trim()) {
+      const stepId = `${lesson.id}-content`
       steps.push({
-        id: `${lesson.id}-content`,
+        id: stepId,
         type: "content",
         title: `${lesson.title} - Content`,
         duration: lesson.duration,
-        isCompleted: lesson.isCompleted || false,
+        isCompleted: isStepCompleted(stepId),
         isLocked: false, // Will be calculated based on previous steps
       })
     }
 
     // Add video step if lesson has video
     if (lesson.videoUrl && lesson.videoUrl.trim()) {
+      const stepId = `${lesson.id}-video`
       steps.push({
-        id: `${lesson.id}-video`,
+        id: stepId,
         type: "video",
         title: `${lesson.title} - Video`,
         duration: lesson.content ? Math.ceil(lesson.duration / 2) : lesson.duration,
-        isCompleted: lesson.isCompleted || false,
+        isCompleted: isStepCompleted(stepId),
         isLocked: false,
       })
     }
 
     // Add assessment steps if lesson has assessments
     lesson.assessments?.forEach((assessment, index) => {
+      const stepId = `${lesson.id}-assessment-${assessment.id}`
       steps.push({
-        id: `${lesson.id}-assessment-${assessment.id}`,
+        id: stepId,
         type: "assessment",
         title: assessment.title || `Assessment ${index + 1}`,
         duration: assessment.timeLimit,
-        isCompleted: false, // Assessments completion would come from backend
+        isCompleted: isStepCompleted(stepId),
         isLocked: false,
       })
     })
@@ -90,7 +102,6 @@ export function LearningSidebar({ modules, currentStepId, onStepSelect, coursePr
     return steps
   }
 
-  // Calculate if a step should be locked based on sequential completion
   const calculateStepLocks = () => {
     const allSteps: (LearningStep & { moduleId: string; lessonId: string })[] = []
 
@@ -107,13 +118,21 @@ export function LearningSidebar({ modules, currentStepId, onStepSelect, coursePr
       })
     })
 
-    // Lock steps based on sequential completion
-    for (let i = 1; i < allSteps.length; i++) {
-      const previousStep = allSteps[i - 1]
-      if (!previousStep.isCompleted) {
-        allSteps[i].isLocked = true
-      }
-    }
+    // Find current step index
+    const currentStepIndex = allSteps.findIndex((step) => step.id === currentStepId)
+
+    // Enable all steps up to and including current step, plus completed steps
+    allSteps.forEach((step, index) => {
+      // Step is unlocked if:
+      // 1. It's completed
+      // 2. It's at or before the current step index
+      // 3. All previous steps are completed
+      const isCompleted = step.isCompleted
+      const isCurrentOrBefore = index <= currentStepIndex
+      const allPreviousCompleted = index === 0 || allSteps.slice(0, index).every((s) => s.isCompleted)
+
+      step.isLocked = !isCompleted && !isCurrentOrBefore && !allPreviousCompleted
+    })
 
     return allSteps
   }
@@ -187,7 +206,7 @@ export function LearningSidebar({ modules, currentStepId, onStepSelect, coursePr
               })),
             )
 
-            const completedSteps = moduleSteps.filter((step) => step.isCompleted).length
+            const completedSteps = moduleSteps.filter((step) => isStepCompleted(step.id)).length
             const moduleProgress = moduleSteps.length > 0 ? (completedSteps / moduleSteps.length) * 100 : 0
 
             return (
@@ -229,6 +248,7 @@ export function LearningSidebar({ modules, currentStepId, onStepSelect, coursePr
                             const stepWithLock = allStepsWithLocks.find((s) => s.id === step.id)
                             const isLocked = stepWithLock?.isLocked || false
                             const isActive = currentStepId === step.id
+                            const isCompleted = stepWithLock?.isCompleted || false
 
                             return (
                               <button
@@ -244,7 +264,17 @@ export function LearningSidebar({ modules, currentStepId, onStepSelect, coursePr
                                 }`}
                               >
                                 <div className="flex items-center gap-3">
-                                  {getStepIcon(stepWithLock || step)}
+                                  {isCompleted ? (
+                                    <CheckCircle className="w-4 h-4 text-green-600" />
+                                  ) : isLocked ? (
+                                    <Lock className="w-4 h-4 text-muted-foreground" />
+                                  ) : step.type === "content" ? (
+                                    <BookOpen className="w-4 h-4 text-blue-500" />
+                                  ) : step.type === "video" ? (
+                                    <Video className="w-4 h-4 text-purple-500" />
+                                  ) : (
+                                    <Award className="w-4 h-4 text-orange-500" />
+                                  )}
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-1">
                                       <p className="font-medium text-sm truncate">{step.title}</p>

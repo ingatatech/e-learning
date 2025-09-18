@@ -26,6 +26,7 @@ interface ContentScreenProps {
   }
   onComplete: () => void
   isCompleted: boolean
+  isStepping: boolean
 }
 
 function parseContentBlocks(content: string): ContentBlock[] {
@@ -112,7 +113,7 @@ function ContentBlockRenderer({ block }: { block: ContentBlock }) {
   }
 }
 
-export function ContentScreen({ lesson, onComplete, isCompleted }: ContentScreenProps) {
+export function ContentScreen({ lesson, onComplete, isCompleted, isStepping }: ContentScreenProps) {
   const contentBlocks = parseContentBlocks(lesson.content)
 
   return (
@@ -142,9 +143,9 @@ export function ContentScreen({ lesson, onComplete, isCompleted }: ContentScreen
                   <ContentBlockRenderer key={block.id} block={block} />
                 ))}
                 {!isCompleted && (
-              <Button onClick={onComplete} className="flex items-center gap-2">
+              <Button onClick={onComplete} disabled={isStepping} className="flex items-center gap-2">
                 <CheckCircle className="w-4 h-4" />
-                Mark Complete
+                {isStepping ? "Completing..." : "Mark Complete"}
               </Button>
             )}
             </div>

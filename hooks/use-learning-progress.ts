@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "@/hooks/use-auth"
-import { progress } from "framer-motion"
 
 interface LearningStep {
   id: string
@@ -66,65 +65,106 @@ export function useLearningProgress(courseId: string) {
     }
   }, [token, user, courseId])
 
+  const getCurrentStep = (allSteps: LearningStep[], progressData: ProgressData | null): LearningStep | null => {
+  if (!progressData || !allSteps.length) return allSteps[0] || null
+
+  // Sort completed steps by completedAt
+  const sortedCompleted = [...progressData.completedSteps]
+    .filter((s) => s.isCompleted)
+    .sort((a, b) => new Date(a.completedAt!).getTime() - new Date(b.completedAt!).getTime())
+
+  const lastStep = sortedCompleted[sortedCompleted.length - 1]
+  if (!lastStep) return allSteps[0] || null
+
+  const lastStepIndex = allSteps.findIndex((step) => {
+    if (lastStep.assessmentId) return step.assessment?.id === lastStep.assessmentId
+    return step.lessonId === lastStep.lessonId
+  })
+
+  if (lastStepIndex < 0) return allSteps[0] || null
+
+  const lastStepObj = allSteps[lastStepIndex]
+
+  // If the last step is marked completed, move to next, else stay on it
+  if (isStepCompletedHelper(lastStepObj, progressData)) {
+    const nextIndex = lastStepIndex + 1 < allSteps.length ? lastStepIndex + 1 : lastStepIndex
+    return allSteps[nextIndex]
+  }
+
+  return lastStepObj
+}
+
+// Helper to check if a step is completed
+const isStepCompletedHelper = (step: LearningStep, progressData: ProgressData) => {
+  if (step.type === "assessment" && step.assessment) {
+    return progressData.completedSteps.some(
+      (s) => s.assessmentId === step.assessment.id && s.isCompleted
+    )
+  }
+  return progressData.completedSteps.some(
+    (s) => String(s.lessonId) === String(step.lessonId) && !s.assessmentId && s.isCompleted
+  )
+}
+
+
   // Mark a step as completed
   const markStepComplete = useCallback(
-  async (payload: { courseId: string; userId: string; lessonId?: string; assessmentId?: string; score?: number }) => {
-    if (!token) return
+    async (payload: { courseId: string; userId: string; lessonId?: string; assessmentId?: string; score?: number, status?: "in_progress" | "completed" }) => {
+      if (!token) return
 
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/progress/complete-step`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          ...payload,
-          completedAt: new Date().toISOString(),
-        }),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        // Optimistically update local state if needed
-        setProgressData((prev) => {
-          if (!prev) return prev
-
-          const stepId = payload.assessmentId ? `${payload.assessmentId}-assessment` : `${payload.lessonId}-lesson`
-          const updatedSteps = [...prev.completedSteps]
-          const existingStepIndex = updatedSteps.findIndex((step) => step.id === stepId)
-
-          const stepData = {
-            id: stepId,
-            type: payload.assessmentId ? "assessment" : "lesson",
-            lessonId: payload.lessonId,
-            assessmentId: payload.assessmentId,
-            isCompleted: true,
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/progress/complete-step`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            ...payload,
+            status: payload.status ?? "in_progress",
             completedAt: new Date().toISOString(),
-            score: payload.score,
-          }
-
-          if (existingStepIndex >= 0) {
-            updatedSteps[existingStepIndex] = stepData
-          } else {
-            updatedSteps.push(stepData)
-          }
-
-          return {
-            ...prev,
-            completedSteps: updatedSteps,
-            lastAccessedAt: new Date().toISOString(),
-          }
+          }),
         })
+
+        if (response.ok) {
+          const data = await response.json()
+          // Optimistically update local state if needed
+          setProgressData((prev) => {
+            if (!prev) return prev
+
+            const stepId = payload.assessmentId ? `${payload.assessmentId}-assessment` : `${payload.lessonId}-lesson`
+            const updatedSteps = [...prev.completedSteps]
+            const existingStepIndex = updatedSteps.findIndex((step) => step.id === stepId)
+
+            const stepData = {
+              id: stepId,
+              type: payload.assessmentId ? "assessment" : "lesson",
+              lessonId: payload.lessonId,
+              assessmentId: payload.assessmentId,
+              isCompleted: true,
+              completedAt: new Date().toISOString(),
+              score: payload.score,
+            }
+
+            if (existingStepIndex >= 0) {
+              updatedSteps[existingStepIndex] = stepData
+            } else {
+              updatedSteps.push(stepData)
+            }
+
+            return {
+              ...prev,
+              completedSteps: updatedSteps,
+              lastAccessedAt: new Date().toISOString(),
+            }
+          })
+        }
+      } catch (err) {
+        console.error("Failed to mark step complete:", err)
       }
-    } catch (err) {
-      console.error("Failed to mark step complete:", err)
-    }
-  },
-  [token]
-)
-
-
+    },
+    [token],
+  )
 
   // Update current step
   const updateCurrentStep = useCallback(
@@ -170,44 +210,43 @@ export function useLearningProgress(courseId: string) {
 
       const completedCount = allSteps.filter((step) => {
         if (step.type === "assessment" && step.assessment) {
-          return progressData.completedSteps.some(
-            (s) => s.assessmentId === step.assessment.id && s.isCompleted
-          )
+          return progressData.completedSteps.some((s) => s.assessmentId === step.assessment.id && s.isCompleted)
         }
         // For content/video steps
         return progressData.completedSteps.some(
-        s => String(s.lessonId) === String(step.lessonId) && !s.assessmentId && s.isCompleted
-      )
+          (s) => String(s.lessonId) === String(step.lessonId) && !s.assessmentId && s.isCompleted,
+        )
       }).length
 
       return allSteps.length > 0 ? (completedCount / allSteps.length) * 100 : 0
     },
-    [progressData]
+    [progressData],
   )
-
 
   // Check if a step is completed
   const isStepCompleted = useCallback(
-    (step: { lessonId?: string; assessmentId?: string }) => {
+    (stepId: string) => {
       if (!progressData) return false
 
-      if (step.assessmentId) {
+      // Parse step ID to get lesson/assessment info
+      const parts = stepId.split("-")
+      const lessonId = parts[0]
+      const stepType = parts[1] // content, video, assessment
+      const assessmentId = parts[2] // only for assessments
+
+      if (stepType === "assessment" && assessmentId) {
         return progressData.completedSteps.some(
-          (s) => s.assessmentId === step.assessmentId && s.isCompleted
+          (s) => s.assessmentId && s.assessmentId.toString() === assessmentId && s.isCompleted,
         )
       }
 
-      if (step.lessonId) {
-        return progressData.completedSteps.some(
-          (s) => String(s.lessonId) === String(step.lessonId) && !s.assessmentId && s.isCompleted
-        )
-      }
-
-      return false
+      // For content/video steps, check by lessonId and step type
+      return progressData.completedSteps.some(
+        (s) => String(s.lessonId) === lessonId && !s.assessmentId && s.isCompleted,
+      )
     },
-    [progressData]
+    [progressData],
   )
-
 
   // Get step score
   const getStepScore = useCallback(
@@ -226,6 +265,7 @@ export function useLearningProgress(courseId: string) {
     loading,
     error,
     markStepComplete,
+    getCurrentStep,
     updateCurrentStep,
     calculateProgress,
     isStepCompleted,

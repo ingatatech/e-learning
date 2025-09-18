@@ -34,51 +34,58 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
   const [showCelebration, setShowCelebration] = useState(false)
   const [celebrationData, setCelebrationData] = useState<any>({})
+  const [isStepping, setIsStepping] = useState(false)
 
-  const { progressData, markStepComplete, calculateProgress, isStepCompleted, getStepScore } =
+  const { progressData, markStepComplete, getCurrentStep, calculateProgress, isStepCompleted, getStepScore } =
     useLearningProgress(id)
 
-  useEffect(() => {
-    const fetchCourseAndEnrollment = async () => {
-      if (!token || !user) return
+  // 1️⃣ Fetch course and generate steps
+useEffect(() => {
+  const fetchCourse = async () => {
+    if (!token || !user) return
+    setLoading(true)
 
-      try {
-        setLoading(true)
-
-        const courseResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/get/${id}`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        })
-
-        if (courseResponse.ok) {
-          const courseData = await courseResponse.json()
-          setCourse(courseData.course)
-
-          const steps = generateLearningSteps(courseData.course)
-          setAllSteps(steps)
-
-          // Set initial step based on progress or start from beginning
-          const currentStep = progressData?.currentStepId
-            ? steps.findIndex((step) => step.id === progressData.currentStepId)
-            : 0
-          setCurrentStepIndex(Math.max(0, currentStep))
-
-          setError(null)
-        } else {
-          setError("Failed to fetch course details")
-        }
-      } catch (error) {
-        console.error("Failed to fetch course or enrollment:", error)
-        setError("An error occurred while fetching course details")
-      } finally {
-        setLoading(false)
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/get/${id}`, {
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setCourse(data.course)
+        setAllSteps(generateLearningSteps(data.course))
+        setError(null)
+      } else {
+        setError("Failed to fetch course details")
       }
+    } catch (err) {
+      console.error(err)
+      setError("Error fetching course")
+    } finally {
+      setLoading(false)
     }
+  }
 
-    fetchCourseAndEnrollment()
-  }, [token, id, user, progressData?.currentStepId])
+  fetchCourse()
+}, [token, user, id])
+
+// 2️⃣ Once both steps and progressData exist, determine currentStepIndex
+useEffect(() => {
+  if (!allSteps.length || !progressData) return
+
+  const lastStep = getCurrentStep(allSteps, progressData)
+  if (!lastStep) return
+
+  const lastIndex = allSteps.findIndex((step) => step.id === lastStep.id)
+  const startStepIndex =
+    lastIndex >= 0 && isStepCompleted(lastStep.id) && lastIndex + 1 < allSteps.length
+      ? lastIndex + 1
+      : lastIndex
+
+  setCurrentStepIndex(startStepIndex)
+}, [allSteps, progressData])
+
+
+  
 
   const generateLearningSteps = (course: Course): LearningStep[] => {
     const steps: LearningStep[] = []
@@ -101,7 +108,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
             lessonId: lesson.id.toString(),
             moduleId: module.id.toString(),
             lesson,
-            duration: lesson.duration ,
+            duration: lesson.duration,
           })
         }
 
@@ -138,6 +145,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
   }
 
   const handleStepComplete = async (score?: number) => {
+    setIsStepping(true)
     const currentStep = allSteps[currentStepIndex]
     if (!currentStep) return
 
@@ -153,6 +161,9 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
     } else {
       payload.lessonId = currentStep.lessonId
     }
+
+    const isLastStep = currentStepIndex === allSteps.length - 1
+    payload.status = isLastStep ? "completed" : "in_progress"
 
     await markStepComplete(payload)
 
@@ -172,12 +183,10 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
       nextStepTitle: allSteps[currentStepIndex + 1]?.title,
       nextStepId: allSteps[currentStepIndex + 1]?.id,
     })
-    setShowCelebration(true)
 
-    // Auto-advance to next step after a delay
-    setTimeout(() => {
-      handleNextStep()
-    }, 2000)
+    setIsStepping(false)
+    // Auto-advance to next step 
+    handleNextStep()
   }
 
   const handleNextStep = () => {
@@ -280,6 +289,9 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
           currentStepId={currentStep.id}
           onStepSelect={handleStepSelect}
           courseProgress={progressStats.overallProgress}
+          progressData={progressData}
+          isStepCompleted={isStepCompleted}
+
         />
 
         <div className="flex-1 ml-80 overflow-y-auto">
@@ -295,6 +307,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
                 }}
                 onComplete={() => handleStepComplete()}
                 isCompleted={isStepCompleted(currentStep.id)}
+                isStepping={isStepping}
               />
             )}
 

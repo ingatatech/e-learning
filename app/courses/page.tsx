@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Star, Clock, Users, Play, BookOpen, Trophy, Target, Zap, Crown, Award, TrendingUp, Filter, X, SquarePen } from "lucide-react"
+import { Search, Star, Clock, Users, Play, BookOpen, Trophy, Target, Zap, Crown, Award, TrendingUp, Filter, X, SquarePen, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { Header } from "@/components/layout/header"
 import { useAuth } from "@/hooks/use-auth"
@@ -128,12 +128,20 @@ export default function CoursesPage() {
     <div className="min-h-screen bg-background">
       <Header user={user} />
       
+      
       <div className="flex">
         {/* Fixed Sidebar */}
         <div className={`fixed left-0 top-16 h-[calc(100vh-4rem)] w-80 bg-card border-r border-border z-40 transform transition-transform duration-300 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } lg:translate-x-0`}>
           <div className="p-6 h-full overflow-y-auto">
+            {/* Back Button */}
+      <Button className="mb-8 hover:bg-primary/10" variant="ghost" size="sm" asChild>
+        <Link href="/student">
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to dashboard
+        </Link>
+      </Button>
             {/* Sidebar Header */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">

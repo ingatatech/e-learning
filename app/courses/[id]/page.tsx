@@ -8,11 +8,30 @@ import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Play, Clock, Users, Star, Share2, Heart, CheckCircle, Lock, ArrowLeft, Trophy, Target, Crown, Zap, Award, BookOpen, Flame, Shield, Gift } from "lucide-react"
+import {
+  Play,
+  Clock,
+  Users,
+  Star,
+  Share2,
+  Heart,
+  CheckCircle,
+  Lock,
+  ArrowLeft,
+  Trophy,
+  Target,
+  Crown,
+  Zap,
+  Award,
+  BookOpen,
+  Flame,
+  Shield,
+  Gift,
+} from "lucide-react"
 import Link from "next/link"
 import { Header } from "@/components/layout/header"
 import { useAuth } from "@/hooks/use-auth"
-import { Course } from "@/types"
+import type { Course } from "@/types"
 
 export default function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const [isEnrolled, setIsEnrolled] = useState(false)
@@ -28,10 +47,10 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
   useEffect(() => {
     const fetchCourseAndEnrollment = async () => {
       if (!token || !user) return
-      
+
       try {
         setLoading(true)
-        
+
         // Fetch course details
         const courseResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/get/${id}`, {
           headers: {
@@ -39,50 +58,86 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
             Authorization: `Bearer ${token}`,
           },
         })
-        
+
         if (courseResponse.ok) {
           const courseData = await courseResponse.json()
           setCourse(courseData.course)
           setError(null)
-          
+
           // Fetch user enrollments
-          const enrollmentsResponse = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/enrollments/user-enrollments`,
-            {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              method: "POST",
-              body: JSON.stringify({
-                userId: user.id,
-              }),
-            }
-          )
-          
+          const enrollmentsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/enrollments/user-enrollments`, {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            method: "POST",
+            body: JSON.stringify({
+              userId: user.id,
+            }),
+          })
+
           if (enrollmentsResponse.ok) {
             const enrollmentsData = await enrollmentsResponse.json()
-            
+
             // Check if current course is in user's enrollments
             const enrolledCourse = enrollmentsData.enrollments.find(
-              (enrollment: any) => enrollment.courseId.toString() === id
+              (enrollment: any) => enrollment.course.id.toString() === id,
             )
-            
+
             if (enrolledCourse) {
               setIsEnrolled(true)
-              setCurrentProgress(enrolledCourse.progress || 0)
+
+              try {
+                const progressResponse = await fetch(
+                  `${process.env.NEXT_PUBLIC_API_URL}/progress/course/${id}/user/${user.id}`,
+                  {
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${token}`,
+                    },
+                  },
+                )
+
+                if (progressResponse.ok) {
+                  const progressData = await progressResponse.json()
+
+                  // Calculate progress based on completed steps
+                  const allSteps = generateLearningSteps(courseData.course)
+                  const completedSteps = allSteps.filter((step) => {
+                    if (step.type === "assessment" && step.assessment) {
+                      return progressData.progress?.completedSteps?.some(
+                        (s: any) => s.assessmentId === step.assessment.id && s.isCompleted,
+                      )
+                    }
+                    return progressData.progress?.completedSteps?.some(
+                      (s: any) => String(s.lessonId) === String(step.lessonId) && !s.assessmentId && s.isCompleted,
+                    )
+                  }).length
+
+                  const calculatedProgress = allSteps.length > 0 ? (completedSteps / allSteps.length) * 100 : 0
+                  setCurrentProgress(Math.round(calculatedProgress))
+                } else {
+                  setCurrentProgress(0)
+                }
+              } catch (progressError) {
+                console.error("Failed to fetch progress:", progressError)
+                setCurrentProgress(0)
+              }
             } else {
               setIsEnrolled(false)
             }
           }
 
           // Fetch courses for the instructor
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/instructor/${courseData.course.instructor.id}/courses`, {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/courses/instructor/${courseData.course.instructor.id}/courses`,
+            {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
             },
-          })
+          )
           if (response.ok) {
             const data = await response.json()
             setInsCourses(data.courses.length)
@@ -108,7 +163,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
     }
     setIsEnrolling(true)
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/enrollments/enroll`, {
-      method: 'POST',
+      method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
@@ -152,6 +207,47 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
       default:
         return "bg-gray-500 hover:bg-gray-600"
     }
+  }
+
+  const generateLearningSteps = (course: Course) => {
+    const steps: any[] = []
+
+    course.modules?.forEach((module) => {
+      const sortedLessons = [...module.lessons].sort((a, b) => {
+        if (a.isProject && !b.isProject) return 1
+        if (!a.isProject && b.isProject) return -1
+        return a.order - b.order
+      })
+
+      sortedLessons.forEach((lesson) => {
+        if (lesson.content && lesson.content.trim()) {
+          steps.push({
+            id: `${lesson.id}-content`,
+            type: "content",
+            lessonId: lesson.id.toString(),
+          })
+        }
+
+        if (lesson.videoUrl && lesson.videoUrl.trim()) {
+          steps.push({
+            id: `${lesson.id}-video`,
+            type: "video",
+            lessonId: lesson.id.toString(),
+          })
+        }
+
+        lesson.assessments?.forEach((assessment) => {
+          steps.push({
+            id: `${lesson.id}-assessment-${assessment.id}`,
+            type: "assessment",
+            lessonId: lesson.id.toString(),
+            assessment,
+          })
+        })
+      })
+    })
+
+    return steps
   }
 
   if (!user) {
@@ -242,11 +338,9 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                 <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
                   {course.title}
                 </h1>
-                
+
                 {/* Description */}
-                <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
-                  {course.description}
-                </p>
+                <p className="text-lg text-muted-foreground mb-6 leading-relaxed">{course.description}</p>
 
                 {/* Stats Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -285,7 +379,8 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                   <Avatar className="w-14 h-14 border-2 border-primary/30">
                     <AvatarImage src={course.instructor?.profilePicUrl || "/placeholder.svg"} />
                     <AvatarFallback className="bg-primary/10">
-                      {course.instructor?.firstName?.[0] || 'I'}{course.instructor?.lastName?.[0] || 'N'}
+                      {course.instructor?.firstName?.[0] || "I"}
+                      {course.instructor?.lastName?.[0] || "N"}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
@@ -307,7 +402,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
 
           {/* Right Sidebar - Spans 2 columns */}
           <div className="lg:col-span-2">
-            <Card className="sticky top-4 border-2 shadow-xl bg-gradient-to-br from-card to-card/80">
+            <Card className="sticky top-4 border-2 shadow-xl bg-gradient-to-br from-card to-card/80 pt-0">
               {/* Video Preview */}
               <div className="aspect-video relative overflow-hidden rounded-t-lg">
                 <img
@@ -316,7 +411,10 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex items-center justify-center">
-                  <Button size="lg" className="bg-white/95 text-black hover:bg-white shadow-xl transform hover:scale-105 transition-all">
+                  <Button
+                    size="lg"
+                    className="bg-white/95 text-black hover:bg-white shadow-xl transform hover:scale-105 transition-all"
+                  >
                     <Play className="w-5 h-5 mr-2" />
                     Preview Course
                   </Button>
@@ -328,7 +426,9 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <span className="text-3xl font-bold text-primary">
-                      {course.price == 0 || course.price === null || course.price === undefined ? "FREE" : `${course.price} RWF`}
+                      {course.price == 0 || course.price === null || course.price === undefined
+                        ? "FREE"
+                        : `${course.price} RWF`}
                     </span>
                     {course.originalPrice > course.price && (
                       <span className="text-lg text-muted-foreground line-through">{course.originalPrice} RWF</span>
@@ -356,16 +456,16 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                     <Button className="w-full bg-primary hover:bg-primary/70 shadow-md" size="lg" asChild>
                       <Link href={`/courses/${course.id}/learn`}>
                         <Play className="w-4 h-4 mr-2" />
-                        Continue Learning
+                        {currentProgress === 100 ? "Review Course" : "Continue Learning"}
                       </Link>
                     </Button>
                   </div>
                 ) : (
                   <div className="space-y-3 mb-6">
-                    <Button 
-                      className="w-full bg-primary  hover:bg-primary/70 shadow-md transform hover:scale-[1.02] transition-all" 
-                      size="lg" 
-                      onClick={handleEnroll} 
+                    <Button
+                      className="w-full bg-primary  hover:bg-primary/70 shadow-md transform hover:scale-[1.02] transition-all"
+                      size="lg"
+                      onClick={handleEnroll}
                       disabled={isEnrolling}
                     >
                       {isEnrolling ? (
@@ -380,7 +480,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                         </>
                       )}
                     </Button>
-                    <Button variant="outline" className="w-full border-2 hover:bg-muted/50">
+                    <Button variant="outline" className="w-full border-2 hover:bg-muted/50 bg-transparent">
                       <Heart className="w-4 h-4 mr-2" />
                       Add to Wishlist
                     </Button>
@@ -401,7 +501,6 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                     <div className="flex items-center justify-between py-1">
                       <span className="text-muted-foreground">Lessons</span>
                       <span className="font-medium">{course.lessonsCount}</span>
-
                     </div>
                     <div className="flex items-center justify-between py-1">
                       <span className="text-muted-foreground">Projects</span>
@@ -446,19 +545,31 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
         {/* Course Content Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList className="grid w-full grid-cols-4 bg-muted/50 p-1 rounded-lg">
-            <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger
+              value="overview"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
               <BookOpen className="w-4 h-4 mr-2" />
               Overview
             </TabsTrigger>
-            <TabsTrigger value="curriculum" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger
+              value="curriculum"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
               <Target className="w-4 h-4 mr-2" />
               Curriculum
             </TabsTrigger>
-            <TabsTrigger value="instructor" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger
+              value="instructor"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
               <Shield className="w-4 h-4 mr-2" />
               Instructor
             </TabsTrigger>
-            <TabsTrigger value="reviews" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger
+              value="reviews"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
               <Star className="w-4 h-4 mr-2" />
               Reviews
             </TabsTrigger>
@@ -535,7 +646,11 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
               <CardContent>
                 <Accordion type="single" collapsible className="w-full">
                   {course.modules?.map((module, moduleIndex) => (
-                    <AccordionItem key={module.id} value={module.id} className="border border-border rounded-lg mb-4 last:mb-0">
+                    <AccordionItem
+                      key={module.id}
+                      value={module.id}
+                      className="border border-border rounded-lg mb-4 last:mb-0"
+                    >
                       <AccordionTrigger className="text-left px-4 hover:bg-muted/50 rounded-t-lg">
                         <div className="flex items-center justify-between w-full mr-4">
                           <div className="flex items-center gap-3">
@@ -552,7 +667,10 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                       <AccordionContent className="px-4 pb-4">
                         <div className="space-y-3">
                           {module.lessons?.map((lesson, lessonIndex) => (
-                            <div key={lesson.id} className="flex items-center justify-between p-4 rounded-lg border bg-card/50">
+                            <div
+                              key={lesson.id}
+                              className="flex items-center justify-between p-4 rounded-lg border bg-card/50"
+                            >
                               <div className="flex items-center gap-3">
                                 <div className="w-6 h-6 flex items-center justify-center">
                                   {lesson.isCompleted ? (
@@ -608,7 +726,8 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                     <Avatar className="w-32 h-32 border-4 border-primary/20">
                       <AvatarImage src={course.instructor?.profilePicUrl || "/placeholder.svg"} />
                       <AvatarFallback className="bg-primary/10 text-2xl">
-                        {course.instructor?.firstName?.[0] || 'I'}{course.instructor?.lastName?.[0] || 'N'}
+                        {course.instructor?.firstName?.[0] || "I"}
+                        {course.instructor?.lastName?.[0] || "N"}
                       </AvatarFallback>
                     </Avatar>
                   </div>
@@ -628,7 +747,9 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                         <div className="text-sm text-muted-foreground">Rating</div>
                       </div>
                       <div className="text-center p-4 bg-muted/30 rounded-lg">
-                        <div className="text-2xl font-bold text-blue-500">{(course.instructor?.students || 0).toLocaleString()}</div>
+                        <div className="text-2xl font-bold text-blue-500">
+                          {(course.instructor?.students || 0).toLocaleString()}
+                        </div>
                         <div className="text-sm text-muted-foreground">Students</div>
                       </div>
                       <div className="text-center p-4 bg-muted/30 rounded-lg">
