@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/use-auth"
 
 interface LearningStep {
   id: string
+  dbId: string
   type: "content" | "video" | "assessment"
   lessonId: string
   isCompleted: boolean
@@ -252,7 +253,9 @@ const isStepCompletedHelper = (step: LearningStep, progressData: ProgressData) =
   // Get step score
   const getStepScore = useCallback(
     (stepId: string) => {
-      return progressData?.completedSteps.find((step) => step.id === stepId)?.score
+      console.log(stepId)
+      console.log(progressData)
+      return progressData?.completedSteps.find((step) => step.dbId === stepId)?.score
     },
     [progressData],
   )

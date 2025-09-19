@@ -41,6 +41,7 @@ import {
   Play,
   ChevronRight,
 } from "lucide-react"
+import { useAuth } from "@/hooks/use-auth"
 
 interface Question {
   id: string
@@ -59,6 +60,11 @@ interface Assessment {
   passingScore: number
   timeLimit: number
   questions: Question[]
+}
+
+interface SavedAnswer {
+  questionId: string
+  answer: string
 }
 
 interface AssessmentScreenProps {
@@ -89,6 +95,10 @@ export function AssessmentScreen({
   const [correctAnswers, setCorrectAnswers] = useState<Record<string, string | string[]>>({})
   const [showStartModal, setShowStartModal] = useState(true)
   const [timerStarted, setTimerStarted] = useState(false)
+  const [savedAnswers, setSavedAnswers] = useState<SavedAnswer[]>([])
+  const [loadingSavedAnswers, setLoadingSavedAnswers] = useState(false)
+
+  const { token, user } = useAuth()
 
   useEffect(() => {
     setCurrentQuestionIndex(0)
@@ -100,7 +110,67 @@ export function AssessmentScreen({
     setCorrectAnswers({})
     setShowStartModal(true)
     setTimerStarted(false)
-  }, [assessment.id, assessment.timeLimit])
+    setSavedAnswers([])
+
+    if (isCompleted && previousScore !== undefined) {
+      setShowStartModal(false)
+      fetchSavedAnswers()
+    }
+  }, [assessment.id, assessment.timeLimit, isCompleted, previousScore])
+
+  const fetchSavedAnswers = async () => {
+    if (!token || !user) return
+
+    setLoadingSavedAnswers(true)
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/assessments/${assessment.id}/answers/${user.id}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      )
+
+      if (response.ok) {
+        const data = await response.json()
+        setSavedAnswers(data.answers || [])
+
+        const answersMap: Record<string, string | string[]> = {}
+        data.answers?.forEach((savedAnswer: SavedAnswer) => {
+          answersMap[savedAnswer.questionId] = savedAnswer.answer
+        })
+        setAnswers(answersMap)
+      }
+    } catch (error) {
+      console.error("Failed to fetch saved answers:", error)
+    } finally {
+      setLoadingSavedAnswers(false)
+    }
+  }
+
+  const saveAnswer = async (questionId: string, answer: string | string[]) => {
+    if (!token || !user) return
+
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/assessments/save-answer`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          assessmentId: assessment.id,
+          questionId,
+          answer: Array.isArray(answer) ? answer.join(",") : answer,
+        }),
+      })
+    } catch (error) {
+      console.error("Failed to save answer:", error)
+    }
+  }
 
   useEffect(() => {
     if (!timerStarted || timeRemaining <= 0 || isSubmitted) return
@@ -129,6 +199,10 @@ export function AssessmentScreen({
       ...prev,
       [questionId]: answer,
     }))
+
+    if (!isCompleted) {
+      saveAnswer(questionId, answer)
+    }
   }
 
   const handleNext = () => {
@@ -167,6 +241,7 @@ export function AssessmentScreen({
     setCorrectAnswers(correctAnswersMap)
     setIsSubmitted(true)
   }
+
   const handleComplete = () => {
     const ready = true
     onComplete(score, true, ready)
@@ -190,7 +265,7 @@ export function AssessmentScreen({
     return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
   }
 
-  if (showStartModal && !isSubmitted && !(isCompleted && previousScore !== undefined)) {
+  if (showStartModal && !isSubmitted && !isCompleted) {
     return (
       <div className="max-w-4xl mx-auto p-6">
         <Dialog open={showStartModal} onOpenChange={() => {}}>
@@ -247,9 +322,110 @@ export function AssessmentScreen({
     )
   }
 
-  if (isSubmitted || (isCompleted && previousScore !== undefined)) {
-    const displayScore = isSubmitted ? score : previousScore || 0
-    const displayPassed = isSubmitted ? score >= assessment.passingScore : previousPassed || false
+  if (isCompleted && previousScore !== undefined) {
+    if (loadingSavedAnswers) {
+      return (
+        <div className="max-w-4xl mx-auto p-6">
+          <Card>
+            <CardContent className="text-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading your answers...</p>
+            </CardContent>
+          </Card>
+        </div>
+      )
+    }
+
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <Card>
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              {previousPassed ? (
+                <CheckCircle className="w-16 h-16 text-green-500" />
+              ) : (
+                <AlertCircle className="w-16 h-16 text-red-500" />
+              )}
+            </div>
+            <CardTitle className="text-2xl">Assessment Review</CardTitle>
+            <p className="text-muted-foreground">{assessment.title}</p>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 border rounded-lg text-center">
+                <div className="text-2xl font-bold text-primary">{previousScore}%</div>
+                <div className="text-sm text-muted-foreground">Your Score</div>
+              </div>
+              <div className="p-4 border rounded-lg text-center">
+                <div className="text-2xl font-bold text-green-600">{assessment.passingScore}%</div>
+                <div className="text-sm text-muted-foreground">Passing Score</div>
+              </div>
+              <div className="p-4 border rounded-lg text-center">
+                <div className="text-2xl font-bold text-blue-600">{assessment.questions.length}</div>
+                <div className="text-sm text-muted-foreground">Questions</div>
+              </div>
+            </div>
+
+            <div
+              className={`p-4 rounded-lg ${previousPassed ? "bg-green-50 dark:bg-green-950/20" : "bg-blue-50 dark:bg-blue-950/20"}`}
+            >
+              <p
+                className={`font-medium ${previousPassed ? "text-green-700 dark:text-green-300" : "text-blue-700 dark:text-blue-300"}`}
+              >
+                {previousPassed
+                  ? "You have successfully completed this assessment. Review your answers below."
+                  : "This assessment has been completed. You can review your answers below."}
+              </p>
+            </div>
+
+            <div className="text-left">
+              <h3 className="text-lg font-semibold mb-4">Your Submitted Answers</h3>
+              <div className="space-y-4">
+                {assessment.questions.map((question, index) => {
+                  const userAnswer = answers[question.id] || "Not answered"
+                  const correctAnswer = question.correctAnswer
+                  const isCorrect = userAnswer === correctAnswer
+
+                  return (
+                    <div key={question.id} className="p-4 border rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
+                            isCorrect ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                          }`}
+                        >
+                          {index + 1}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium mb-2">{question.question}</p>
+                          <div className="text-sm space-y-1">
+                            <p>
+                              <span className="font-medium">Your answer:</span>{" "}
+                              {Array.isArray(userAnswer) ? userAnswer.join(", ") : userAnswer}
+                            </p>
+                            <p>
+                              <span className="font-medium">Correct answer:</span> {correctAnswer}
+                            </p>
+                            <p className={`font-medium ${isCorrect ? "text-green-600" : "text-red-600"}`}>
+                              {isCorrect ? "✓ Correct" : "✗ Incorrect"} ({question.points} points)
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (isSubmitted) {
+    const displayScore = score
+    const displayPassed = score >= assessment.passingScore
 
     return (
       <div className="max-w-4xl mx-auto p-6">
@@ -286,7 +462,12 @@ export function AssessmentScreen({
                 <p className="text-green-700 dark:text-green-300 font-medium">
                   Great job! You've passed this assessment. You can now proceed to the next step.
                 </p>
-                <Button size="sm" onClick={handleComplete} className="flex items-center gap-2 mt-4" disabled={isStepping}>
+                <Button
+                  size="sm"
+                  onClick={handleComplete}
+                  className="flex items-center gap-2 mt-4"
+                  disabled={isStepping}
+                >
                   {isStepping ? "Loading..." : "Next"}
                   <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>

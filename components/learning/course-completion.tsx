@@ -41,7 +41,6 @@ export function CourseCompletion({
 
   const calculateStats = () => {
     if (!progressData?.completedSteps || !allSteps.length) return
-
     const assessmentSteps = allSteps.filter((step) => step.type === "assessment")
     const contentSteps = allSteps.filter((step) => step.type !== "assessment")
 
@@ -50,7 +49,8 @@ export function CourseCompletion({
     let completedAssessments = 0
 
     assessmentSteps.forEach((step) => {
-      const stepScore = getStepScore(step.id)
+      const stepScore = getStepScore(step.dbId)
+      console.log(stepScore)
 
       if (stepScore !== undefined) {
         completedAssessments++

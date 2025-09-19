@@ -15,6 +15,7 @@ import { CourseCompletion } from "@/components/learning/course-completion"
 
 interface LearningStep {
   id: string
+  dbId: string
   type: "content" | "video" | "assessment"
   title: string
   lessonId: string
@@ -99,6 +100,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
         if (lesson.content && lesson.content.trim()) {
           steps.push({
             id: `${lesson.id}-content`,
+            dbId: lesson.id,
             type: "content",
             title: `${lesson.title} - Reading`,
             lessonId: lesson.id.toString(),
@@ -112,6 +114,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
         if (lesson.videoUrl && lesson.videoUrl.trim()) {
           steps.push({
             id: `${lesson.id}-video`,
+            dbId: lesson.id,
             type: "video",
             title: `${lesson.title} - Video`,
             lessonId: lesson.id.toString(),
@@ -125,6 +128,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
         lesson.assessments?.forEach((assessment, index) => {
           steps.push({
             id: `${lesson.id}-assessment-${assessment.id}`,
+            dbId: assessment.id,
             type: "assessment",
             title: assessment.title || `${lesson.title} - Assessment`,
             lessonId: lesson.id.toString(),
