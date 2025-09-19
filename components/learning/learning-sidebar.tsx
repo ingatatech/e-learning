@@ -41,18 +41,22 @@ interface LearningSidebarProps {
   modules: Module[]
   currentStepId: string
   onStepSelect: (stepId: string) => void
+  onCourseCompletionSelect: () => void // Added course completion handler
   courseProgress: number
   progressData: any
   isStepCompleted: (stepId: string) => boolean
+  allStepsCompleted: boolean // Added to track if all steps are done
 }
 
 export function LearningSidebar({
   modules,
   currentStepId,
   onStepSelect,
+  onCourseCompletionSelect, // Added course completion handler
   courseProgress,
   progressData,
   isStepCompleted,
+  allStepsCompleted, // Added to track if all steps are done
 }: LearningSidebarProps) {
   const [expandedModules, setExpandedModules] = useState<string[]>([])
 
@@ -310,6 +314,34 @@ export function LearningSidebar({
             )
           })}
         </Accordion>
+
+        <div className="mt-4">
+          <button
+            onClick={onCourseCompletionSelect}
+            disabled={!allStepsCompleted}
+            className={`w-full text-left p-4 rounded-lg border transition-colors ${
+              currentStepId === "course-completion"
+                ? "bg-primary text-primary-foreground"
+                : allStepsCompleted
+                  ? "hover:bg-muted border-green-200 bg-green-50 dark:bg-green-950/20"
+                  : "opacity-50 cursor-not-allowed"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              {allStepsCompleted ? (
+                <Award className="w-5 h-5 text-green-600" />
+              ) : (
+                <Lock className="w-5 h-5 text-muted-foreground" />
+              )}
+              <div className="flex-1">
+                <p className="font-medium text-sm">Course Completion</p>
+                <p className="text-xs opacity-70">
+                  {allStepsCompleted ? "View your achievements" : "Complete all steps to unlock"}
+                </p>
+              </div>
+            </div>
+          </button>
+        </div>
       </div>
     </div>
   )

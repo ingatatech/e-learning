@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -9,7 +9,38 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import { CheckCircle, Clock, Award, AlertCircle, FileText, Target } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  CheckCircle,
+  Clock,
+  Award,
+  AlertCircle,
+  FileText,
+  Target,
+  RotateCcw,
+  Eye,
+  AlertTriangle,
+  Play,
+  ChevronRight,
+} from "lucide-react"
 
 interface Question {
   id: string
@@ -32,20 +63,66 @@ interface Assessment {
 
 interface AssessmentScreenProps {
   assessment: Assessment
-  onComplete: (score: number) => void
+  onComplete: (score: number, passed: boolean, ready: boolean) => void
+  onRetake: () => void
   isCompleted: boolean
+  previousScore?: number
+  previousPassed?: boolean
+  isStepping?: boolean
 }
 
-export function AssessmentScreen({ assessment, onComplete, isCompleted }: AssessmentScreenProps) {
+export function AssessmentScreen({
+  assessment,
+  onComplete,
+  onRetake,
+  isCompleted,
+  previousScore,
+  previousPassed,
+  isStepping,
+}: AssessmentScreenProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({})
-  const [timeRemaining, setTimeRemaining] = useState(assessment.timeLimit * 60) // Convert to seconds
+  const [timeRemaining, setTimeRemaining] = useState(assessment.timeLimit * 60)
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [score, setScore] = useState(0)
+  const [showReview, setShowReview] = useState(false)
+  const [correctAnswers, setCorrectAnswers] = useState<Record<string, string | string[]>>({})
+  const [showStartModal, setShowStartModal] = useState(true)
+  const [timerStarted, setTimerStarted] = useState(false)
 
-  const currentQuestion = assessment.questions[currentQuestionIndex]
-  const totalQuestions = assessment.questions.length
-  const progress = ((currentQuestionIndex + 1) / totalQuestions) * 100
+  useEffect(() => {
+    setCurrentQuestionIndex(0)
+    setAnswers({})
+    setTimeRemaining(assessment.timeLimit * 60)
+    setIsSubmitted(false)
+    setScore(0)
+    setShowReview(false)
+    setCorrectAnswers({})
+    setShowStartModal(true)
+    setTimerStarted(false)
+  }, [assessment.id, assessment.timeLimit])
+
+  useEffect(() => {
+    if (!timerStarted || timeRemaining <= 0 || isSubmitted) return
+
+    const timer = setInterval(() => {
+      setTimeRemaining((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer)
+          handleSubmit()
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [timerStarted, timeRemaining, isSubmitted])
+
+  const handleStartAssessment = () => {
+    setShowStartModal(false)
+    setTimerStarted(true)
+  }
 
   const handleAnswerChange = (questionId: string, answer: string | string[]) => {
     setAnswers((prev) => ({
@@ -55,7 +132,7 @@ export function AssessmentScreen({ assessment, onComplete, isCompleted }: Assess
   }
 
   const handleNext = () => {
-    if (currentQuestionIndex < totalQuestions - 1) {
+    if (currentQuestionIndex < assessment.questions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1)
     }
   }
@@ -67,26 +144,44 @@ export function AssessmentScreen({ assessment, onComplete, isCompleted }: Assess
   }
 
   const handleSubmit = () => {
-    // Calculate score
     let totalPoints = 0
     let earnedPoints = 0
+    const correctAnswersMap: Record<string, string | string[]> = {}
 
     assessment.questions.forEach((question) => {
       totalPoints += question.points
       const userAnswer = answers[question.id]
+      correctAnswersMap[question.id] = question.correctAnswer
 
       if (question.type === "true_false" || question.type === "multiple_choice") {
         if (userAnswer === question.correctAnswer) {
           earnedPoints += question.points
         }
       }
-      // For essay questions, we'd need manual grading
     })
 
     const finalScore = Math.round((earnedPoints / totalPoints) * 100)
+    const passed = finalScore >= assessment.passingScore
+
     setScore(finalScore)
+    setCorrectAnswers(correctAnswersMap)
     setIsSubmitted(true)
-    onComplete(finalScore)
+  }
+  const handleComplete = () => {
+    const ready = true
+    onComplete(score, true, ready)
+  }
+
+  const handleRetake = () => {
+    setCurrentQuestionIndex(0)
+    setAnswers({})
+    setTimeRemaining(assessment.timeLimit * 60)
+    setIsSubmitted(false)
+    setScore(0)
+    setShowReview(false)
+    setShowStartModal(true)
+    setTimerStarted(false)
+    onRetake()
   }
 
   const formatTime = (seconds: number) => {
@@ -95,26 +190,85 @@ export function AssessmentScreen({ assessment, onComplete, isCompleted }: Assess
     return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
   }
 
-  if (isSubmitted || isCompleted) {
+  if (showStartModal && !isSubmitted && !(isCompleted && previousScore !== undefined)) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <Dialog open={showStartModal} onOpenChange={() => {}}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-xl">
+                <Award className="w-6 h-6 text-primary" />
+                {assessment.title}
+              </DialogTitle>
+              <DialogDescription className="text-base mt-4">{assessment.description}</DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 border rounded-lg text-center">
+                  <div className="text-2xl font-bold text-primary">{assessment.questions.length}</div>
+                  <div className="text-sm text-muted-foreground">Questions</div>
+                </div>
+                <div className="p-4 border rounded-lg text-center">
+                  <div className="text-2xl font-bold text-blue-600">{assessment.timeLimit}</div>
+                  <div className="text-sm text-muted-foreground">Minutes</div>
+                </div>
+                <div className="p-4 border rounded-lg text-center">
+                  <div className="text-2xl font-bold text-green-600">{assessment.passingScore}%</div>
+                  <div className="text-sm text-muted-foreground">To Pass</div>
+                </div>
+              </div>
+
+              <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-amber-800 dark:text-amber-200">Important Instructions:</p>
+                    <ul className="text-sm text-amber-700 dark:text-amber-300 mt-2 space-y-1">
+                      <li>• Once you begin, the timer will start automatically</li>
+                      <li>• You cannot pause the assessment once started</li>
+                      <li>• The assessment will auto-submit when time runs out</li>
+                      <li>• Make sure you have a stable internet connection</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button onClick={handleStartAssessment} className="flex items-center gap-2">
+                <Play className="w-4 h-4" />
+                Begin Assessment
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    )
+  }
+
+  if (isSubmitted || (isCompleted && previousScore !== undefined)) {
+    const displayScore = isSubmitted ? score : previousScore || 0
+    const displayPassed = isSubmitted ? score >= assessment.passingScore : previousPassed || false
+
     return (
       <div className="max-w-4xl mx-auto p-6">
         <Card>
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
-              {score >= assessment.passingScore ? (
+              {displayPassed ? (
                 <CheckCircle className="w-16 h-16 text-green-500" />
               ) : (
                 <AlertCircle className="w-16 h-16 text-red-500" />
               )}
             </div>
-            <CardTitle className="text-2xl">
-              {score >= assessment.passingScore ? "Congratulations!" : "Assessment Complete"}
-            </CardTitle>
+            <CardTitle className="text-2xl">{displayPassed ? "Congratulations!" : "Assessment Complete"}</CardTitle>
+            <p className="text-muted-foreground">{assessment.title}</p>
           </CardHeader>
           <CardContent className="text-center space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-4 border rounded-lg">
-                <div className="text-2xl font-bold text-primary">{score}%</div>
+                <div className="text-2xl font-bold text-primary">{displayScore}%</div>
                 <div className="text-sm text-muted-foreground">Your Score</div>
               </div>
               <div className="p-4 border rounded-lg">
@@ -122,22 +276,84 @@ export function AssessmentScreen({ assessment, onComplete, isCompleted }: Assess
                 <div className="text-sm text-muted-foreground">Passing Score</div>
               </div>
               <div className="p-4 border rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">{totalQuestions}</div>
+                <div className="text-2xl font-bold text-blue-600">{assessment.questions.length}</div>
                 <div className="text-sm text-muted-foreground">Questions</div>
               </div>
             </div>
 
-            {score >= assessment.passingScore ? (
+            {displayPassed ? (
               <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
                 <p className="text-green-700 dark:text-green-300 font-medium">
-                  Great job! You've passed this assessment.
+                  Great job! You've passed this assessment. You can now proceed to the next step.
                 </p>
+                <Button size="sm" onClick={handleComplete} className="flex items-center gap-2 mt-4" disabled={isStepping}>
+                  {isStepping ? "Loading..." : "Next"}
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
               </div>
             ) : (
-              <div className="p-4 bg-red-50 dark:bg-red-950/20 rounded-lg">
-                <p className="text-red-700 dark:text-red-300 font-medium">
-                  You need {assessment.passingScore}% to pass. You can retake this assessment.
-                </p>
+              <div className="space-y-4">
+                <div className="p-4 bg-red-50 dark:bg-red-950/20 rounded-lg">
+                  <p className="text-red-700 dark:text-red-300 font-medium">
+                    You need {assessment.passingScore}% to pass. You can review your answers and retake this assessment.
+                  </p>
+                </div>
+
+                <div className="flex gap-3 justify-center">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowReview(!showReview)}
+                    className="flex items-center gap-2"
+                  >
+                    <Eye className="w-4 h-4" />
+                    {showReview ? "Hide Review" : "Review Answers"}
+                  </Button>
+                  <Button onClick={handleRetake} className="flex items-center gap-2">
+                    <RotateCcw className="w-4 h-4" />
+                    Retake Assessment
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {showReview && !displayPassed && (
+              <div className="mt-6 text-left">
+                <h3 className="text-lg font-semibold mb-4">Review Your Answers</h3>
+                <div className="space-y-4">
+                  {assessment.questions.map((question, index) => {
+                    const userAnswer = answers[question.id]
+                    const correctAnswer = correctAnswers[question.id]
+                    const isCorrect = userAnswer === correctAnswer
+
+                    return (
+                      <div key={question.id} className="p-4 border rounded-lg">
+                        <div className="flex items-start gap-3">
+                          <div
+                            className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
+                              isCorrect ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                            }`}
+                          >
+                            {index + 1}
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium mb-2">{question.question}</p>
+                            <div className="text-sm space-y-1">
+                              <p>
+                                <span className="font-medium">Your answer:</span> {userAnswer || "Not answered"}
+                              </p>
+                              <p>
+                                <span className="font-medium">Correct answer:</span> {correctAnswer}
+                              </p>
+                              <p className={`font-medium ${isCorrect ? "text-green-600" : "text-red-600"}`}>
+                                {isCorrect ? "✓ Correct" : "✗ Incorrect"} ({question.points} points)
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             )}
           </CardContent>
@@ -146,7 +362,7 @@ export function AssessmentScreen({ assessment, onComplete, isCompleted }: Assess
     )
   }
 
-  if (!currentQuestion) {
+  if (!assessment.questions.length) {
     return (
       <div className="max-w-4xl mx-auto p-6">
         <Card>
@@ -158,6 +374,10 @@ export function AssessmentScreen({ assessment, onComplete, isCompleted }: Assess
       </div>
     )
   }
+
+  const currentQuestion = assessment.questions[currentQuestionIndex]
+  const totalQuestions = assessment.questions.length
+  const progress = ((currentQuestionIndex + 1) / totalQuestions) * 100
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -176,7 +396,10 @@ export function AssessmentScreen({ assessment, onComplete, isCompleted }: Assess
                 <Target className="w-3 h-3" />
                 {assessment.passingScore}% to pass
               </Badge>
-              <Badge variant="outline" className="flex items-center gap-1">
+              <Badge
+                variant="outline"
+                className={`flex items-center gap-1 ${timeRemaining <= 300 ? "text-red-600 border-red-200" : ""}`}
+              >
                 <Clock className="w-3 h-3" />
                 {formatTime(timeRemaining)}
               </Badge>
@@ -271,7 +494,31 @@ export function AssessmentScreen({ assessment, onComplete, isCompleted }: Assess
             </div>
 
             {currentQuestionIndex === totalQuestions - 1 ? (
-              <Button onClick={handleSubmit}>Submit Assessment</Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button>Submit Assessment</Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="flex items-center gap-2">
+                      <AlertTriangle className="w-5 h-5 text-amber-500" />
+                      Submit Assessment?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to submit your assessment? Once submitted, you cannot change your answers.
+                      {assessment.passingScore > 0 && (
+                        <span className="block mt-2 font-medium">
+                          You need {assessment.passingScore}% to pass this assessment.
+                        </span>
+                      )}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Review Answers</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleSubmit}>Yes, Submit Assessment</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             ) : (
               <Button onClick={handleNext}>Next Question</Button>
             )}

@@ -11,6 +11,7 @@ import { AssessmentScreen } from "@/components/learning/assessment-screen"
 import { LearningSidebar } from "@/components/learning/learning-sidebar"
 import { LearningNavigation } from "@/components/learning/learning-navigation"
 import { CompletionCelebration } from "@/components/learning/completion-celebration"
+import { CourseCompletion } from "@/components/learning/course-completion"
 
 interface LearningStep {
   id: string
@@ -39,53 +40,48 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
   const { progressData, markStepComplete, getCurrentStep, calculateProgress, isStepCompleted, getStepScore } =
     useLearningProgress(id)
 
-  // 1️⃣ Fetch course and generate steps
-useEffect(() => {
-  const fetchCourse = async () => {
-    if (!token || !user) return
-    setLoading(true)
+  // Fetch course and generate steps
+  useEffect(() => {
+    const fetchCourse = async () => {
+      if (!token || !user) return
+      setLoading(true)
 
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/get/${id}`, {
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setCourse(data.course)
-        setAllSteps(generateLearningSteps(data.course))
-        setError(null)
-      } else {
-        setError("Failed to fetch course details")
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/get/${id}`, {
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setCourse(data.course)
+          setAllSteps(generateLearningSteps(data.course))
+          setError(null)
+        } else {
+          setError("Failed to fetch course details")
+        }
+      } catch (err) {
+        console.error(err)
+        setError("Error fetching course")
+      } finally {
+        setLoading(false)
       }
-    } catch (err) {
-      console.error(err)
-      setError("Error fetching course")
-    } finally {
-      setLoading(false)
     }
-  }
 
-  fetchCourse()
-}, [token, user, id])
+    fetchCourse()
+  }, [token, user, id])
 
-// 2️⃣ Once both steps and progressData exist, determine currentStepIndex
-useEffect(() => {
-  if (!allSteps.length || !progressData) return
+  // Once both steps and progressData exist, determine currentStepIndex
+  useEffect(() => {
+    if (!allSteps.length || !progressData) return
 
-  const lastStep = getCurrentStep(allSteps, progressData)
-  if (!lastStep) return
+    const lastStep = getCurrentStep(allSteps, progressData)
+    if (!lastStep) return
 
-  const lastIndex = allSteps.findIndex((step) => step.id === lastStep.id)
-  const startStepIndex =
-    lastIndex >= 0 && isStepCompleted(lastStep.id) && lastIndex + 1 < allSteps.length
-      ? lastIndex + 1
-      : lastIndex
+    const lastIndex = allSteps.findIndex((step) => step.id === lastStep.id)
+    const startStepIndex =
+      lastIndex >= 0 && isStepCompleted(lastStep.id) && lastIndex + 1 < allSteps.length ? lastIndex + 1 : lastIndex
 
-  setCurrentStepIndex(startStepIndex)
-}, [allSteps, progressData])
-
-
-  
+    setCurrentStepIndex(startStepIndex)
+  }, [allSteps, progressData])
 
   const generateLearningSteps = (course: Course): LearningStep[] => {
     const steps: LearningStep[] = []
@@ -144,7 +140,7 @@ useEffect(() => {
     return steps
   }
 
-  const handleStepComplete = async (score?: number) => {
+  const handleStepComplete = async (score?: number, passed?: boolean, ready?: boolean) => {
     setIsStepping(true)
     const currentStep = allSteps[currentStepIndex]
     if (!currentStep) return
@@ -158,6 +154,7 @@ useEffect(() => {
     if (currentStep.type === "assessment" && currentStep.assessment) {
       payload.assessmentId = currentStep.assessment.id
       if (score !== undefined) payload.score = score
+      payload.isCompleted = ready ? true : false
     } else {
       payload.lessonId = currentStep.lessonId
     }
@@ -165,7 +162,12 @@ useEffect(() => {
     const isLastStep = currentStepIndex === allSteps.length - 1
     payload.status = isLastStep ? "completed" : "in_progress"
 
-    await markStepComplete(payload)
+    payload.passed = passed
+    payload.ready = ready
+
+    if (currentStep.type !== "assessment" || passed) {
+      await markStepComplete(payload)
+    }
 
     // Check if lesson/module/course is complete
     const isLessonComplete = checkLessonComplete(currentStep.lessonId)
@@ -185,8 +187,15 @@ useEffect(() => {
     })
 
     setIsStepping(false)
-    // Auto-advance to next step 
-    handleNextStep()
+
+    if (currentStep.type !== "assessment" || passed || ready) {
+      // Show celebration for a moment before advancing
+      setShowCelebration(true)
+        setShowCelebration(false)
+        if (currentStepIndex < allSteps.length - 1) {
+          handleNextStep()
+        }
+    }
   }
 
   const handleNextStep = () => {
@@ -208,6 +217,14 @@ useEffect(() => {
     if (stepIndex >= 0) {
       setCurrentStepIndex(stepIndex)
     }
+  }
+
+  const checkAllStepsCompleted = (): boolean => {
+    return allSteps.every((step) => isStepCompleted(step.id))
+  }
+
+  const handleCourseCompletionSelect = () => {
+    setCurrentStepIndex(allSteps.length) // Set to completion step index
   }
 
   const checkLessonComplete = (lessonId: string): boolean => {
@@ -268,16 +285,18 @@ useEffect(() => {
 
   const currentStep = allSteps[currentStepIndex]
   const progressStats = getProgressStats()
+  const allStepsCompleted = checkAllStepsCompleted()
+  const isOnCompletionStep = currentStepIndex === allSteps.length
 
   return (
     <div className="min-h-screen bg-background">
       <LearningNavigation
         courseTitle={course.title}
         courseId={id}
-        currentStepTitle={currentStep.title}
+        currentStepTitle={isOnCompletionStep ? "Course Completion" : currentStep.title}
         currentStepIndex={currentStepIndex}
-        totalSteps={allSteps.length}
-        canGoNext={currentStepIndex < allSteps.length - 1}
+        totalSteps={allSteps.length + 1} // Include completion step in total
+        canGoNext={currentStepIndex < allSteps.length}
         canGoPrevious={currentStepIndex > 0}
         onNext={handleNextStep}
         onPrevious={handlePreviousStep}
@@ -286,50 +305,71 @@ useEffect(() => {
       <div className="flex">
         <LearningSidebar
           modules={course.modules || []}
-          currentStepId={currentStep.id}
+          currentStepId={isOnCompletionStep ? "course-completion" : currentStep.id}
           onStepSelect={handleStepSelect}
+          onCourseCompletionSelect={handleCourseCompletionSelect}
           courseProgress={progressStats.overallProgress}
           progressData={progressData}
           isStepCompleted={isStepCompleted}
-
+          allStepsCompleted={allStepsCompleted}
         />
 
         <div className="flex-1 ml-80 overflow-y-auto">
           <div className="p-8 max-w-5xl mx-auto">
-            {/* Current Step Content */}
-            {currentStep.type === "content" && (
-              <ContentScreen
-                lesson={{
-                  id: currentStep.lessonId,
-                  title: currentStep.lesson.title,
-                  content: currentStep.lesson.content,
-                  duration: currentStep.duration || 0,
-                }}
-                onComplete={() => handleStepComplete()}
-                isCompleted={isStepCompleted(currentStep.id)}
-                isStepping={isStepping}
+            {isOnCompletionStep ? (
+              <CourseCompletion
+                courseId={id}
+                courseTitle={course.title}
+                progressData={progressData}
+                allSteps={allSteps}
+                getStepScore={getStepScore}
+                course={course}
               />
-            )}
+            ) : (
+              <>
+                {/* Current Step Content */}
+                {currentStep.type === "content" && (
+                  <ContentScreen
+                    lesson={{
+                      id: currentStep.lessonId,
+                      title: currentStep.lesson.title,
+                      content: currentStep.lesson.content,
+                      duration: currentStep.duration || 0,
+                    }}
+                    onComplete={() => handleStepComplete()}
+                    isCompleted={isStepCompleted(currentStep.id)}
+                    isStepping={isStepping}
+                  />
+                )}
 
-            {currentStep.type === "video" && (
-              <VideoScreen
-                lesson={{
-                  id: currentStep.lessonId,
-                  title: currentStep.lesson.title,
-                  videoUrl: currentStep.lesson.videoUrl,
-                  duration: currentStep.duration || 0,
-                }}
-                onComplete={() => handleStepComplete()}
-                isCompleted={isStepCompleted(currentStep.id)}
-              />
-            )}
+                {currentStep.type === "video" && (
+                  <VideoScreen
+                    lesson={{
+                      id: currentStep.lessonId,
+                      title: currentStep.lesson.title,
+                      videoUrl: currentStep.lesson.videoUrl,
+                      duration: currentStep.duration || 0,
+                    }}
+                    onComplete={() => handleStepComplete()}
+                    isCompleted={isStepCompleted(currentStep.id)}
+                  />
+                )}
 
-            {currentStep.type === "assessment" && currentStep.assessment && (
-              <AssessmentScreen
-                assessment={currentStep.assessment}
-                onComplete={(score) => handleStepComplete(score)}
-                isCompleted={isStepCompleted(currentStep.id)}
-              />
+                {currentStep.type === "assessment" && currentStep.assessment && (
+                  <AssessmentScreen
+                    key={`${currentStep.assessment.id}-${currentStepIndex}`}
+                    assessment={currentStep.assessment}
+                    onComplete={(score, passed, ready) => handleStepComplete(score, passed, ready)}
+                    onRetake={() => {
+                      // Reset any completion state for this step
+                    }}
+                    isCompleted={isStepCompleted(currentStep.id)}
+                    previousScore={getStepScore(currentStep.id)}
+                    previousPassed={isStepCompleted(currentStep.id)}
+                    isStepping={isStepping}
+                  />
+                )}
+              </>
             )}
           </div>
         </div>

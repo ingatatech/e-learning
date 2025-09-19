@@ -109,8 +109,9 @@ const isStepCompletedHelper = (step: LearningStep, progressData: ProgressData) =
 
   // Mark a step as completed
   const markStepComplete = useCallback(
-    async (payload: { courseId: string; userId: string; lessonId?: string; assessmentId?: string; score?: number, status?: "in_progress" | "completed" }) => {
+    async (payload: { courseId: string; userId: string; lessonId?: string; assessmentId?: string; score?: number, status?: "in_progress" | "completed", passed?: boolean, ready?: boolean }) => {
       if (!token) return
+      if (!payload.passed) return
 
       try {
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/progress/complete-step`, {
@@ -119,15 +120,15 @@ const isStepCompletedHelper = (step: LearningStep, progressData: ProgressData) =
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            ...payload,
-            status: payload.status ?? "in_progress",
-            completedAt: new Date().toISOString(),
-          }),
+          body: JSON.stringify({ 
+              ...payload, 
+              completedAt: new Date().toISOString(), 
+            }),
         })
 
         if (response.ok) {
           const data = await response.json()
+
           // Optimistically update local state if needed
           setProgressData((prev) => {
             if (!prev) return prev
@@ -141,7 +142,7 @@ const isStepCompletedHelper = (step: LearningStep, progressData: ProgressData) =
               type: payload.assessmentId ? "assessment" : "lesson",
               lessonId: payload.lessonId,
               assessmentId: payload.assessmentId,
-              isCompleted: true,
+              isCompleted: !!payload.ready,
               completedAt: new Date().toISOString(),
               score: payload.score,
             }
