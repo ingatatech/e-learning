@@ -6,7 +6,8 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { BookOpen, BarChart3, Users, Settings, Award, TrendingUp, Calendar, MessageSquare, FileText, CreditCard, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Home, GraduationCap, Trophy, Building, UserPlus, DollarSign, PieChart, BookPlus, FileSearch } from "lucide-react"
+import { BookOpen, BarChart3, Users, Settings, Award, TrendingUp, Calendar, MessageSquare, FileText, CreditCard, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Home, GraduationCap, Trophy, Building, UserPlus, DollarSign, PieChart, BookPlus, FileSearch, UserRoundCheck, Shield, Server } from "lucide-react"
+import React from "react"
 
 interface SidebarProps {
   userRole: "admin" | "system-administrator" | "instructor" | "student"
@@ -87,6 +88,13 @@ const navigationItems: Record<string, NavigationItem[]> = {
     { name: "Payments", href: "/admin/payments", icon: CreditCard },
     { name: "Settings", href: "/admin/settings", icon: Settings },
   ],
+}
+
+const roleIcons: Record<string, any> = {
+  admin: Shield,
+  "system-administrator": Server,
+  instructor: UserRoundCheck,
+  student: GraduationCap,
 }
 
 export function Sidebar({ userRole, className }: SidebarProps) {
@@ -177,7 +185,7 @@ export function Sidebar({ userRole, className }: SidebarProps) {
         {!isCollapsed && (
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-primary-foreground" />
+              {React.createElement(roleIcons[userRole] || BookOpen, { className: "w-5 h-5 text-primary-foreground" })}
             </div>
             <span className="font-semibold text-primary pl-2">{userRole.charAt(0).toUpperCase() + userRole.slice(1)}</span>
           </div>

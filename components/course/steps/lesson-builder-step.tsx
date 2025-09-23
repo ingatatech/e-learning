@@ -154,7 +154,7 @@ export function LessonBuilderStep({ modules, setModules, onNext, onPrevious }: L
                     </CardTitle>
                     <CardDescription className="truncate">Module: {currentModule?.title}</CardDescription>
                   </div>
-                  <div className="flex gap-2 flex-shrink-0">
+                  {/* <div className="flex gap-2 flex-shrink-0">
                     <Button
                       variant={previewMode ? "default" : "outline"}
                       size="sm"
@@ -163,7 +163,7 @@ export function LessonBuilderStep({ modules, setModules, onNext, onPrevious }: L
                       <Eye className="w-4 h-4 mr-2" />
                       {previewMode ? "Edit" : "Preview"}
                     </Button>
-                  </div>
+                  </div> */}
                 </div>
               </CardHeader>
               <CardContent className="h-[500px] overflow-hidden p-0">

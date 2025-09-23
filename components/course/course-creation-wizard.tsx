@@ -210,7 +210,6 @@ export function CourseCreationWizard() {
 
       // await response.json()
     } catch (error) {
-      console.error("[v0] Error creating course:", error)
       // Handle error (show error message, etc.)
     } finally {
       setIsSubmitting(false)

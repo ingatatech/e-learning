@@ -195,11 +195,11 @@ export function AssessmentEditor({ assessment, onUpdate, onDelete }: AssessmentE
             </div>
 
             <div className="space-y-2">
-              <Label>Description</Label>
+              <Label>Instructions</Label>
               <Textarea
                 value={assessment.description}
                 onChange={(e) => onUpdate({ description: e.target.value })}
-                placeholder="Describe what this assessment covers..."
+                placeholder="Enter assessment instructions..."
                 rows={2}
               />
             </div>
@@ -264,8 +264,8 @@ export function AssessmentEditor({ assessment, onUpdate, onDelete }: AssessmentE
                       type="number"
                       min="0"
                       max="100"
-                      value={assessment.passingScore}
-                      onChange={(e) => onUpdate({ passingScore: Number.parseInt(e.target.value) || 70 })}
+                      value={assessment.passingScore || ""}
+                      onChange={(e) => onUpdate({ passingScore: Number.parseInt(e.target.value) || undefined })}
                     />
                   </div>
                   <div className="space-y-2">
@@ -316,23 +316,6 @@ export function AssessmentEditor({ assessment, onUpdate, onDelete }: AssessmentE
         </TabsContent>
       </Tabs>
 
-      {/* Save Actions */}
-      <div className="flex justify-between items-center pt-4 border-t">
-        <Button variant="outline" onClick={onDelete} className="text-red-600 hover:text-red-700 bg-transparent">
-          <Trash2 className="w-4 h-4 mr-2" />
-          Delete Assessment
-        </Button>
-        <div className="flex gap-2">
-          <Button variant="outline">
-            <Save className="w-4 h-4 mr-2" />
-            Save Draft
-          </Button>
-          <Button>
-            <CheckCircle className="w-4 h-4 mr-2" />
-            Save Assessment
-          </Button>
-        </div>
-      </div>
     </div>
   )
 }

@@ -170,7 +170,7 @@ export function AssessmentBuilderStep({ modules, setModules, onNext, onPrevious 
                       questions
                     </CardDescription>
                   </div>
-                  <div className="flex gap-2 flex-shrink-0">
+                  {/* <div className="flex gap-2 flex-shrink-0">
                     <Button
                       variant={previewMode ? "default" : "outline"}
                       size="sm"
@@ -178,7 +178,7 @@ export function AssessmentBuilderStep({ modules, setModules, onNext, onPrevious 
                     >
                       {previewMode ? "Edit" : "Preview"}
                     </Button>
-                  </div>
+                  </div> */}
                 </div>
               </CardHeader>
               <CardContent className="h-[500px] overflow-y-auto">

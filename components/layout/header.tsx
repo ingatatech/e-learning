@@ -21,6 +21,7 @@ interface HeaderProps {
     id: string
     firstName: string
     lastName: string
+    email: string
     avatar?: string
     role: string
     totalPoints: number
@@ -100,6 +101,9 @@ export function Header({ user }: HeaderProps) {
                         </p>
                         <p className="text-xs leading-none text-muted-foreground">
                           {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                        </p>
+                        <p className="text-xs leading-none text-muted-foreground">
+                          {user.email}
                         </p>
                       </div>
                     </DropdownMenuLabel>

@@ -27,7 +27,7 @@ import type { Lesson } from "@/types"
 
 interface ContentBlock {
   id: string
-  type: "text" | "video" | "image" | "file" | "quiz"
+  type: "text" | "video" | "image"
   content: any
   order: number
 }
@@ -42,6 +42,17 @@ export function LessonEditor({ lesson, onUpdate, onDelete }: LessonEditorProps) 
   const [contentBlocks, setContentBlocks] = useState<ContentBlock[]>([])
   const [activeTab, setActiveTab] = useState("content")
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(true)
+  const [resourceLinks, setResourceLinks] = useState<string[]>([])
+
+  const handleLinkChange = (idx: number, value: string) => {
+    const newLinks = [...resourceLinks]
+    newLinks[idx] = value
+    setResourceLinks(newLinks)
+  }
+
+  const addNewLink = () => setResourceLinks([...resourceLinks, ""])
+  const removeLink = (idx: number) => setResourceLinks(resourceLinks.filter((_, i) => i !== idx))
+
 
   // Initialize content blocks from lesson content
   useEffect(() => {
@@ -69,14 +80,7 @@ export function LessonEditor({ lesson, onUpdate, onDelete }: LessonEditorProps) 
       }
     } else {
       // Default empty text block
-      setContentBlocks([
-        {
-          id: `block-${Date.now()}`,
-          type: "text",
-          content: { text: "" },
-          order: 1,
-        },
-      ])
+      setContentBlocks([])
     }
   }, [lesson.id]) // Only run when lesson id changes
 
@@ -215,44 +219,6 @@ export function LessonEditor({ lesson, onUpdate, onDelete }: LessonEditorProps) 
           </div>
         )
 
-      case "quiz":
-        return (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Question</Label>
-              <Textarea
-                value={block.content.question}
-                onChange={(e) => updateContentBlock(block.id, { ...block.content, question: e.target.value })}
-                placeholder="Enter your quiz question..."
-                rows={2}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Answer Options</Label>
-              {block.content.options.map((option: string, index: number) => (
-                <div key={index} className="flex gap-2">
-                  <Input
-                    value={option}
-                    onChange={(e) => {
-                      const newOptions = [...block.content.options]
-                      newOptions[index] = e.target.value
-                      updateContentBlock(block.id, { ...block.content, options: newOptions })
-                    }}
-                    placeholder={`Option ${index + 1}`}
-                  />
-                  <Button
-                    variant={block.content.correctAnswer === index ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => updateContentBlock(block.id, { ...block.content, correctAnswer: index })}
-                  >
-                    Correct
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )
-
       default:
         return null
     }
@@ -266,10 +232,6 @@ export function LessonEditor({ lesson, onUpdate, onDelete }: LessonEditorProps) 
         return <Video className="w-4 h-4" />
       case "image":
         return <ImageIcon className="w-4 h-4" />
-      case "file":
-        return <FileDown className="w-4 h-4" />
-      case "quiz":
-        return <Badge className="w-4 h-4" />
       default:
         return <FileText className="w-4 h-4" />
     }
@@ -332,7 +294,7 @@ export function LessonEditor({ lesson, onUpdate, onDelete }: LessonEditorProps) 
                   <h3 className="font-medium text-gray-900 dark:text-white mb-2">Add Content Block</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-300">Choose the type of content you want to add</p>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -359,24 +321,6 @@ export function LessonEditor({ lesson, onUpdate, onDelete }: LessonEditorProps) 
                   >
                     <ImageIcon className="w-5 h-5" />
                     <span className="text-xs">Image</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => addContentBlock("file")}
-                    className="flex flex-col gap-1 h-auto py-3"
-                  >
-                    <FileDown className="w-5 h-5" />
-                    <span className="text-xs">File</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => addContentBlock("quiz")}
-                    className="flex flex-col gap-1 h-auto py-3"
-                  >
-                    <Badge className="w-5 h-5" />
-                    <span className="text-xs">Quiz</span>
                   </Button>
                 </div>
               </CardContent>
@@ -452,21 +396,38 @@ export function LessonEditor({ lesson, onUpdate, onDelete }: LessonEditorProps) 
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Lesson Resources</CardTitle>
-              <CardDescription>Add downloadable files and additional materials</CardDescription>
+              <CardDescription>Add links to resources for students</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center">
-                <FileDown className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 dark:text-gray-300 mb-2">Upload resources for students</p>
-                <p className="text-sm text-gray-500 mb-4">PDFs, documents, code files, etc.</p>
-                <Button variant="outline">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Files
+              <div className="space-y-4">
+                <p className="text-gray-600 dark:text-gray-300">Enter URLs for downloadable resources</p>
+
+                {/* Example: multiple links */}
+                {resourceLinks.map((link, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <Input
+                      value={link}
+                      onChange={(e) => handleLinkChange(idx, e.target.value)}
+                      placeholder="https://example.com/resource.pdf"
+                    />
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => removeLink(idx)}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ))}
+
+                <Button onClick={addNewLink} variant="outline" size="sm">
+                  + Add Resource Link
                 </Button>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
+
       </Tabs>
 
       {/* Save Actions */}
