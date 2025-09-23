@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
+import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import {
   FileText,
   Video,
@@ -18,7 +19,6 @@ import {
   Trash2,
   GripVertical,
   Clock,
-  Save,
   Briefcase,
   Zap,
   Check,
@@ -27,7 +27,7 @@ import type { Lesson } from "@/types"
 
 interface ContentBlock {
   id: string
-  type: "text" | "video" | "image"
+  type: "text" | "video" | "image" | "file" | "quiz"
   content: any
   order: number
 }
@@ -42,17 +42,35 @@ export function LessonEditor({ lesson, onUpdate, onDelete }: LessonEditorProps) 
   const [contentBlocks, setContentBlocks] = useState<ContentBlock[]>([])
   const [activeTab, setActiveTab] = useState("content")
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(true)
-  const [resourceLinks, setResourceLinks] = useState<string[]>([])
+  const [resourceLinks, setResourceLinks] = useState<{ url: string; title: string; description: string }[]>([])
 
-  const handleLinkChange = (idx: number, value: string) => {
+  useEffect(() => {
+    if (lesson.resources) {
+      try {
+        const parsedResources = typeof lesson.resources === "string" ? JSON.parse(lesson.resources) : lesson.resources
+        setResourceLinks(parsedResources || [])
+      } catch (error) {
+        setResourceLinks([])
+      }
+    }
+  }, [lesson.id])
+
+  const handleLinkChange = (idx: number, value: { url: string; title: string; description: string }) => {
     const newLinks = [...resourceLinks]
     newLinks[idx] = value
     setResourceLinks(newLinks)
+    setHasUnsavedChanges(true)
   }
 
-  const addNewLink = () => setResourceLinks([...resourceLinks, ""])
-  const removeLink = (idx: number) => setResourceLinks(resourceLinks.filter((_, i) => i !== idx))
+  const addNewLink = () => {
+    setResourceLinks([...resourceLinks, { url: "", title: "", description: "" }])
+    setHasUnsavedChanges(true)
+  }
 
+  const removeLink = (idx: number) => {
+    setResourceLinks(resourceLinks.filter((_, i) => i !== idx))
+    setHasUnsavedChanges(true)
+  }
 
   // Initialize content blocks from lesson content
   useEffect(() => {
@@ -122,38 +140,38 @@ export function LessonEditor({ lesson, onUpdate, onDelete }: LessonEditorProps) 
 
   // Save handler
   const handleSave = () => {
-  const content = {
-    version: '1.0',
-    blocks: contentBlocks.map((block) => ({
-      type: block.type,
-      data: block.content,
-      id: block.id, // preserve the ID for React keys
-      order: block.order,
-    }))
-  };
+    const content = {
+      version: "1.0",
+      blocks: contentBlocks.map((block) => ({
+        type: block.type,
+        data: block.content,
+        id: block.id, // preserve the ID for React keys
+        order: block.order,
+      })),
+    }
 
-  onUpdate({
-    content: JSON.stringify(content),
-    duration: lesson.duration,
-    videoUrl: lesson.videoUrl,
-    isProject: lesson.isProject,
-    isExercise: lesson.isExercise,
-  })
-  setHasUnsavedChanges(false)
-}
+    onUpdate({
+      content: JSON.stringify(content),
+      duration: lesson.duration,
+      videoUrl: lesson.videoUrl,
+      isProject: lesson.isProject,
+      isExercise: lesson.isExercise,
+      resources: JSON.stringify(resourceLinks.filter((link) => link.url.trim() !== "")), // Only save non-empty resources
+    })
+    setHasUnsavedChanges(false)
+  }
 
   const renderContentBlock = (block: ContentBlock) => {
     switch (block.type) {
       case "text":
         return (
           <div className="space-y-2">
-            <Label>Text Content</Label>
-            <Textarea
-              value={block.content.text}
-              onChange={(e) => updateContentBlock(block.id, { text: e.target.value })}
-              placeholder="Enter your lesson content..."
-              rows={6}
-              className="resize-none"
+            <Label>Rich Text Content</Label>
+            <RichTextEditor
+              value={block.content.text || ""}
+              onChange={(value) => updateContentBlock(block.id, { text: value })}
+              placeholder="Enter your lesson content with rich formatting..."
+              className="min-h-[300px]"
             />
           </div>
         )
@@ -396,38 +414,51 @@ export function LessonEditor({ lesson, onUpdate, onDelete }: LessonEditorProps) 
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Lesson Resources</CardTitle>
-              <CardDescription>Add links to resources for students</CardDescription>
+              <CardDescription>Add downloadable resources and materials for students</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <p className="text-gray-600 dark:text-gray-300">Enter URLs for downloadable resources</p>
+                <p className="text-sm text-muted-foreground">
+                  Add links to PDFs, documents, code files, and other resources that complement this lesson.
+                </p>
 
-                {/* Example: multiple links */}
                 {resourceLinks.map((link, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
+                  <div key={idx} className="space-y-2 p-4 border rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={link.url || ""}
+                        onChange={(e) => handleLinkChange(idx, { ...link, url: e.target.value })}
+                        placeholder="https://example.com/resource.pdf"
+                        className="flex-1"
+                      />
+                      <Button variant="destructive" size="sm" onClick={() => removeLink(idx)}>
+                        Remove
+                      </Button>
+                    </div>
                     <Input
-                      value={link}
-                      onChange={(e) => handleLinkChange(idx, e.target.value)}
-                      placeholder="https://example.com/resource.pdf"
+                      value={link.title || ""}
+                      onChange={(e) => handleLinkChange(idx, { ...link, title: e.target.value })}
+                      placeholder="Resource title (e.g., 'Course Slides', 'Exercise Files')"
+                      className="text-sm"
                     />
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => removeLink(idx)}
-                    >
-                      Remove
-                    </Button>
+                    <Textarea
+                      value={link.description || ""}
+                      onChange={(e) => handleLinkChange(idx, { ...link, description: e.target.value })}
+                      placeholder="Brief description of this resource..."
+                      rows={2}
+                      className="text-sm resize-none"
+                    />
                   </div>
                 ))}
 
-                <Button onClick={addNewLink} variant="outline" size="sm">
-                  + Add Resource Link
+                <Button onClick={addNewLink} variant="outline" size="sm" className="w-full bg-transparent">
+                  <FileDown className="w-4 h-4 mr-2" />
+                  Add Resource
                 </Button>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
-
       </Tabs>
 
       {/* Save Actions */}

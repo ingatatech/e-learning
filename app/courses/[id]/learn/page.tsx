@@ -12,6 +12,7 @@ import { LearningSidebar } from "@/components/learning/learning-sidebar"
 import { LearningNavigation } from "@/components/learning/learning-navigation"
 import { CompletionCelebration } from "@/components/learning/completion-celebration"
 import { CourseCompletion } from "@/components/learning/course-completion"
+import { CourseRating } from "@/components/learning/course-rating"
 
 interface LearningStep {
   id: string
@@ -31,6 +32,9 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
   const [course, setCourse] = useState<Course>()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showRating, setShowRating] = useState(false)
+  const [userRating, setUserRating] = useState<{ rating: number; review: string } | null>(null)
+  const [courseReviews, setCourseReviews] = useState<any[]>([])
 
   const [allSteps, setAllSteps] = useState<LearningStep[]>([])
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
@@ -41,7 +45,6 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
   const { progressData, markStepComplete, getCurrentStep, calculateProgress, isStepCompleted, getStepScore } =
     useLearningProgress(id)
 
-  // Fetch course and generate steps
   useEffect(() => {
     const fetchCourse = async () => {
       if (!token || !user) return
@@ -56,6 +59,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
           setCourse(data.course)
           setAllSteps(generateLearningSteps(data.course))
           setError(null)
+          await fetchCourseRating()
         } else {
           setError("Failed to fetch course details")
         }
@@ -70,7 +74,51 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
     fetchCourse()
   }, [token, user, id])
 
-  // Once both steps and progressData exist, determine currentStepIndex
+  const fetchCourseRating = async () => {
+    try {
+      const userRatingRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/${id}/rating/user`, {
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      })
+      if (userRatingRes.ok) {
+        const userRatingData = await userRatingRes.json()
+        setUserRating(userRatingData.rating)
+      }
+
+      const reviewsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/${id}/reviews`, {
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      })
+      if (reviewsRes.ok) {
+        const reviewsData = await reviewsRes.json()
+        setCourseReviews(reviewsData.reviews || [])
+      }
+    } catch (error) {
+      console.error("Failed to fetch rating data:", error)
+    }
+  }
+
+  const handleRatingSubmit = async (rating: number, review: string) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/${id}/rating`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          userId: user?.id,
+          courseId: id,
+          rating,
+          review,
+        }),
+      })
+
+      if (response.ok) {
+        setUserRating({ rating, review })
+        await fetchCourseRating()
+        setShowRating(false)
+      }
+    } catch (error) {
+      console.error("Failed to submit rating:", error)
+    }
+  }
+
   useEffect(() => {
     if (!allSteps.length || !progressData) return
 
@@ -88,7 +136,6 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
     const steps: LearningStep[] = []
 
     course.modules?.forEach((module) => {
-      // Sort lessons by order, then handle projects last
       const sortedLessons = [...module.lessons].sort((a, b) => {
         if (a.isProject && !b.isProject) return 1
         if (!a.isProject && b.isProject) return -1
@@ -96,7 +143,6 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
       })
 
       sortedLessons.forEach((lesson) => {
-        // Add content step if lesson has content
         if (lesson.content && lesson.content.trim()) {
           steps.push({
             id: `${lesson.id}-content`,
@@ -110,7 +156,6 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
           })
         }
 
-        // Add video step if lesson has video
         if (lesson.videoUrl && lesson.videoUrl.trim()) {
           steps.push({
             id: `${lesson.id}-video`,
@@ -124,7 +169,6 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
           })
         }
 
-        // Add assessment steps if lesson has assessments
         lesson.assessments?.forEach((assessment, index) => {
           steps.push({
             id: `${lesson.id}-assessment-${assessment.id}`,
@@ -149,7 +193,6 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
     const currentStep = allSteps[currentStepIndex]
     if (!currentStep) return
 
-    // Map step to the correct payload for backend
     const payload: any = {
       courseId: id,
       userId: user?.id,
@@ -173,12 +216,10 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
       await markStepComplete(payload)
     }
 
-    // Check if lesson/module/course is complete
     const isLessonComplete = checkLessonComplete(currentStep.lessonId)
     const isModuleComplete = checkModuleComplete(currentStep.moduleId)
     const isCourseComplete = checkCourseComplete()
 
-    // Show celebration
     setCelebrationData({
       stepTitle: currentStep.title,
       stepType: currentStep.type,
@@ -193,12 +234,13 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
     setIsStepping(false)
 
     if (currentStep.type !== "assessment" || passed || ready) {
-      // Show celebration for a moment before advancing
       setShowCelebration(true)
-        setShowCelebration(false)
-        if (currentStepIndex < allSteps.length - 1) {
-          handleNextStep()
-        }
+      setShowCelebration(false)
+      if (currentStepIndex < allSteps.length - 1) {
+        handleNextStep()
+      } else if (isLastStep && isCourseComplete) {
+        setShowRating(true)
+      }
     }
   }
 
@@ -228,7 +270,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
   }
 
   const handleCourseCompletionSelect = () => {
-    setCurrentStepIndex(allSteps.length) // Set to completion step index
+    setCurrentStepIndex(allSteps.length)
   }
 
   const checkLessonComplete = (lessonId: string): boolean => {
@@ -262,7 +304,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
       totalAssessments: assessmentSteps.length,
       timeSpent: completedSteps.reduce((total, step) => total + (step.duration || 0), 0),
       averageScore: scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0,
-      streak: 7, // This would come from backend
+      streak: 7,
     }
   }
 
@@ -299,7 +341,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
         courseId={id}
         currentStepTitle={isOnCompletionStep ? "Course Completion" : currentStep.title}
         currentStepIndex={currentStepIndex}
-        totalSteps={allSteps.length + 1} // Include completion step in total
+        totalSteps={allSteps.length + 1}
         canGoNext={currentStepIndex < allSteps.length}
         canGoPrevious={currentStepIndex > 0}
         onNext={handleNextStep}
@@ -321,17 +363,25 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
         <div className="flex-1 ml-80 overflow-y-auto">
           <div className="p-8 max-w-5xl mx-auto">
             {isOnCompletionStep ? (
-              <CourseCompletion
-                courseId={id}
-                courseTitle={course.title}
-                progressData={progressData}
-                allSteps={allSteps}
-                getStepScore={getStepScore}
-                course={course}
-              />
+              <div className="space-y-8">
+                <CourseCompletion
+                  courseId={id}
+                  courseTitle={course.title}
+                  progressData={progressData}
+                  allSteps={allSteps}
+                  getStepScore={getStepScore}
+                  course={course}
+                />
+                <CourseRating
+                  courseId={id}
+                  currentRating={userRating?.rating}
+                  currentReview={userRating?.review}
+                  onRatingSubmit={handleRatingSubmit}
+                  reviews={courseReviews}
+                />
+              </div>
             ) : (
               <>
-                {/* Current Step Content */}
                 {currentStep.type === "content" && (
                   <ContentScreen
                     lesson={{
@@ -339,6 +389,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
                       title: currentStep.lesson.title,
                       content: currentStep.lesson.content,
                       duration: currentStep.duration || 0,
+                      resources: currentStep.lesson.resources,
                     }}
                     onComplete={() => handleStepComplete()}
                     isCompleted={isStepCompleted(currentStep.id)}
@@ -364,9 +415,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
                     key={`${currentStep.assessment.id}-${currentStepIndex}`}
                     assessment={currentStep.assessment}
                     onComplete={(score, passed, ready) => handleStepComplete(score, passed, ready)}
-                    onRetake={() => {
-                      // Reset any completion state for this step
-                    }}
+                    onRetake={() => {}}
                     isCompleted={isStepCompleted(currentStep.id)}
                     previousScore={getStepScore(currentStep.dbId)}
                     previousPassed={isStepCompleted(currentStep.id)}

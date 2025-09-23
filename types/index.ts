@@ -129,6 +129,11 @@ export interface Lesson {
   isFree?: boolean
   isExercise: boolean
   isProject: boolean
+  resources?: Array<{
+    url: string
+    title: string
+    description?: string
+  }>
 }
 
 export interface Assessment {

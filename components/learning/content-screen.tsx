@@ -1,9 +1,8 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { CheckCircle, BookOpen, Clock } from "lucide-react"
-import { parse } from "path"
+import { CheckCircle, BookOpen, Clock, FileDown } from "lucide-react"
 
 interface ContentBlock {
   type: "text" | "video" | "image"
@@ -23,6 +22,11 @@ interface ContentScreenProps {
     title: string
     content: string
     duration: number
+    resources?: Array<{
+      url: string
+      title: string
+      description?: string
+    }>
   }
   onComplete: () => void
   isCompleted: boolean
@@ -54,13 +58,19 @@ function parseContentBlocks(content: string): ContentBlock[] {
   }
 }
 
-
 function ContentBlockRenderer({ block }: { block: ContentBlock }) {
   switch (block.type) {
     case "text":
       return (
         <div className="prose prose-lg max-w-none mb-6">
-          <div dangerouslySetInnerHTML={{ __html: block.data.text || "" }} />
+          <div
+            dangerouslySetInnerHTML={{ __html: block.data.text || "" }}
+            className="rich-text-content"
+            style={{
+              lineHeight: "1.6",
+              fontSize: "16px",
+            }}
+          />
         </div>
       )
 
@@ -68,31 +78,28 @@ function ContentBlockRenderer({ block }: { block: ContentBlock }) {
       if (!block.data.url) {
         return null
       }
-  const isYouTube = block.data.url.includes("youtube.com") || block.data.url.includes("youtu.be")
+      const isYouTube = block.data.url.includes("youtube.com") || block.data.url.includes("youtu.be")
 
-  return (
-    <div className="mb-6">
-      <div className="aspect-video bg-black rounded-lg overflow-hidden">
-        {isYouTube ? (
-          <iframe
-            src={block.data.url.replace("watch?v=", "embed/")}
-            title="YouTube video player"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            className="w-full h-full"
-          />
-        ) : (
-          <video src={block.data.url} controls className="w-full h-full" poster={block.data.caption}>
-            Your browser does not support the video tag.
-          </video>
-        )}
-      </div>
-      {block.data.caption && (
-        <p className="text-sm text-muted-foreground mt-2 text-center">{block.data.caption}</p>
-      )}
-    </div>
-  )
-
+      return (
+        <div className="mb-6">
+          <div className="aspect-video bg-black rounded-lg overflow-hidden">
+            {isYouTube ? (
+              <iframe
+                src={block.data.url.replace("watch?v=", "embed/")}
+                title="YouTube video player"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="w-full h-full"
+              />
+            ) : (
+              <video src={block.data.url} controls className="w-full h-full" poster={block.data.caption}>
+                Your browser does not support the video tag.
+              </video>
+            )}
+          </div>
+          {block.data.caption && <p className="text-sm text-muted-foreground mt-2 text-center">{block.data.caption}</p>}
+        </div>
+      )
 
     case "image":
       return (
@@ -117,7 +124,7 @@ export function ContentScreen({ lesson, onComplete, isCompleted, isStepping }: C
   const contentBlocks = parseContentBlocks(lesson.content)
 
   return (
-    <div className="w-full">
+    <div className="w-full space-y-6">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -131,7 +138,6 @@ export function ContentScreen({ lesson, onComplete, isCompleted, isStepping }: C
                 </div>
               </div>
             </div>
-            
           </div>
         </CardHeader>
         <CardContent>
@@ -142,12 +148,12 @@ export function ContentScreen({ lesson, onComplete, isCompleted, isStepping }: C
                 .map((block) => (
                   <ContentBlockRenderer key={block.id} block={block} />
                 ))}
-                {!isCompleted && (
-              <Button onClick={onComplete} disabled={isStepping} className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4" />
-                {isStepping ? "Completing..." : "Mark Complete"}
-              </Button>
-            )}
+              {!isCompleted && (
+                <Button onClick={onComplete} disabled={isStepping} className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4" />
+                  {isStepping ? "Completing..." : "Mark Complete"}
+                </Button>
+              )}
             </div>
           ) : (
             <div className="text-center py-12 text-muted-foreground">
@@ -157,6 +163,41 @@ export function ContentScreen({ lesson, onComplete, isCompleted, isStepping }: C
           )}
         </CardContent>
       </Card>
+
+      {lesson.resources && lesson.resources.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileDown className="w-5 h-5 text-primary" />
+              Lesson Resources
+            </CardTitle>
+            <CardDescription>Download additional materials and resources for this lesson</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4">
+              {lesson.resources.map((resource, index) => (
+                <div
+                  key={index}
+                  className="flex items-start gap-3 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <FileDown className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-sm">{resource.title}</h4>
+                    {resource.description && (
+                      <p className="text-sm text-muted-foreground mt-1">{resource.description}</p>
+                    )}
+                  </div>
+                  <Button variant="outline" size="sm" asChild className="flex-shrink-0 bg-transparent">
+                    <a href={resource.url} target="_blank" rel="noopener noreferrer">
+                      Download
+                    </a>
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

@@ -184,6 +184,13 @@ export function CourseCreationWizard() {
             passingScore: assessment.passingScore || 70,
             timeLimit: assessment.timeLimit || 30,
           })),
+          resources: Array.isArray(lesson.resources)
+            ? lesson.resources.map((resource) => ({
+                title: resource.title,
+                url: resource.url,
+                description: resource.description || "",
+              }))
+            : [],
         })),
       })),
     }
@@ -210,6 +217,7 @@ export function CourseCreationWizard() {
 
       // await response.json()
     } catch (error) {
+      console.log(error)
       // Handle error (show error message, etc.)
     } finally {
       setIsSubmitting(false)
