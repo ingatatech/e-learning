@@ -42,6 +42,7 @@ import {
   ChevronRight,
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
+import { Answer } from "@/types"
 
 interface Question {
   id: string
@@ -87,7 +88,7 @@ export function AssessmentScreen({
   isStepping,
 }: AssessmentScreenProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
-  const [answers, setAnswers] = useState<Record<string, string | string[]>>({})
+  const [answers, setAnswers] = useState<Answer[]>([])
   const [timeRemaining, setTimeRemaining] = useState(assessment.timeLimit * 60)
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [score, setScore] = useState(0)
@@ -102,7 +103,7 @@ export function AssessmentScreen({
 
   useEffect(() => {
     setCurrentQuestionIndex(0)
-    setAnswers({})
+    setAnswers([])
     setTimeRemaining(assessment.timeLimit * 60)
     setIsSubmitted(false)
     setScore(0)
@@ -124,7 +125,7 @@ export function AssessmentScreen({
     setLoadingSavedAnswers(true)
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/assessments/${assessment.id}/answers/${user.id}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/answers/${assessment.id}/user/${user.id}`,
         {
           headers: {
             "Content-Type": "application/json",
@@ -137,11 +138,7 @@ export function AssessmentScreen({
         const data = await response.json()
         setSavedAnswers(data.answers || [])
 
-        const answersMap: Record<string, string | string[]> = {}
-        data.answers?.forEach((savedAnswer: SavedAnswer) => {
-          answersMap[savedAnswer.questionId] = savedAnswer.answer
-        })
-        setAnswers(answersMap)
+        setAnswers(data.answers)
       }
     } catch (error) {
       console.error("Failed to fetch saved answers:", error)
@@ -154,7 +151,7 @@ export function AssessmentScreen({
     if (!token || !user) return
 
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/assessments/save-answer`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/answers/submit`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -224,7 +221,8 @@ export function AssessmentScreen({
 
     assessment.questions.forEach((question) => {
       totalPoints += question.points
-      const userAnswer = answers[question.id]
+      const userAnswerObj = answers.find((a) => a.questionId === question.id)
+      const userAnswer = userAnswerObj ? userAnswerObj.question.id : "Not answered"
       correctAnswersMap[question.id] = question.correctAnswer
 
       if (question.type === "true_false" || question.type === "multiple_choice") {
@@ -249,7 +247,7 @@ export function AssessmentScreen({
 
   const handleRetake = () => {
     setCurrentQuestionIndex(0)
-    setAnswers({})
+    setAnswers([])
     setTimeRemaining(assessment.timeLimit * 60)
     setIsSubmitted(false)
     setScore(0)
@@ -382,7 +380,8 @@ export function AssessmentScreen({
               <h3 className="text-lg font-semibold mb-4">Your Submitted Answers</h3>
               <div className="space-y-4">
                 {assessment.questions.map((question, index) => {
-                  const userAnswer = answers[question.id] || "Not answered"
+                  const userAnswerObj = answers.find((a) => a.question.id === question.id)
+                  const userAnswer = userAnswerObj ? userAnswerObj.answer : "Not answered"
                   const correctAnswer = question.correctAnswer
                   const isCorrect = userAnswer === correctAnswer
 

@@ -368,7 +368,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
                       // Reset any completion state for this step
                     }}
                     isCompleted={isStepCompleted(currentStep.id)}
-                    previousScore={getStepScore(currentStep.id)}
+                    previousScore={getStepScore(currentStep.dbId)}
                     previousPassed={isStepCompleted(currentStep.id)}
                     isStepping={isStepping}
                   />

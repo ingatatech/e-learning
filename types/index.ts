@@ -156,6 +156,18 @@ export interface AssessmentQuestion {
   points: number
 }
 
+export interface Answer {
+  id: string
+  question: AssessmentQuestion
+  questionId: string
+  assessment: Assessment
+  user: User
+  answer: string | string[]
+  isCorrect: boolean
+  pointsEarned: number
+  createdAt: string
+}
+
 export interface Enrollment {
   id: string
   studentId: string

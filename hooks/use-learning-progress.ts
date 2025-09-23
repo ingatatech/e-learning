@@ -252,10 +252,16 @@ const isStepCompletedHelper = (step: LearningStep, progressData: ProgressData) =
 
   // Get step score
   const getStepScore = useCallback(
-    (stepId: string) => {
-      console.log(stepId)
-      console.log(progressData)
-      return progressData?.completedSteps.find((step) => step.dbId === stepId)?.score
+    (dbId: string) => {
+       if (!progressData) return null;
+
+    const completedStep = progressData.completedSteps.find(
+      (step) =>
+        (step.lessonId && step.lessonId === dbId) ||
+        (step.assessmentId && step.assessmentId === Number(dbId))
+    );
+
+    return completedStep?.score ?? null;
     },
     [progressData],
   )
