@@ -10,7 +10,7 @@ import { BookOpen, BarChart3, Users, Settings, Award, TrendingUp, Calendar, Mess
 import React from "react"
 
 interface SidebarProps {
-  userRole: "admin" | "system-administrator" | "instructor" | "student"
+  userRole: "admin" | "sysAdmin" | "instructor" | "student"
   className?: string
 }
 
@@ -88,11 +88,49 @@ const navigationItems: Record<string, NavigationItem[]> = {
     { name: "Payments", href: "/admin/payments", icon: CreditCard },
     { name: "Settings", href: "/admin/settings", icon: Settings },
   ],
+  sysAdmin: [
+    { name: "Dashboard", href: "/sysAdmin", icon: Home },
+    {
+      name: "Users",
+      icon: Users,
+      children: [
+        { name: "Add User", href: "/sysAdmin/users/add", icon: UserPlus },
+        { name: "All Users", href: "/sysAdmin/users", icon: Users },
+      ],
+    },
+    { 
+      name: "Courses", 
+      icon: BookOpen,
+      children: [
+        { name: "Add Course", href: "/sysAdmin/courses/add", icon: BookPlus },
+        { name: "All Courses", href: "/sysAdmin/courses", icon: BookOpen },
+      ]
+    },
+    {
+      name: "Manage Organization",
+      icon: GraduationCap,
+      children: [
+        { name: "View Organization", href: "/sysAdmin/organizations", icon: Building },
+      ],
+    },
+    {
+      name: "Analytics",
+      icon: BarChart3,
+      children: [
+        { name: "Overview", href: "/sysAdmin/analytics", icon: PieChart },
+        { name: "Revenue", href: "/sysAdmin/analytics/revenue", icon: DollarSign },
+        { name: "User Analytics", href: "/sysAdmin/analytics/users", icon: Users },
+      ],
+    },
+    { name: "Gamification", href: "/gamification", icon: Trophy },
+    { name: "Payments", href: "/sysAdmin/payments", icon: CreditCard },
+    { name: "Settings", href: "/sysAdmin/settings", icon: Settings },
+  ],
 }
 
 const roleIcons: Record<string, any> = {
   admin: Shield,
-  "system-administrator": Server,
+  "sysAdmin": Server,
   instructor: UserRoundCheck,
   student: GraduationCap,
 }
@@ -187,7 +225,9 @@ export function Sidebar({ userRole, className }: SidebarProps) {
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
               {React.createElement(roleIcons[userRole] || BookOpen, { className: "w-5 h-5 text-primary-foreground" })}
             </div>
-            <span className="font-semibold text-primary pl-2">{userRole.charAt(0).toUpperCase() + userRole.slice(1)}</span>
+            <span className="font-semibold text-primary pl-2">
+              {userRole == "sysAdmin" ? "System Admin" : userRole.charAt(0).toUpperCase() + userRole.slice(1)}
+            </span>
           </div>
         )}
         <Button variant="ghost" size="sm" onClick={() => setIsCollapsed(!isCollapsed)} className="h-8 w-8 p-0">

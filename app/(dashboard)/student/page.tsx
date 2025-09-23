@@ -8,6 +8,8 @@ import { BookOpen, Clock, Award, TrendingUp, Play, Calendar, Target } from "luci
 import Link from "next/link"
 
 export default function StudentDashboard() {
+
+  
   // Mock data - replace with real API calls
   const studentStats = {
     enrolledCourses: 5,

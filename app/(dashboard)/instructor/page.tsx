@@ -5,8 +5,38 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { BookOpen, Users, DollarSign, TrendingUp, Plus, Eye, Edit, BarChart3 } from "lucide-react"
 import Link from "next/link"
+import { useEffect, useState } from "react"
+import { useAuth } from "@/hooks/use-auth"
+import { Course } from "@/types"
 
 export default function InstructorDashboard() {
+  const { user, token } = useAuth()
+  const [loading, setLoading] = useState(true)
+  const [courses, setCourses] = useState<Course[]>([])
+
+  useEffect(() => {
+      const fetcCourses = async () => {
+        try {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/instructor/${user?.id}/courses`, {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          })
+          if (response.ok) {
+            const data = await response.json()
+            setCourses(data.courses.slice(0, 3))
+          }
+        } catch (error) {
+          console.error("Failed to fetch users:", error)
+        } finally {
+          setLoading(false)
+        }
+      }
+  
+      fetcCourses()
+    }, [])
+    
   // Mock data - replace with real API calls
   const instructorStats = {
     totalCourses: 8,
@@ -16,36 +46,6 @@ export default function InstructorDashboard() {
     coursesPublished: 6,
     coursesDraft: 2,
   }
-
-  const myCourses = [
-    {
-      id: "1",
-      title: "React Fundamentals",
-      students: 324,
-      revenue: 6480,
-      rating: 4.9,
-      status: "published",
-      lastUpdated: "2024-03-10",
-    },
-    {
-      id: "2",
-      title: "Advanced JavaScript",
-      students: 256,
-      revenue: 5120,
-      rating: 4.7,
-      status: "published",
-      lastUpdated: "2024-03-08",
-    },
-    {
-      id: "3",
-      title: "Node.js Backend Development",
-      students: 0,
-      revenue: 0,
-      rating: 0,
-      status: "draft",
-      lastUpdated: "2024-03-15",
-    },
-  ]
 
   const recentActivity = [
     { id: 1, action: "New student enrolled", course: "React Fundamentals", time: "2 minutes ago" },
@@ -63,7 +63,7 @@ export default function InstructorDashboard() {
           <p className="text-muted-foreground">Manage your courses and track your success</p>
         </div>
         <Button asChild>
-          <Link href="/instructor/courses/new">
+          <Link href="/instructor/courses/create">
             <Plus className="w-4 h-4 mr-2" />
             Create Course
           </Link>
@@ -138,33 +138,40 @@ export default function InstructorDashboard() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {myCourses.map((course) => (
-              <div key={course.id} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h4 className="font-medium">{course.title}</h4>
-                    <Badge variant={course.status === "published" ? "default" : "secondary"}>{course.status}</Badge>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span>{course.students} students</span>
-                    <span>${course.revenue}</span>
-                    {course.rating > 0 && <span>⭐ {course.rating}</span>}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/instructor/courses/${course.id}`}>
-                      <Eye className="w-4 h-4" />
-                    </Link>
-                  </Button>
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/instructor/courses/${course.id}/edit`}>
-                      <Edit className="w-4 h-4" />
-                    </Link>
-                  </Button>
-                </div>
+            {loading ? (
+              <div className="h-64 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
-            ))}
+            ) : (
+              courses.map((course) => (
+                <div key={course.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <div className="mb-1">
+                      <h4 className="font-medium">{course.title}</h4>
+                      <p className="text-xs truncate line-clamp-1">{course.description}</p>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <span>{course.enrollmentCount} students</span>
+                      <span>${course.price || 0}</span>
+                      {course.rating > 0 && <span>⭐ {course.rating}</span>}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link href={`/instructor/courses/${course.id}`}>
+                        <Eye className="w-4 h-4" />
+                      </Link>
+                    </Button>
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link href={`/instructor/courses/${course.id}/edit`}>
+                        <Edit className="w-4 h-4" />
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+            
           </CardContent>
         </Card>
 

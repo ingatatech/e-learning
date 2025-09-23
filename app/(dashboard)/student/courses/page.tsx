@@ -31,7 +31,6 @@ import {
   BarChart3
 } from "lucide-react"
 import Link from "next/link"
-import { Header } from "@/components/layout/header"
 import { useAuth } from "@/hooks/use-auth"
 
 // Enhanced Course type with enrollment data
