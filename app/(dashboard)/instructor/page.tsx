@@ -62,12 +62,6 @@ export default function InstructorDashboard() {
           <h1 className="text-3xl font-bold">Instructor Dashboard</h1>
           <p className="text-muted-foreground">Manage your courses and track your success</p>
         </div>
-        <Button asChild>
-          <Link href="/instructor/courses/create">
-            <Plus className="w-4 h-4 mr-2" />
-            Create Course
-          </Link>
-        </Button>
       </div>
 
       {/* Stats Grid */}

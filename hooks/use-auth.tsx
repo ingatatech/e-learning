@@ -2,25 +2,8 @@
 
 import { useState, useEffect, createContext, useContext, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
-import { set } from "react-hook-form"
+import { User } from "@/types"
 
-interface User {
-  id: string
-  email: string
-  firstName: string
-  lastName: string
-  role: string
-  isEmailVerified: boolean
-  isActive: boolean
-  totalPoints: number
-  level: number
-  streakDays: number
-  firstLofin: boolean
-  organization: {
-    id: string
-    name: string
-  }
-}
 
 interface AuthContextType {
   user: User | null

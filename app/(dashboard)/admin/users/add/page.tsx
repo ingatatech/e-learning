@@ -182,7 +182,6 @@ export default function AddUserPage() {
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="sysAdmin">System Administrator</SelectItem>
                   <SelectItem value="instructor">Instructor</SelectItem>
                   <SelectItem value="student">Student</SelectItem>

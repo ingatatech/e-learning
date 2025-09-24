@@ -1,88 +1,132 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft, UserPlus } from "lucide-react"
 import Link from "next/link"
-import { UserRole } from "@/types"
+import { toast } from "sonner"
+import { useAuth } from "@/hooks/use-auth"
 
 export default function AddUserPage() {
   const router = useRouter()
-  const [loading, setLoading] = useState(false)
+  const searchParams = useSearchParams()
+  const { token, user } = useAuth()
+  const userId = searchParams.get("id")
+
+  const [isLoading, setIsLoading] = useState(false)
+  const [isFetching, setIsFetching] = useState(true)
+  const [organizations, setOrganizations] = useState<{ id: string; name: string }[]>([])
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
-    role: UserRole.STUDENT,
-    password: "",
+    role: "",
+    organizationId: user?.organization.id,
   })
+
+  const fetchUser = async (id: string) => {
+    try {
+      setIsFetching(true)
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/get/${id}`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      const data = await res.json()
+      if (res.ok) setFormData({
+        firstName: data.user.firstName,
+        lastName: data.user.lastName,
+        email: data.user.email,
+        role: data.user.role,
+        organizationId: data.user.organization?.id.toString() || "",
+      })
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsFetching(false)
+    }
+  }
+
+  useEffect(() => {
+    if (userId) fetchUser(userId)
+  }, [userId])
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
+    setIsLoading(true)
 
     try {
-      const response = await fetch("/api/system-admin/users", {
-        method: "POST",
+      const method = userId ? "PUT" : "POST"
+      const endpoint = userId
+        ? `${process.env.NEXT_PUBLIC_API_URL}/auth/update/${userId}`
+        : `${process.env.NEXT_PUBLIC_API_URL}/auth/add`
+
+      const res = await fetch(endpoint, {
+        method,
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(formData),
       })
 
-      if (response.ok) {
-        router.push("/system-admin/users")
-      } else {
-        console.error("Failed to create user")
-      }
-    } catch (error) {
-      console.error("Error creating user:", error)
+      if (!res.ok) throw new Error("Failed to save user")
+      toast.success(`User ${userId ? "updated" : "created"} successfully!`)
+      router.push("/sysAdmin/users")
+    } catch (err) {
+      toast.error(`Failed to ${userId ? "update" : "create"} user`)
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
+  }
+
+  if (isFetching) {
+    return <div className="flex justify-center items-center h-64">Loading...</div>
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center space-x-4">
-        <Link href="/system-admin/users">
-          <Button variant="ghost" size="sm">
+      <div className="flex items-center gap-4">
+        <Link href="/sysAdmin/users">
+          <Button variant="outline" size="sm">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Users
+            Back
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Add New User</h1>
-          <p className="text-gray-600 dark:text-gray-300 mt-1">Create a new student or instructor account</p>
+          <h1 className="text-3xl font-bold">{userId ? "Edit User" : "Add New User"}</h1>
+          <p className="text-muted-foreground">{userId ? "Update user account" : "Create a new user account"}</p>
         </div>
       </div>
 
-      {/* Form */}
-      <Card className="max-w-2xl">
+      <Card className="max-w-full">
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <UserPlus className="w-5 h-5 mr-2" />
+          <CardTitle className="flex items-center gap-2">
+            <UserPlus className="w-5 h-5" />
             User Information
           </CardTitle>
-          <CardDescription>Fill in the details to create a new user account</CardDescription>
+          <CardDescription>Fill in the details to {userId ? "update" : "create"} a user account</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName">First Name</Label>
                 <Input
                   id="firstName"
                   value={formData.firstName}
-                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  onChange={(e) => handleInputChange("firstName", e.target.value)}
+                  placeholder="John"
                   required
                 />
               </div>
@@ -91,57 +135,47 @@ export default function AddUserPage() {
                 <Input
                   id="lastName"
                   value={formData.lastName}
-                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  onChange={(e) => handleInputChange("lastName", e.target.value)}
+                  placeholder="Doe"
                   required
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) => handleInputChange("email", e.target.value)}
+                placeholder="johndoe@example.com"
                 required
+                readOnly={!!userId}
+                disabled={!!userId}
               />
             </div>
+            {userId && <p className="text-muted-foreground text-sm">Email address is not allowed to be changed.</p>}
 
             <div className="space-y-2">
               <Label htmlFor="role">Role</Label>
-              <Select
-                value={formData.role}
-                onValueChange={(value: UserRole) => setFormData({ ...formData, role: value })}
-              >
+              <Select value={formData.role} onValueChange={(value) => handleInputChange("role", value)}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={UserRole.STUDENT}>Student</SelectItem>
-                  <SelectItem value={UserRole.INSTRUCTOR}>Instructor</SelectItem>
+                  <SelectItem value="instructor">Instructor</SelectItem>
+                  <SelectItem value="student">Student</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Temporary Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder="User will be prompted to change this"
-                required
-              />
-            </div>
-
-            <div className="flex justify-end space-x-4">
-              <Link href="/system-admin/users">
-                <Button variant="outline">Cancel</Button>
-              </Link>
-              <Button type="submit" disabled={loading}>
-                {loading ? "Creating..." : "Create User"}
+            <div className="flex gap-4 pt-4">
+              <Button type="submit" disabled={isLoading} className="cursor-pointer">
+                {isLoading ? (userId ? "Updating..." : "Creating...") : userId ? "Update User" : "Create User"}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => router.back()}>
+                Cancel
               </Button>
             </div>
           </form>

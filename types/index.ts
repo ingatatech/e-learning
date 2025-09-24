@@ -32,6 +32,7 @@ export interface User {
   firstName: string
   lastName: string
   profilePicUrl?: string
+  profilePicture?: string
   role: UserRole
   isEmailVerified: boolean
   isActive: boolean

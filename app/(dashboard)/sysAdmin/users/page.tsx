@@ -5,166 +5,385 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Search, Filter, UserPlus, MoreHorizontal, Mail, Calendar } from "lucide-react"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Search, UserPlus, MoreHorizontal, Edit, Trash2, Mail, ChevronLeft, ChevronRight } from "lucide-react"
 import Link from "next/link"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { type User, UserRole } from "@/types"
+import { useAuth } from "@/hooks/use-auth"
+import { User } from "@/types"
 
-export default function SystemAdminUsersPage() {
-  const [users, setUsers] = useState<User[]>([])
-  const [loading, setLoading] = useState(true)
+// Skeleton Loading Components
+const SkeletonCard = () => (
+  <Card className="animate-pulse">
+    <CardHeader className="pb-2">
+      <div className="h-4 bg-gray-200 dark:bg-gray-900 rounded w-1/3"></div>
+    </CardHeader>
+    <CardContent>
+      <div className="h-6 bg-gray-200 dark:bg-gray-900 rounded w-1/4"></div>
+    </CardContent>
+  </Card>
+)
+
+const SkeletonTableRow = () => (
+  <TableRow>
+    <TableCell>
+      <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-3/4"></div>
+    </TableCell>
+    <TableCell>
+      <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-full"></div>
+    </TableCell>
+    <TableCell>
+      <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded w-16"></div>
+    </TableCell>
+    <TableCell>
+      <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded w-12"></div>
+    </TableCell>
+    <TableCell>
+      <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-20"></div>
+    </TableCell>
+    <TableCell className="text-right">
+      <div className="h-8 bg-gray-200 dark:bg-gray-800 rounded w-8 ml-auto"></div>
+    </TableCell>
+  </TableRow>
+)
+
+export default function UsersManagement() {
   const [searchTerm, setSearchTerm] = useState("")
+  const [users, setUsers] = useState<User[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const { token, user } = useAuth()
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
+  
+  // Available items per page options
+  const itemsPerPageOptions = [5, 10, 25, 50, 100]
 
   useEffect(() => {
     const fetchUsers = async () => {
+      if (!user) return
       try {
-        const response = await fetch("/api/system-admin/users")
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/all/org/${user.organization.id}`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        })
         if (response.ok) {
           const data = await response.json()
-          setUsers(data.data || [])
+          // filter out the current user
+          data.users = data.users.filter((a: { id: string }) => Number(a.id) !== Number(user.id))
+          setUsers(data.users)
         }
       } catch (error) {
         console.error("Failed to fetch users:", error)
       } finally {
-        setLoading(false)
+        setIsLoading(false)
       }
     }
 
     fetchUsers()
-  }, [])
+  }, [user, token])
 
+  // Filter users based on search term
   const filteredUsers = users.filter(
     (user) =>
-      user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()),
+      user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
-  const getRoleBadgeColor = (role: UserRole) => {
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentUsers = filteredUsers.slice(startIndex, endIndex)
+
+  // Reset to first page when search term or items per page changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, itemsPerPage])
+
+  const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case UserRole.INSTRUCTOR:
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
-      case UserRole.STUDENT:
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+      case "admin":
+        return "bg-red-100 text-red-800"
+      case "instructor":
+        return "bg-blue-100 text-blue-800"
+      case "student":
+        return "bg-green-100 text-green-800"
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300"
+        return "bg-gray-100 text-gray-800"
     }
   }
 
-  if (loading) {
-    return <div>Loading...</div>
+  // Handle items per page change
+  const handleItemsPerPageChange = (value: number) => {
+    setItemsPerPage(value)
+  }
+
+  // Skeleton loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="h-8 bg-gray-200 dark:bg-gray-900 rounded w-64 mb-2 animate-pulse"></div>
+            <div className="h-4 bg-gray-200 dark:bg-gray-900 rounded w-80 animate-pulse"></div>
+          </div>
+        </div>
+
+        {/* Skeleton Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+
+        {/* Skeleton Table */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="h-6 bg-gray-200 dark:bg-gray-900 rounded w-32 mb-2 animate-pulse"></div>
+                <div className="h-4 bg-gray-200 dark:bg-gray-900 rounded w-48 animate-pulse"></div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <div className="h-9 bg-gray-200 dark:bg-gray-900 rounded w-64 animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Joined</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <SkeletonTableRow key={index} />
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">User Management</h1>
-          <p className="text-gray-600 dark:text-gray-300 mt-1">Manage students and instructors in your organization</p>
+          <h1 className="text-3xl font-bold">User Management</h1>
+          <p className="text-muted-foreground">Manage platform users and their permissions</p>
         </div>
-        <Link href="/system-admin/users/add">
-          <Button>
-            <UserPlus className="w-4 h-4 mr-2" />
-            Add User
-          </Button>
-        </Link>
       </div>
 
-      {/* Search and Filters */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                placeholder="Search users..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Button variant="outline">
-              <Filter className="w-4 h-4 mr-2" />
-              Filter
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{users.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{users.filter((u) => u.isActive).length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Instructors</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{users.filter((u) => u.role === "instructor").length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Students</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{users.filter((u) => u.role === "student").length}</div>
+          </CardContent>
+        </Card>
+      </div>
 
-      {/* Users List */}
+      {/* Users Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Users ({filteredUsers.length})</CardTitle>
-          <CardDescription>All users in your organization</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Users</CardTitle>
+              <CardDescription>
+                Showing {startIndex + 1}-{Math.min(endIndex, filteredUsers.length)} of {filteredUsers.length} users
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search users..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8 w-64"
+                />
+              </div>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {filteredUsers.length === 0 ? (
-            <div className="text-center py-12">
-              <UserPlus className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No users found</h3>
-              <p className="text-gray-600 dark:text-gray-300 mb-4">
-                {searchTerm ? "No users match your search criteria." : "Get started by adding your first user."}
-              </p>
-              <Link href="/system-admin/users/add">
-                <Button>
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No users found. Add your first user to get started.</p>
+              <Button asChild className="mt-4">
+                <Link href="/admin/users/add">
                   <UserPlus className="w-4 h-4 mr-2" />
                   Add User
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </div>
           ) : (
-            <div className="space-y-4">
-              {filteredUsers.map((user) => (
-                <div
-                  key={user.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
-                >
-                  <div className="flex items-center space-x-4">
-                    <div className="w-10 h-10 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center">
-                      <span className="text-primary-600 dark:text-primary-400 font-semibold">
-                        {user.firstName[0]}
-                        {user.lastName[0]}
-                      </span>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white">
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Joined</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {currentUsers.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">
                         {user.firstName} {user.lastName}
-                      </h3>
-                      <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-300">
-                        <div className="flex items-center">
-                          <Mail className="w-3 h-3 mr-1" />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
                           {user.email}
+                          {!user.isEmailVerified && <Mail className="w-4 h-4 text-yellow-500" />}
                         </div>
-                        <div className="flex items-center">
-                          <Calendar className="w-3 h-3 mr-1" />
-                          {new Date(user.createdAt).toLocaleDateString()}
-                        </div>
-                      </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getRoleBadgeColor(user.role)}>
+                          {user.role?.charAt(0).toUpperCase() + user.role?.slice(1) || "N/A"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={user.isActive ? "default" : "secondary"}>
+                          {user.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}</TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem asChild>
+                              <Link href={`/sysAdmin/users/add?id=${user.id}`}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit User
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-red-600">
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete User
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-4">
+                  <div className="flex items-center gap-4">
+                    <div className="text-sm text-muted-foreground">
+                      Page {currentPage} of {totalPages}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">Show:</span>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            {itemsPerPage} per page
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          {itemsPerPageOptions.map((option) => (
+                            <DropdownMenuItem
+                              key={option}
+                              onClick={() => handleItemsPerPageChange(option)}
+                              className={itemsPerPage === option ? "bg-accent" : ""}
+                            >
+                              {option} per page
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-3">
-                    <Badge className={getRoleBadgeColor(user.role)}>{user.role.replace("_", " ")}</Badge>
-                    <Badge variant={user.isActive ? "default" : "secondary"}>
-                      {user.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>View Profile</DropdownMenuItem>
-                        <DropdownMenuItem>Edit User</DropdownMenuItem>
-                        <DropdownMenuItem>Reset Password</DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-600">Deactivate User</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
