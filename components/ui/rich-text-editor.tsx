@@ -26,6 +26,7 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
       TextAlign.configure({ types: ["heading", "paragraph"] }),
     ],
     content: value,
+    immediatelyRender: false,
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
   })
 

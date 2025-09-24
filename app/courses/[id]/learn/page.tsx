@@ -13,6 +13,7 @@ import { LearningNavigation } from "@/components/learning/learning-navigation"
 import { CompletionCelebration } from "@/components/learning/completion-celebration"
 import { CourseCompletion } from "@/components/learning/course-completion"
 import { CourseRating } from "@/components/learning/course-rating"
+import { useRouter } from "next/navigation"
 
 interface LearningStep {
   id: string
@@ -41,6 +42,8 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
   const [showCelebration, setShowCelebration] = useState(false)
   const [celebrationData, setCelebrationData] = useState<any>({})
   const [isStepping, setIsStepping] = useState(false)
+  const router = useRouter()
+
 
   const { progressData, markStepComplete, getCurrentStep, calculateProgress, isStepCompleted, getStepScore } =
     useLearningProgress(id)
@@ -51,6 +54,31 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
       setLoading(true)
 
       try {
+        // Fetch user enrollments
+        const enrollmentsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/enrollments/user-enrollments`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          method: "POST",
+          body: JSON.stringify({
+            userId: user.id,
+          }),
+        })
+
+        if (enrollmentsResponse.ok) {
+          const enrollmentsData = await enrollmentsResponse.json()
+
+          // Check if current course is in user's enrollments
+          const enrolledCourse = enrollmentsData.enrollments.find(
+            (enrollment: any) => enrollment.course.id.toString() === id,
+          )
+          
+          if (!enrolledCourse) {
+            router.push("/student/courses")
+          }
+        }
+
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/get/${id}`, {
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         })
@@ -70,6 +98,8 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
         setLoading(false)
       }
     }
+
+    
 
     fetchCourse()
   }, [token, user, id])

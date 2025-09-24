@@ -73,34 +73,60 @@ export function LessonEditor({ lesson, onUpdate, onDelete }: LessonEditorProps) 
   }
 
   // Initialize content blocks from lesson content
-  useEffect(() => {
-    if (lesson.content) {
-      try {
-        const parsedContent = JSON.parse(lesson.content)
+  // Update your content initialization useEffect:
+useEffect(() => {
+  if (lesson.content) {
+    try {
+      // Try to parse as JSON first
+      const parsedContent = JSON.parse(lesson.content);
+      
+      if (Array.isArray(parsedContent)) {
+        // It's an array of blocks
         setContentBlocks(
           parsedContent.map((block: any, index: number) => ({
             id: `block-${Date.now()}-${index}`,
-            type: block.type,
-            content: block.data,
+            type: block.type || "text",
+            content: block.content || block.data || "",
             order: index + 1,
-          })),
-        )
-      } catch (error) {
-        // If content is not JSON, treat it as text
+          }))
+        );
+      } else if (parsedContent.blocks && Array.isArray(parsedContent.blocks)) {
+        // It's the structure you were saving {"blocks": [...]}
+        setContentBlocks(
+          parsedContent.blocks.map((block: any, index: number) => ({
+            id: `block-${Date.now()}-${index}`,
+            type: "text",
+            content: block.text || "",
+            order: index + 1,
+          }))
+        );
+      } else {
+        // It's some other structure, treat as text
         setContentBlocks([
           {
             id: `block-${Date.now()}`,
             type: "text",
-            content: { text: lesson.content },
+            content: lesson.content,
             order: 1,
           },
-        ])
+        ]);
       }
-    } else {
-      // Default empty text block
-      setContentBlocks([])
+    } catch (error) {
+      // If content is not JSON, treat it as plain text
+      setContentBlocks([
+        {
+          id: `block-${Date.now()}`,
+          type: "text",
+          content: lesson.content,
+          order: 1,
+        },
+      ]);
     }
-  }, [lesson.id]) // Only run when lesson id changes
+  } else {
+    // Default empty state
+    setContentBlocks([]);
+  }
+}, [lesson.id, lesson.content]); // Add lesson.content to dependencies
 
   const addContentBlock = (type: ContentBlock["type"]) => {
     const newBlock: ContentBlock = {
@@ -132,6 +158,7 @@ export function LessonEditor({ lesson, onUpdate, onDelete }: LessonEditorProps) 
 
   const updateContentBlock = (id: string, content: any) => {
     setContentBlocks((blocks) => blocks.map((block) => (block.id === id ? { ...block, content } : block)))
+    setHasUnsavedChanges(true)
   }
 
   const deleteContentBlock = (id: string) => {
@@ -139,42 +166,62 @@ export function LessonEditor({ lesson, onUpdate, onDelete }: LessonEditorProps) 
   }
 
   // Save handler
-  const handleSave = () => {
-    const content = {
-      version: "1.0",
-      blocks: contentBlocks.map((block) => ({
-        type: block.type,
-        data: block.content,
-        id: block.id, // preserve the ID for React keys
-        order: block.order,
-      })),
+  // Replace your current handleSave function with this:
+const handleSave = () => {
+  // For text blocks, save the actual text content, not the object structure
+  const contentToSave = contentBlocks.map(block => {
+    if (block.type === "text") {
+      // If it's already a string, use it directly
+      if (typeof block.content === "string") {
+        return block.content;
+      }
+      // If it's an object with text property, extract the text
+      return block.content?.text || "";
     }
+    // For other block types, save the entire content
+    return block.content;
+  });
 
-    onUpdate({
-      content: JSON.stringify(content),
-      duration: lesson.duration,
-      videoUrl: lesson.videoUrl,
-      isProject: lesson.isProject,
-      isExercise: lesson.isExercise,
-      resources: JSON.stringify(resourceLinks.filter((link) => link.url.trim() !== "")), // Only save non-empty resources
-    })
-    setHasUnsavedChanges(false)
+  // If there's only one text block, save it as plain text
+  // Otherwise, save as JSON array
+  let finalContent;
+  if (contentBlocks.length === 1 && contentBlocks[0].type === "text") {
+    finalContent = contentToSave[0];
+  } else {
+    finalContent = JSON.stringify(contentBlocks.map(block => ({
+      type: block.type,
+      content: block.content
+    })));
   }
+
+  onUpdate({
+    content: finalContent,
+    duration: lesson.duration,
+    videoUrl: lesson.videoUrl,
+    isProject: lesson.isProject,
+    isExercise: lesson.isExercise,
+    resources: JSON.stringify(resourceLinks.filter((link) => link.url.trim() !== "")),
+  });
+  setHasUnsavedChanges(false);
+}
 
   const renderContentBlock = (block: ContentBlock) => {
     switch (block.type) {
       case "text":
-        return (
-          <div className="space-y-2">
-            <Label>Rich Text Content</Label>
-            <RichTextEditor
-              value={block.content.text || ""}
-              onChange={(value) => updateContentBlock(block.id, { text: value })}
-              placeholder="Enter your lesson content with rich formatting..."
-              className="min-h-[300px]"
-            />
-          </div>
-        )
+         const textValue = typeof block.content === "string" 
+    ? block.content 
+    : block.content?.text || "";
+    
+  return (
+    <div className="space-y-2">
+      <Label>Text Content</Label>
+      <RichTextEditor
+        value={textValue}
+        onChange={(value) => updateContentBlock(block.id, value)}
+        className="min-h-[300px]"
+      />
+    </div>
+  )
 
       case "video":
         return (
