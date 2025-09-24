@@ -3,56 +3,134 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { BookOpen, Users, DollarSign, TrendingUp, Plus, Eye, Edit, BarChart3 } from "lucide-react"
+import { BookOpen, Users, DollarSign, TrendingUp, Plus, Eye, Edit, BarChart3, Calendar } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { useAuth } from "@/hooks/use-auth"
-import { Course } from "@/types"
+import { Course, User } from "@/types"
+
+interface Student {
+  id: number
+  email: string
+  firstName: string
+  lastName: string
+  totalPoints: number
+  level: number
+  streakDays: number
+  profilePicUrl: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+interface StudentsResponse {
+  success: boolean
+  instructorId: string
+  studentCount: number
+  students: Student[]
+}
 
 export default function InstructorDashboard() {
   const { user, token } = useAuth()
   const [loading, setLoading] = useState(true)
   const [courses, setCourses] = useState<Course[]>([])
+  const [students, setStudents] = useState<Student[]>([])
+  const [instructorStats, setInstructorStats] = useState({
+    totalCourses: 0,
+    totalStudents: 0,
+    totalRevenue: 0,
+    avgRating: 0,
+    coursesPublished: 0,
+    coursesDraft: 0,
+  })
 
   useEffect(() => {
-      const fetcCourses = async () => {
-        try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/instructor/${user?.id}/courses`, {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        
+        // Fetch courses
+        const coursesResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/courses/instructor/${user?.id}/courses`,
+          {
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
-          })
-          if (response.ok) {
-            const data = await response.json()
-            setCourses(data.courses.slice(0, 3))
           }
-        } catch (error) {
-          console.error("Failed to fetch users:", error)
-        } finally {
-          setLoading(false)
+        )
+
+        // Fetch students
+        const studentsResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/courses/instructor/${user?.id}/students`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        )
+
+        if (coursesResponse.ok && studentsResponse.ok) {
+          const coursesData = await coursesResponse.json()
+          const studentsData: StudentsResponse = await studentsResponse.json()
+
+          setCourses(coursesData.courses.slice(0, 3))
+          setStudents(studentsData.students)
+
+          // Calculate dynamic stats
+          const totalCourses = coursesData.courses.length
+          const coursesPublished = coursesData.courses.filter((course: Course) => course.isPublished).length
+          const coursesDraft = totalCourses - coursesPublished
+          const totalStudents = studentsData.studentCount
+          
+          // Calculate total revenue from published courses
+          const totalRevenue = coursesData.courses
+            .filter((course: Course) => course.isPublished)
+            .reduce((sum: number, course: Course) => sum + parseFloat(course.price || "0"), 0)
+
+          // Calculate average rating from courses with ratings
+          const coursesWithRatings = coursesData.courses.filter((course: Course) => course.rating > 0)
+          const avgRating = coursesWithRatings.length > 0 
+            ? coursesWithRatings.reduce((sum: number, course: Course) => sum + course.rating, 0) / coursesWithRatings.length
+            : 0
+
+          setInstructorStats({
+            totalCourses,
+            totalStudents,
+            totalRevenue,
+            avgRating: parseFloat(avgRating.toFixed(1)),
+            coursesPublished,
+            coursesDraft,
+          })
         }
+      } catch (error) {
+        console.error("Failed to fetch data:", error)
+      } finally {
+        setLoading(false)
       }
-  
-      fetcCourses()
-    }, [])
+    }
+
+    if (user?.id && token) {
+      fetchData()
+    }
+  }, [user?.id, token])
+
+  // Format date to relative time
+  const formatRelativeTime = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
     
-  // Mock data - replace with real API calls
-  const instructorStats = {
-    totalCourses: 8,
-    totalStudents: 1247,
-    totalRevenue: 15670,
-    avgRating: 4.8,
-    coursesPublished: 6,
-    coursesDraft: 2,
+    if (diffInSeconds < 60) return "Just now"
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days ago`
+    
+    return date.toLocaleDateString()
   }
 
-  const recentActivity = [
-    { id: 1, action: "New student enrolled", course: "React Fundamentals", time: "2 minutes ago" },
-    { id: 2, action: "Course review received", course: "Advanced JavaScript", time: "1 hour ago" },
-    { id: 3, action: "Payment received", course: "React Fundamentals", time: "3 hours ago" },
-    { id: 4, action: "Course updated", course: "Node.js Backend", time: "1 day ago" },
-  ]
+  // Get recent students (last 4)
+  const recentStudents = students.slice(0, 4)
 
   return (
     <div className="space-y-6">
@@ -87,7 +165,7 @@ export default function InstructorDashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{instructorStats.totalStudents.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+12%</span> from last month
+              Across all your published courses
             </p>
           </CardContent>
         </Card>
@@ -100,7 +178,7 @@ export default function InstructorDashboard() {
           <CardContent>
             <div className="text-2xl font-bold">${instructorStats.totalRevenue.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+8.2%</span> from last month
+              From published courses
             </p>
           </CardContent>
         </Card>
@@ -112,12 +190,14 @@ export default function InstructorDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{instructorStats.avgRating}</div>
-            <p className="text-xs text-muted-foreground">Based on 1,247 reviews</p>
+            <p className="text-xs text-muted-foreground">
+              {instructorStats.avgRating > 0 ? 'Based on course ratings' : 'No ratings yet'}
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* My Courses */}
+      {/* My Courses & Recent Students */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
@@ -136,7 +216,7 @@ export default function InstructorDashboard() {
               <div className="h-64 flex items-center justify-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
-            ) : (
+            ) : courses.length > 0 ? (
               courses.map((course) => (
                 <div key={course.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex-1">
@@ -146,8 +226,11 @@ export default function InstructorDashboard() {
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <span>{course.enrollmentCount} students</span>
-                      <span>${course.price || 0}</span>
+                      <span>${parseFloat(course.price || "0").toLocaleString()}</span>
                       {course.rating > 0 && <span>⭐ {course.rating}</span>}
+                      <Badge variant={course.isPublished ? "default" : "secondary"}>
+                        {course.isPublished ? "Published" : "Draft"}
+                      </Badge>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -164,26 +247,74 @@ export default function InstructorDashboard() {
                   </div>
                 </div>
               ))
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <BookOpen className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>No courses yet</p>
+                <Button variant="link" asChild>
+                  <Link href="/instructor/courses/new">Create your first course</Link>
+                </Button>
+              </div>
             )}
-            
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Latest updates from your courses</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Recent Students</CardTitle>
+                <CardDescription>Students enrolled in your courses</CardDescription>
+              </div>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/instructor/students">View All</Link>
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {recentActivity.map((activity) => (
-              <div key={activity.id} className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">{activity.action}</p>
-                  <p className="text-xs text-muted-foreground">{activity.course}</p>
-                </div>
-                <Badge variant="secondary">{activity.time}</Badge>
+            {loading ? (
+              <div className="h-64 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
-            ))}
+            ) : recentStudents.length > 0 ? (
+              recentStudents.map((student) => (
+                <div key={student.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                      {student.profilePicUrl ? (
+                        <img 
+                          src={student.profilePicUrl} 
+                          alt={`${student.firstName} ${student.lastName}`}
+                          className="w-10 h-10 rounded-full"
+                        />
+                      ) : (
+                        <Users className="w-5 h-5 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">
+                        {student.firstName} {student.lastName}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{student.email}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="outline" className="text-xs">Level {student.level}</Badge>
+                        <Badge variant="outline" className="text-xs">{student.totalPoints} pts</Badge>
+                      </div>
+                    </div>
+                  </div>
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {formatRelativeTime(student.createdAt)}
+                  </Badge>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>No students yet</p>
+                <p className="text-sm">Students will appear here when they enroll in your courses</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

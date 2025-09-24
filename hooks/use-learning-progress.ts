@@ -110,7 +110,7 @@ const isStepCompletedHelper = (step: LearningStep, progressData: ProgressData) =
 
   // Mark a step as completed
   const markStepComplete = useCallback(
-    async (payload: { courseId: string; userId: string; lessonId?: string; assessmentId?: string; score?: number, status?: "in_progress" | "completed", passed?: boolean, ready?: boolean }) => {
+    async (payload: { courseId: string; userId: string; lessonId?: string; assessmentId?: string; score?: number, status?: "in_progress" | "completed", passed?: boolean, isCompleted?: boolean }) => {
       if (!token) return
       if (!payload.passed) return
 
@@ -143,7 +143,7 @@ const isStepCompletedHelper = (step: LearningStep, progressData: ProgressData) =
               type: payload.assessmentId ? "assessment" : "lesson",
               lessonId: payload.lessonId,
               assessmentId: payload.assessmentId,
-              isCompleted: !!payload.ready,
+              isCompleted: !!payload.isCompleted,
               completedAt: new Date().toISOString(),
               score: payload.score,
             }

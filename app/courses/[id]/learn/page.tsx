@@ -218,11 +218,11 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
     return steps
   }
 
-  const handleStepComplete = async (score?: number, passed?: boolean, ready?: boolean) => {
+  const handleStepComplete = async (score?: number, passed?: boolean) => {
     setIsStepping(true)
     const currentStep = allSteps[currentStepIndex]
     if (!currentStep) return
-
+    
     const payload: any = {
       courseId: id,
       userId: user?.id,
@@ -231,7 +231,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
     if (currentStep.type === "assessment" && currentStep.assessment) {
       payload.assessmentId = currentStep.assessment.id
       if (score !== undefined) payload.score = score
-      payload.isCompleted = ready ? true : false
+      payload.isCompleted = true 
     } else {
       payload.lessonId = currentStep.lessonId
     }
@@ -240,7 +240,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
     payload.status = isLastStep ? "completed" : "in_progress"
 
     payload.passed = passed
-    payload.ready = ready
+    payload.isCompleted = true 
 
     if (currentStep.type !== "assessment" || passed) {
       await markStepComplete(payload)
@@ -263,9 +263,10 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
 
     setIsStepping(false)
 
-    if (currentStep.type !== "assessment" || passed || ready) {
-      setShowCelebration(true)
-      setShowCelebration(false)
+    if (currentStep.type !== "assessment" || passed) {
+      console.log("Step completed:", { currentStepIndex, allSteps })
+      // setShowCelebration(true)
+      // setShowCelebration(false)
       if (currentStepIndex < allSteps.length - 1) {
         handleNextStep()
       } else if (isLastStep && isCourseComplete) {
@@ -421,7 +422,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
                       duration: currentStep.duration || 0,
                       resources: currentStep.lesson.resources,
                     }}
-                    onComplete={() => handleStepComplete()}
+                    onComplete={(score, passed) => handleStepComplete(score,passed)}
                     isCompleted={isStepCompleted(currentStep.id)}
                     isStepping={isStepping}
                   />
@@ -444,7 +445,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
                   <AssessmentScreen
                     key={`${currentStep.assessment.id}-${currentStepIndex}`}
                     assessment={currentStep.assessment}
-                    onComplete={(score, passed, ready) => handleStepComplete(score, passed, ready)}
+                    onComplete={(score, passed) => handleStepComplete(score, passed)}
                     onRetake={() => {}}
                     isCompleted={isStepCompleted(currentStep.id)}
                     previousScore={getStepScore(currentStep.dbId)}

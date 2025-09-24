@@ -57,12 +57,16 @@ const navigationItems: Record<string, NavigationItem[]> = {
         { name: "All Courses", href: "/instructor/courses", icon: BookOpen }, 
       ]
     },
-    { name: "Students", href: "/instructor/students", icon: Users },
+    { 
+      name: "Students", 
+      icon: Users,
+      children: [
+        { name: "All Students", href: "/instructor/students", icon: Users },
+        { name: "Add Student", href: "/instructor/students/add", icon: UserPlus },
+      ] 
+    },
     { name: "Analytics", href: "/instructor/analytics", icon: BarChart3 },
     { name: "Gamification", href: "/gamification", icon: Trophy },
-    { name: "Assignments", href: "/instructor/assignments", icon: FileText },
-    { name: "Messages", href: "/instructor/messages", icon: MessageSquare },
-    { name: "Earnings", href: "/instructor/earnings", icon: CreditCard },
   ],
   admin: [
     { name: "Dashboard", href: "/admin", icon: Home },

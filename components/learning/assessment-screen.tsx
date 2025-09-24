@@ -74,7 +74,7 @@ interface SavedAnswer {
 
 interface AssessmentScreenProps {
   assessment: Assessment
-  onComplete: (score: number, passed: boolean, ready: boolean) => void
+  onComplete: (score: number, passed: boolean) => void
   onRetake: () => void
   isCompleted: boolean
   previousScore?: number
@@ -102,6 +102,7 @@ export function AssessmentScreen({
   const [timerStarted, setTimerStarted] = useState(false)
   const [savedAnswers, setSavedAnswers] = useState<SavedAnswer[]>([])
   const [loadingSavedAnswers, setLoadingSavedAnswers] = useState(false)
+  const [passed, setPassed] = useState(false)
 
   const { token, user } = useAuth()
 
@@ -275,7 +276,8 @@ export function AssessmentScreen({
     })
 
     const finalScore = Math.round((earnedPoints / totalPoints) * 100)
-    const passed = finalScore >= assessment.passingScore
+    const res = finalScore >= assessment.passingScore
+    setPassed(res)
 
     setScore(finalScore)
     setCorrectAnswers(correctAnswersMap)
@@ -283,8 +285,7 @@ export function AssessmentScreen({
   }
 
   const handleComplete = () => {
-    const ready = true
-    onComplete(score, true, ready)
+    onComplete(score, passed)
   }
 
   const handleRetake = () => {
