@@ -32,8 +32,9 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import type { Course, Lesson } from "@/types"
+import type { Course, Lesson, User } from "@/types"
 import { useAuth } from "@/hooks/use-auth"
+import { useRouter } from "next/navigation"
 
 export default function InstructorCourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const [course, setCourse] = useState<Course | null>(null)
@@ -42,6 +43,8 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
   const { token } = useAuth()
   const { id } = use(params)
+  const [students, setStudents] = useState<User[]>([])
+  const router = useRouter()
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -64,7 +67,27 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
       }
     }
 
+    const fetchStudents = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/get/${id}/students`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setStudents(data.students)
+        }
+      } catch (error) {
+        console.error("Failed to fetch users:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
     fetchCourse()
+    fetchStudents()
   }, [])
 
   const getTotalLessons = () => {
@@ -303,30 +326,7 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          {/* Course Thumbnail */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Course Preview</CardTitle>
-              <CardDescription>How your course appears to students</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="aspect-video relative overflow-hidden rounded-lg bg-muted">
-                <img
-                  src={course.thumbnail || "/placeholder.svg"}
-                  alt={course.title}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                  <Button size="lg" className="bg-white/90 text-black hover:bg-white" asChild>
-                    <Link href={`/instructor/courses/${course.id}/preview`}>
-                      <Play className="w-5 h-5 mr-2" />
-                      Preview Course
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+         
 
           {/* Course Tags */}
           <Card>
@@ -486,62 +486,29 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {/* Student Progress Overview */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  <Card>
-                    <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-green-600">89%</div>
-                      <div className="text-sm text-muted-foreground">Completion Rate</div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-blue-600">4.2h</div>
-                      <div className="text-sm text-muted-foreground">Avg. Time Spent</div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-purple-600">92%</div>
-                      <div className="text-sm text-muted-foreground">Satisfaction Rate</div>
-                    </CardContent>
-                  </Card>
-                </div>
 
-                {/* Recent Student Activity */}
+                {/* Enrolled Student */}
+
                 <div className="space-y-3">
-                  <h4 className="font-medium">Recent Activity</h4>
-                  {[
-                    {
-                      name: "Sarah Johnson",
-                      action: "Completed lesson",
-                      lesson: "React Fundamentals",
-                      time: "2 hours ago",
-                    },
-                    { name: "Mike Chen", action: "Started module", lesson: "State Management", time: "4 hours ago" },
-                    { name: "Emily Davis", action: "Passed quiz", lesson: "React Basics Quiz", time: "6 hours ago" },
-                    { name: "John Smith", action: "Enrolled in course", lesson: "", time: "1 day ago" },
-                  ].map((activity, index) => (
+                  <h4 className="font-medium">Enrolled Students</h4>
+                  {students.map((student, index) => (
                     <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                          <span className="text-sm font-medium text-primary">{activity.name[0]}</span>
+                          <span className="text-sm font-medium text-primary">{student.firstName[0]}</span>
                         </div>
                         <div>
                           <div className="text-sm font-medium">
-                            {activity.name} {activity.action}
+                            {student.firstName} {student.lastName}
                           </div>
-                          {activity.lesson && <div className="text-xs text-muted-foreground">{activity.lesson}</div>}
+                          <div className="text-xs text-muted-foreground">{student.email}</div>
                         </div>
                       </div>
-                      <Badge variant="secondary" className="text-xs">
-                        {activity.time}
-                      </Badge>
                     </div>
                   ))}
                 </div>
 
-                <Button className="w-full bg-transparent" variant="outline">
+                <Button className="w-full bg-transparent" variant="outline" onClick={() => router.push(`/instructor/courses/${course.id}/students`)}>
                   View All Students
                 </Button>
               </div>

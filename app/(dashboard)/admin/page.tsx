@@ -5,24 +5,109 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Users, BookOpen, DollarSign, UserPlus, Building, Settings, BarChart3 } from "lucide-react"
 import Link from "next/link"
+import { useEffect } from "react"
+import React from "react"
+import { useAuth } from "@/hooks/use-auth"
+
+// Define the types for the API response
+interface ActivityUser {
+  id: number
+  email: string
+  firstName: string
+  lastName: string
+  role: string
+  isActive: boolean
+  totalPoints: number
+  level: number
+  streakDays: number
+  profilePicUrl: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+interface Activity {
+  id: number
+  action: string
+  targetId: string
+  targetType: string
+  details: string
+  createdAt: string
+  user: ActivityUser
+}
+
+// Fix: Use singular interface name and make data optional for initial state
+interface ActivitiesResponse {
+  page: number
+  limit: number
+  total: number
+  data: Activity[]
+}
 
 export default function AdminDashboard() {
-  // Mock data - replace with real API calls
-  const stats = {
-    totalUsers: 1247,
-    totalCourses: 89,
-    totalRevenue: 45670,
-    activeOrganizations: 12,
-    newUsersThisMonth: 156,
-    coursesPublishedThisMonth: 8,
+  // Fix: Initialize with null or proper structure
+  const [activities, setActivities] = React.useState<ActivitiesResponse | null>(null)
+  const { user, token } = useAuth()
+  const [stats, setStats] = React.useState<any>(null)
+
+
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/logs?page=1&limit=5`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setActivities(data)
+        }
+      } catch (error) {
+        console.error("Failed to fetch activities:", error)
+      }
+    }
+
+    const fetchStats = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stats`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setStats(data.stats)
+        }
+      } catch (error) {
+        console.error("Failed to fetch stats:", error)
+      }
+    }
+    
+    if (token) { // Only fetch if token exists
+      fetchActivities()
+      fetchStats()
+    }
+  }, [token]) // Add token as dependency
+
+  // Function to format the time ago
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+    
+    if (diffInSeconds < 60) return "Just now"
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`
+    if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)} days ago`
+    return `${Math.floor(diffInSeconds / 2592000)} months ago`
   }
 
-  const recentActivities = [
-    { id: 1, action: "New user registered", user: "John Doe", time: "2 minutes ago" },
-    { id: 2, action: "Course published", user: "Sarah Wilson", time: "15 minutes ago" },
-    { id: 3, action: "Payment processed", user: "Mike Johnson", time: "1 hour ago" },
-    { id: 4, action: "Organization created", user: "Tech Corp", time: "2 hours ago" },
-  ]
+  // Function to get user display name
+  const getUserDisplayName = (user: ActivityUser) => {
+    return `${user.firstName} ${user.lastName}`
+  }
 
   return (
     <div className="space-y-6">
@@ -31,20 +116,6 @@ export default function AdminDashboard() {
         <div>
           <h1 className="text-3xl font-bold">Admin Dashboard</h1>
           <p className="text-muted-foreground">Manage your learning platform</p>
-        </div>
-        <div className="flex gap-2">
-          <Button asChild>
-            <Link href="/admin/users/new">
-              <UserPlus className="w-4 h-4 mr-2" />
-              Add User
-            </Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href="/admin/settings">
-              <Settings className="w-4 h-4 mr-2" />
-              Settings
-            </Link>
-          </Button>
         </div>
       </div>
 
@@ -56,9 +127,9 @@ export default function AdminDashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalUsers.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{stats ? stats.totalUsers.toLocaleString() : "..."}</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+{stats.newUsersThisMonth}</span> this month
+              <span className="text-green-600">{stats && "+" + stats.newUsersThisMonth + " this month"}</span>
             </p>
           </CardContent>
         </Card>
@@ -69,9 +140,9 @@ export default function AdminDashboard() {
             <BookOpen className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalCourses}</div>
+            <div className="text-2xl font-bold">{stats ? stats.totalCourses : "..."}</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+{stats.coursesPublishedThisMonth}</span> this month
+              <span className="text-green-600">{stats && "+" + stats.coursesPublishedThisMonth + " this month"}</span> 
             </p>
           </CardContent>
         </Card>
@@ -82,9 +153,9 @@ export default function AdminDashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${stats.totalRevenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold truncate">{stats ? "$" + stats.totalRevenue.toLocaleString() : "..."}</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+12.5%</span> from last month
+              <span className="text-green-600">{stats && stats.revenueThisMonth + " from last month"}</span> 
             </p>
           </CardContent>
         </Card>
@@ -95,9 +166,9 @@ export default function AdminDashboard() {
             <Building className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.activeOrganizations}</div>
+            <div className="text-2xl font-bold">{stats ? stats.totalOrganizations : "..."}</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+2</span> this month
+              <span className="text-green-600">{stats && "+" + stats.organizationsThisMonth + " this month"}</span> 
             </p>
           </CardContent>
         </Card>
@@ -140,15 +211,27 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentActivities.map((activity) => (
-                <div key={activity.id} className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">{activity.action}</p>
-                    <p className="text-xs text-muted-foreground">{activity.user}</p>
+              {/* Fix: Add conditional rendering */}
+              {activities && activities.data ? (
+                activities.data.map((activity) => (
+                  <div key={activity.id} className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{activity.action}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {getUserDisplayName(activity.user)} • {activity.details}
+                      </p>
+                    </div>
+                    <Badge variant="secondary" className="ml-2 flex-shrink-0">
+                      {formatTimeAgo(activity.createdAt)}
+                    </Badge>
                   </div>
-                  <Badge variant="secondary">{activity.time}</Badge>
+                ))
+              ) : (
+                // Loading state or empty state
+                <div className="text-center text-muted-foreground">
+                  Loading activities...
                 </div>
-              ))}
+              )}
             </div>
           </CardContent>
         </Card>
@@ -182,4 +265,4 @@ export default function AdminDashboard() {
       </div>
     </div>
   )
-}
+} 

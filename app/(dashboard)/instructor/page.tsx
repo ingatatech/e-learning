@@ -130,17 +130,17 @@ export default function InstructorDashboard() {
   }
 
   // Get recent students (last 4)
-  const recentStudents = students.slice(0, 4)
+  const recentStudents = students.slice(0, 3)
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Instructor Dashboard</h1>
           <p className="text-muted-foreground">Manage your courses and track your success</p>
         </div>
-      </div>
+      </div> */}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -150,7 +150,7 @@ export default function InstructorDashboard() {
             <BookOpen className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{instructorStats.totalCourses}</div>
+            <div className="text-2xl font-bold">{loading ? "..." : instructorStats.totalCourses}</div>
             <p className="text-xs text-muted-foreground">
               {instructorStats.coursesPublished} published, {instructorStats.coursesDraft} draft
             </p>
@@ -163,7 +163,7 @@ export default function InstructorDashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{instructorStats.totalStudents.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{loading ? "..." : instructorStats.totalStudents.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
               Across all your published courses
             </p>
@@ -176,7 +176,7 @@ export default function InstructorDashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${instructorStats.totalRevenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{loading ? "..." : "$" + instructorStats.totalRevenue.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
               From published courses
             </p>
@@ -189,7 +189,7 @@ export default function InstructorDashboard() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{instructorStats.avgRating}</div>
+            <div className="text-2xl font-bold">{loading ? "..." : instructorStats.avgRating}</div>
             <p className="text-xs text-muted-foreground">
               {instructorStats.avgRating > 0 ? 'Based on course ratings' : 'No ratings yet'}
             </p>

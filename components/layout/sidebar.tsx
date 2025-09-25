@@ -5,7 +5,6 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -15,7 +14,45 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { BookOpen, BarChart3, Users, Settings, Award, TrendingUp, Calendar, MessageSquare, FileText, CreditCard, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Home, GraduationCap, Trophy, Building, UserPlus, DollarSign, PieChart, BookPlus, FileSearch, UserRoundCheck, Shield, Server, LogOut, User, HelpCircle, Bell } from "lucide-react"
+import { 
+  BookOpen, 
+  BarChart3, 
+  Users, 
+  Settings, 
+  Award, 
+  TrendingUp, 
+  Calendar, 
+  MessageSquare, 
+  FileText, 
+  CreditCard, 
+  ChevronLeft, 
+  ChevronRight, 
+  ChevronDown, 
+  ChevronUp, 
+  Home, 
+  GraduationCap, 
+  Trophy, 
+  Building, 
+  UserPlus, 
+  DollarSign, 
+  PieChart, 
+  BookPlus, 
+  FileSearch, 
+  UserRoundCheck, 
+  Shield, 
+  Server, 
+  LogOut, 
+  User, 
+  HelpCircle, 
+  Bell,
+  Search,
+  PlayCircle,
+  BookMarked,
+  Users2,
+  BarChart2,
+  Wallet,
+  Cog
+} from "lucide-react"
 import React from "react"
 import { useAuth } from "@/hooks/use-auth"
 
@@ -39,19 +76,14 @@ interface NavigationItem {
 const navigationItems: Record<string, NavigationItem[]> = {
   student: [
     { name: "Dashboard", href: "/student", icon: Home },
-    { name: "My Courses", href: "/student/courses", icon: BookOpen },
-    { name: "Explore Courses", href: "/courses", icon: FileSearch },
-    { name: "Progress", href: "/student/progress", icon: TrendingUp },
-    { name: "Achievements", href: "/student/achievements", icon: Award },
-    { name: "Gamification", href: "/gamification", icon: Trophy },
-    { name: "Calendar", href: "/student/calendar", icon: Calendar },
-    { name: "Messages", href: "/student/messages", icon: MessageSquare },
+    { name: "My Courses", href: "/student/courses", icon: BookMarked },
+    { name: "Explore Courses", href: "/courses", icon: Search },
   ],
   instructor: [
     { name: "Dashboard", href: "/instructor", icon: Home },
     { 
       name: "My Courses", 
-      icon: BookOpen,
+      icon: BookMarked,
       children: [
         { name: "Add Course", href: "/instructor/courses/create", icon: BookPlus },
         { name: "All Courses", href: "/instructor/courses", icon: BookOpen }, 
@@ -59,36 +91,29 @@ const navigationItems: Record<string, NavigationItem[]> = {
     },
     { 
       name: "Students", 
-      icon: Users,
+      icon: Users2,
       children: [
         { name: "All Students", href: "/instructor/students", icon: Users },
         { name: "Add Student", href: "/instructor/students/add", icon: UserPlus },
       ] 
     },
-    { name: "Analytics", href: "/instructor/analytics", icon: BarChart3 },
+    { name: "Analytics", href: "/instructor/analytics", icon: BarChart2 },
     { name: "Gamification", href: "/gamification", icon: Trophy },
+    { name: "Settings", href: "/instructor/settings", icon: Cog },
   ],
   admin: [
     { name: "Dashboard", href: "/admin", icon: Home },
     {
       name: "Users",
-      icon: Users,
+      icon: Users2,
       children: [
         { name: "Add User", href: "/admin/users/add", icon: UserPlus },
         { name: "All Users", href: "/admin/users", icon: Users },
       ],
     },
-    { 
-      name: "Courses", 
-      icon: BookOpen,
-      children: [
-        { name: "Add Course", href: "/admin/courses/add", icon: BookPlus },
-        { name: "All Courses", href: "/admin/courses", icon: BookOpen },
-      ]
-    },
     {
       name: "Organizations",
-      icon: GraduationCap,
+      icon: Building,
       children: [
         { name: "Add Organization", href: "/admin/organizations/add", icon: Building },
         { name: "All Organizations", href: "/admin/organizations", icon: Building },
@@ -96,22 +121,21 @@ const navigationItems: Record<string, NavigationItem[]> = {
     },
     {
       name: "Analytics",
-      icon: BarChart3,
+      icon: BarChart2,
       children: [
         { name: "Overview", href: "/admin/analytics", icon: PieChart },
         { name: "Revenue", href: "/admin/analytics/revenue", icon: DollarSign },
         { name: "User Analytics", href: "/admin/analytics/users", icon: Users },
       ],
     },
-    { name: "Gamification", href: "/gamification", icon: Trophy },
-    { name: "Payments", href: "/admin/payments", icon: CreditCard },
-    { name: "Settings", href: "/admin/settings", icon: Settings },
+    { name: "Payments", href: "/admin/payments", icon: Wallet },
+    { name: "Settings", href: "/admin/settings", icon: Cog },
   ],
   sysAdmin: [
     { name: "Dashboard", href: "/sysAdmin", icon: Home },
     {
       name: "Users",
-      icon: Users,
+      icon: Users2,
       children: [
         { name: "Add User", href: "/sysAdmin/users/add", icon: UserPlus },
         { name: "All Users", href: "/sysAdmin/users", icon: Users },
@@ -119,7 +143,7 @@ const navigationItems: Record<string, NavigationItem[]> = {
     },
     { 
       name: "Courses", 
-      icon: BookOpen,
+      icon: BookMarked,
       children: [
         { name: "Add Course", href: "/sysAdmin/courses/add", icon: BookPlus },
         { name: "All Courses", href: "/sysAdmin/courses", icon: BookOpen },
@@ -127,22 +151,22 @@ const navigationItems: Record<string, NavigationItem[]> = {
     },
     {
       name: "Manage Organization",
-      icon: GraduationCap,
+      icon: Building,
       children: [
         { name: "View Organization", href: "/sysAdmin/organizations", icon: Building },
       ],
     },
     {
       name: "Analytics",
-      icon: BarChart3,
+      icon: BarChart2,
       children: [
         { name: "Revenue", href: "/sysAdmin/analytics/revenue", icon: DollarSign },
         { name: "User Analytics", href: "/sysAdmin/analytics/users", icon: Users },
       ],
     },
     { name: "Gamification", href: "/gamification", icon: Trophy },
-    { name: "Payments", href: "/sysAdmin/payments", icon: CreditCard },
-    { name: "Settings", href: "/sysAdmin/settings", icon: Settings },
+    { name: "Payments", href: "/sysAdmin/payments", icon: Wallet },
+    { name: "Settings", href: "/sysAdmin/settings", icon: Cog },
   ],
 }
 
@@ -249,28 +273,31 @@ export function Sidebar({ userRole, className }: SidebarProps) {
     const childIsActive = hasActiveChild(item)
 
     return (
-      <li key={item.name}>
+      <li key={item.name} className="relative max-w-full">
         {hasChildren ? (
           <div>
             {/* Parent Item */}
             <button
               onClick={() => toggleExpanded(item.name)}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground w-full",
-                isCollapsed && "justify-center",
-                childIsActive && "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
+                "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-300 dark:hover:bg-green-900/30 hover:bg-green-50 hover:text-green-700 dark:hover:text-white w-full group relative",
+                "border-l-4 border-transparent hover:border-green-400",
+                isCollapsed && "justify-center px-3",
+                childIsActive && "bg-gradient-to-r from-green-50 dark:from-green-900 to-green-25 text-green-700 dark:text-white border-l-green-500"
               )}
             >
+              
               <Icon className={cn(
-                "h-5 w-5 flex-shrink-0",
-                childIsActive && "text-primary"
+                "h-5 w-5 flex-shrink-0 transition-colors duration-300",
+                childIsActive ? "text-green-600 dark:text-white" : "text-gray-600 group-hover:text-green-600"
               )} />
               {!isCollapsed && (
                 <>
-                  <span className="flex-1 text-left">{item.name}</span>
+                  <span className="flex-1 text-left font-medium">{item.name}</span>
                   <ChevronDown className={cn(
-                    "h-4 w-4 transition-transform duration-200",
-                    isExpanded && "rotate-180"
+                    "h-4 w-4 transition-transform duration-300 text-gray-400",
+                    isExpanded && "rotate-180",
+                    childIsActive && "text-green-600"
                   )} />
                 </>
               )}
@@ -278,18 +305,23 @@ export function Sidebar({ userRole, className }: SidebarProps) {
             
             {/* Children Items */}
             {isExpanded && !isCollapsed && item.children && (
-              <div className="mt-1">
+              <div className="mt-2 space-y-1 ml-4 border-l border-gray-100 pl-4">
                 {item.children.map((child) => (
                   <Link
                     key={child.name}
                     href={child.href || "#"}
                     className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2 ml-6 text-sm transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                      isItemActive(child) && "bg-primary text-primary-foreground font-medium shadow-sm"
+                      "flex items-center gap-3 px-4 py-2.5 text-sm transition-all duration-300 group relative",
+                      "border-l-4 border-transparent hover:border-green-400",
+                      "hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-700 dark:hover:text-white",
+                      isItemActive(child) && "bg-gradient-to-r from-green-500 to-green-600 text-white border-l-green-600 shadow-lg transform scale-[1.02]"
                     )}
                   >
-                    <child.icon className="h-4 w-4 flex-shrink-0" />
-                    <span>{child.name}</span>
+                    <child.icon className={cn(
+                      "h-4 w-4 flex-shrink-0 transition-colors duration-300",
+                      isItemActive(child) ? "text-white" : "text-gray-500 group-hover:text-green-600"
+                    )} />
+                    <span className="font-medium">{child.name}</span>
                   </Link>
                 ))}
               </div>
@@ -300,13 +332,23 @@ export function Sidebar({ userRole, className }: SidebarProps) {
           <Link
             href={item.href || "#"}
             className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-              isActive && "bg-primary text-primary-foreground shadow-sm",
-              isCollapsed && "justify-center"
+              "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-300 group relative",
+              "border-l-4 border-transparent hover:border-green-400",
+              "hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-700 dark:hover:text-white",
+              isActive && "bg-gradient-to-r from-green-50 dark:from-green-900 to-green-25 text-green-700 dark:text-white border-l-green-600 shadow-lg transform scale-[1.02]",
+              isCollapsed && "justify-center px-3"
             )}
           >
-            <Icon className="h-5 w-5 flex-shrink-0" />
-            {!isCollapsed && <span>{item.name}</span>}
+            
+            <Icon className={cn(
+              "h-5 w-5 flex-shrink-0 transition-colors duration-300",
+              isActive ? "text-green" : "text-gray-600 group-hover:text-green-600"
+            )} />
+            {!isCollapsed && (
+              <>
+                <span className="font-medium">{item.name}</span>
+              </>
+            )}
           </Link>
         )}
       </li>
@@ -314,152 +356,164 @@ export function Sidebar({ userRole, className }: SidebarProps) {
   }
 
   return (
-    <div
-      className={cn(
-        "flex flex-col border-r bg-sidebar text-sidebar-foreground transition-all duration-300 h-[calc(100vh-4rem)] sticky top-16 left-0 z-40",
-        isCollapsed ? "w-16" : "w-64",
-        className,
-      )}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
-        {!isCollapsed && (
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              {React.createElement(roleIcons[userRole] || BookOpen, { className: "w-5 h-5 text-primary-foreground" })}
-            </div>
-            <span className="font-semibold text-primary pl-2">
-              {userRole == "sysAdmin" ? "System Admin" : userRole.charAt(0).toUpperCase() + userRole.slice(1)}
-            </span>
-          </div>
+    <div className={cn(
+      "sticky top-0 h-screen flex flex-col transition-all duration-300",
+      isCollapsed ? "w-20" : "w-80"
+    )}>
+      {/* Sidebar */}
+      <div
+        className={cn(
+          "bg-background border border-border h-full flex flex-col transition-all duration-300 shadow-xl rounded-2xl m-4",
+          isCollapsed ? "w-16" : "w-72",
+          className,
         )}
-        <Button variant="ghost" size="sm" onClick={() => setIsCollapsed(!isCollapsed)} className="h-8 w-8 p-0">
-          {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </Button>
-      </div>
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-border">
+          {!isCollapsed && (
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
+                {React.createElement(roleIcons[userRole] || BookOpen, { className: "w-5 h-5 text-white" })}
+              </div>
+              <div>
+                <h2 className="font-bold text-text">Ingata E-learning</h2>
+                <p className="text-xs text-gray-500 capitalize font-medium">
+                  {userRole === "sysAdmin" ? "System Admin" : userRole}
+                </p>
+              </div>
+            </div>
+          )}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setIsCollapsed(!isCollapsed)} 
+            className="h-9 w-9 p-0 hover:bg-gray-100 rounded-xl transition-all duration-300"
+          >
+            {isCollapsed ? (
+              <ChevronRight className="h-4 w-4 text-gray-800 dark:text-gray-200" />
+            ) : (
+              <ChevronLeft className="h-4 w-4 text-gray-800 dark:text-gray-200" />
+            )}
+          </Button>
+        </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 p-4 overflow-y-auto">
-        <ul className="space-y-1">{items.map((item) => renderNavigationItem(item))}</ul>
-      </nav>
+        {/* Navigation */}
+        <nav className="flex-1 pr-1 py-2 overflow-y-auto">
+          <ul className="space-y-2 max-w-full">{items.map((item) => renderNavigationItem(item))}</ul>
+        </nav>
 
-      {/* Enhanced Footer */}
-      <div className={cn("border-t border-sidebar-border", isCollapsed ? "p-2" : "p-4")}>
-        {isCollapsed ? (
-          // Collapsed footer - simple icon buttons
-          <div className="flex flex-col gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-10 w-10 p-0">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={user?.profilePicture} alt={user.firstName + " " + user.lastName} />
-                    <AvatarFallback className="text-xs">
-                      {user.firstName + " " + user.lastName ? getInitials(user.firstName + " " + user.lastName) : "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/profile" className="cursor-pointer">
-                    <User className="mr-2 h-4 w-4" />
-                    Profile
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/help" className="cursor-pointer">
-                    <HelpCircle className="mr-2 h-4 w-4" />
-                    Help & Support
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        ) : (
-          // Expanded footer - full user info
-          <div className="space-y-3">
-            {/* User Info */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="w-full justify-start p-2 h-auto hover:bg-sidebar-accent">
-                  <div className="flex items-center gap-3 w-full">
-                    <Avatar className="h-10 w-10">
+        {/* Enhanced Footer */}
+        <div className={cn("border-t border-border rounded-b-2xl", isCollapsed ? "p-3" : "p-4")}>
+          {isCollapsed ? (
+            // Collapsed footer - simple icon buttons
+            <div className="flex flex-col gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-10 w-10 p-0 rounded-xl hover:bg-white">
+                    <Avatar className="h-8 w-8 ring-2 ring-green-200">
                       <AvatarImage src={user?.profilePicture} alt={user.firstName + " " + user.lastName} />
-                      <AvatarFallback className="text-sm font-medium">
+                      <AvatarFallback className="text-xs bg-green-500 text-white font-semibold">
                         {user.firstName + " " + user.lastName ? getInitials(user.firstName + " " + user.lastName) : "U"}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex-1 min-w-0 text-left">
-                      <p className="text-sm font-medium truncate">{user.firstName + " " + user.lastName || "User"}</p>
-                      <p className="text-xs text-muted-foreground truncate">{user?.email || "user@example.com"}</p>
-                    </div>
-                    <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  </div>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64">
-                <DropdownMenuLabel className="flex flex-col p-3">
-                  <span className="font-medium">{user.firstName + " " + user.lastName || "User"}</span>
-                  <span className="text-sm text-muted-foreground">{user?.email || "user@example.com"}</span>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/profile" className="cursor-pointer">
-                    <User className="mr-2 h-4 w-4" />
-                    Profile Settings
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/notifications" className="cursor-pointer">
-                    <Bell className="mr-2 h-4 w-4" />
-                    Notifications
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/help" className="cursor-pointer">
-                    <HelpCircle className="mr-2 h-4 w-4" />
-                    Help & Support
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <div className="px-2 py-1">
-                  <Badge variant="secondary" className="w-full justify-center">
-                    {userRole === "sysAdmin" ? "System Admin" : userRole.charAt(0).toUpperCase() + userRole.slice(1)}
-                  </Badge>
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Quick Actions */}
-            <div className="flex gap-2 pt-2 border-t border-sidebar-border">
-              <Button variant="ghost" size="sm" className="flex-1" asChild>
-                <Link href="/help">
-                  <HelpCircle className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button variant="ghost" size="sm" className="flex-1" asChild>
-                <Link href="/settings">
-                  <Settings className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button variant="ghost" size="sm" className="flex-1" onClick={handleLogout}>
-                <LogOut className="h-4 w-4" />
-              </Button>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 rounded-xl border-gray-200">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile" className="cursor-pointer rounded-lg">
+                      <User className="mr-2 h-4 w-4" />
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/help" className="cursor-pointer rounded-lg">
+                      <HelpCircle className="mr-2 h-4 w-4" />
+                      Help & Support
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 focus:text-red-600 rounded-lg">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-          </div>
-        )}
+          ) : (
+            // Expanded footer - full user info
+            <div className="space-y-3">
+              {/* User Info */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="w-full justify-start p-3 h-auto hover:bg-muted rounded-xl shadow-sm border border-transparent hover:border-border transition-all duration-300">
+                    <div className="flex items-center gap-3 w-full">
+                      <Avatar className="h-10 w-10 ring-2 ring-green-200">
+                        <AvatarImage src={user?.profilePicture} alt={user.firstName + " " + user.lastName} />
+                        <AvatarFallback className="text-sm font-semibold bg-green-500 text-white">
+                          {user.firstName + " " + user.lastName ? getInitials(user.firstName + " " + user.lastName) : "U"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0 text-left">
+                        <p className="text-sm font-semibold truncate text-text">{user.firstName + " " + user.lastName || "User"}</p>
+                        <p className="text-xs text-gray-500 truncate font-medium">{user?.email || "user@example.com"}</p>
+                      </div>
+                      <ChevronDown className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                    </div>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64 rounded-xl border-border">
+                  <DropdownMenuLabel className="flex flex-col p-3">
+                    <span className="font-semibold text-text">{user.firstName + " " + user.lastName || "User"}</span>
+                    <span className="text-sm text-gray-500 font-medium">{user?.email || "user@example.com"}</span>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile" className="cursor-pointer rounded-lg">
+                      <User className="mr-2 h-4 w-4" />
+                      Profile Settings
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/notifications" className="cursor-pointer rounded-lg">
+                      <Bell className="mr-2 h-4 w-4" />
+                      Notifications
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/help" className="cursor-pointer rounded-lg">
+                      <HelpCircle className="mr-2 h-4 w-4" />
+                      Help & Support
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 focus:text-red-600 rounded-lg">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Quick Actions */}
+              <div className="flex gap-2 pt-3 border-t border-muted">
+                <Button variant="ghost" size="sm" className="flex-1 hover:bg-white rounded-xl h-9 transition-all duration-300" asChild>
+                  <Link href="/help">
+                    <HelpCircle className="h-4 w-4 text-gray-600" />
+                  </Link>
+                </Button>
+                <Button variant="ghost" size="sm" className="flex-1 hover:bg-white rounded-xl h-9 transition-all duration-300" asChild>
+                  <Link href="/settings">
+                    <Cog className="h-4 w-4 text-gray-600" />
+                  </Link>
+                </Button>
+                <Button variant="ghost" size="sm" className="flex-1 rounded-xl h-9 text-red-600 hover:text-red-700 hover:bg-red-50 transition-all duration-300" onClick={handleLogout}>
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

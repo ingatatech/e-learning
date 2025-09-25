@@ -6,16 +6,46 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Users, BookOpen, Building2, UserPlus, Plus, GraduationCap, DollarSign } from "lucide-react"
 import Link from "next/link"
+import { useAuth } from "@/hooks/use-auth"
 
 export default function SystemAdminDashboard() {
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    totalCourses: 0,
-    totalStudents: 0,
-    totalInstructors: 0,
-    totalRevenue: 0,
-    activeEnrollments: 0,
-  })
+  // const [stats, setStats] = useState({
+  //   totalUsers: 0,
+  //   totalCourses: 0,
+  //   totalStudents: 0,
+  //   totalInstructors: 0,
+  //   totalRevenue: 0,
+  //   totalEnrollments: 0,
+  // })
+  const { user, token } = useAuth()
+
+    const [stats, setStats] = useState<any>(null)
+
+    
+    useEffect(() => {
+      if (!user) return
+  
+      const fetchStats = async () => {
+        try {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stats/sysadmin/${user.organization!.id}`, {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          })
+          if (response.ok) {
+            const data = await response.json()
+            setStats(data)
+          }
+        } catch (error) {
+          console.error("Failed to fetch stats:", error)
+        }
+      }
+      
+      if (token) { // Only fetch if token exists
+        fetchStats()
+      }
+    }, [token]) // Add token as dependency
 
   useEffect(() => {
     // Fetch organization-specific stats
@@ -61,7 +91,7 @@ export default function SystemAdminDashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      {/* <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">System Administration</h1>
           <p className="text-gray-600 dark:text-gray-300 mt-1">Manage your organization's learning platform</p>
@@ -69,7 +99,7 @@ export default function SystemAdminDashboard() {
         <Badge variant="secondary" className="px-3 py-1">
           System Administrator
         </Badge>
-      </div>
+      </div> */}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -79,7 +109,7 @@ export default function SystemAdminDashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalUsers}</div>
+            <div className="text-2xl font-bold">{stats ? stats.totalUsers : "..."}</div>
             <p className="text-xs text-muted-foreground">Students & Instructors</p>
           </CardContent>
         </Card>
@@ -90,7 +120,7 @@ export default function SystemAdminDashboard() {
             <BookOpen className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalCourses}</div>
+            <div className="text-2xl font-bold">{stats ? stats.totalCourses : "..."}</div>
             <p className="text-xs text-muted-foreground">Published courses</p>
           </CardContent>
         </Card>
@@ -101,7 +131,7 @@ export default function SystemAdminDashboard() {
             <GraduationCap className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.activeEnrollments}</div>
+            <div className="text-2xl font-bold">{stats ? stats.totalEnrollments : "..."}</div>
             <p className="text-xs text-muted-foreground">Active enrollments</p>
           </CardContent>
         </Card>
@@ -112,8 +142,8 @@ export default function SystemAdminDashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${stats.totalRevenue}</div>
-            <p className="text-xs text-muted-foreground">This month</p>
+            <div className="text-2xl font-bold">{stats ? "$" + stats.totalRevenue : "..."}</div>
+            <p className="text-xs text-muted-foreground">{stats && stats.revenueThisMonth + " this month"}</p>
           </CardContent>
         </Card>
       </div>
