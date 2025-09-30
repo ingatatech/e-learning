@@ -41,7 +41,7 @@ export function ModuleManagementStep({ modules, setModules, onNext, onPrevious }
 
   const updateModule = (id: string, updates: Partial<Module>) => {
     setModules(modules.map((module) => (module.id === id ? { ...module, ...updates } : module)))
-    setEditingModule(null)
+    // setEditingModule(null)
   }
 
   const deleteModule = (id: string) => {

@@ -25,16 +25,25 @@ import {
   Video,
   ImageIcon,
   ArrowLeft,
-  Share2,
-  Download,
   ChevronDown,
   ChevronUp,
+  Briefcase,
 } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import type { Course, Lesson, User } from "@/types"
 import { useAuth } from "@/hooks/use-auth"
 import { useRouter } from "next/navigation"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { LessonDetailModal } from "@/components/course/lesson/lesson-detail-modal"
+import { CourseBasicInfoModal } from "@/components/course/course-basic-info-modal"
 
 export default function InstructorCourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const [course, setCourse] = useState<Course | null>(null)
@@ -45,6 +54,11 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
   const { id } = use(params)
   const [students, setStudents] = useState<User[]>([])
   const router = useRouter()
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null)
+  const [isLessonModalOpen, setIsLessonModalOpen] = useState(false)
+  const [isEditCourseOpen, setIsEditCourseOpen] = useState(false)
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -57,7 +71,6 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
         })
         if (response.ok) {
           const data = await response.json()
-          console.log(data.course)
           setCourse(data.course)
         }
       } catch (error) {
@@ -121,6 +134,60 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
 
   const shouldShowExpandButton = (description: string) => {
     return description && description.length > 150
+  }
+
+  const handleViewLesson = (lesson: Lesson) => {
+    setSelectedLesson(lesson)
+    setIsLessonModalOpen(true)
+  }
+
+  const handleSaveCourseInfo = async (updates: Partial<Course>) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/update/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...updates,
+          instructorId: course?.instructor?.id || course?.instructorId,
+        }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setCourse(data.course)
+      }
+    } catch (error) {
+      console.error("Failed to update course:", error)
+      throw error
+    }
+  }
+
+  const handleDelete = async () => {
+    setIsDeleteOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    setIsDeleting(true)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/delete/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      if (response.ok) {
+        router.push("/instructor/courses")
+      }
+    } catch (error) {
+      console.error("Failed to delete course:", error)
+    } finally {
+      setIsDeleting(false)
+      setIsDeleteOpen(false)
+    }
   }
 
   if (loading) {
@@ -236,31 +303,9 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
         </div>
 
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Share2 className="w-4 h-4 mr-2" />
-            Share
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download className="w-4 h-4 mr-2" />
-            Export
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link href={`/instructor/courses/${course.id}/modules`}>
-              <Edit className="w-4 h-4 mr-2" />
-              Edit Content
-            </Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link href={`/instructor/courses/${course.id}/preview`}>
-              <Eye className="w-4 h-4 mr-2" />
-              Preview
-            </Link>
-          </Button>
-          <Button size="sm" asChild>
-            <Link href={`/instructor/courses/${course.id}/analytics`}>
-              <BarChart3 className="w-4 h-4 mr-2" />
-              Analytics
-            </Link>
+          <Button variant="outline" size="sm" onClick={() => setIsEditCourseOpen(true)}>
+            <Edit className="w-4 h-4 mr-2" />
+            Edit Content
           </Button>
         </div>
       </div>
@@ -326,8 +371,6 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-         
-
           {/* Course Tags */}
           <Card>
             <CardHeader>
@@ -429,26 +472,46 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
                             transition={{ delay: lessonIndex * 0.1 }}
                             className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors"
                           >
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 flex-1">
                               {getContentTypeIcon(lesson)}
-                              <div>
+                              <div className="flex-1">
                                 <div className="font-medium text-sm">{lesson.title}</div>
-                                <div className="text-xs text-muted-foreground flex items-center gap-2">
-                                  <span>{formatDuration(lesson.duration)}</span>
+                                <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap mt-1">
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    {formatDuration(lesson.duration)}
+                                  </span>
                                   {lesson.videoUrl && <span>• Video</span>}
+                                  {lesson.isProject && (
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs h-5 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800"
+                                    >
+                                      <Briefcase className="w-3 h-3 mr-1" />
+                                      Project
+                                    </Badge>
+                                  )}
+                                  {lesson.isExercise && (
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs h-5 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800"
+                                    >
+                                      <Zap className="w-3 h-3 mr-1" />
+                                      Exercise
+                                    </Badge>
+                                  )}
                                   {lesson.assessments && lesson.assessments.length > 0 && (
-                                    <span>
-                                      • {lesson.assessments.length} assessment{lesson.assessments.length > 1 ? "s" : ""}
+                                    <span className="flex items-center gap-1">
+                                      • <Trophy className="w-3 h-3" />
+                                      {lesson.assessments.length} assessment{lesson.assessments.length > 1 ? "s" : ""}
                                     </span>
                                   )}
                                 </div>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Button variant="ghost" size="sm" asChild>
-                                <Link href={`/instructor/courses/${course.id}/preview?lesson=${lesson.id}`}>
-                                  <Eye className="w-4 h-4" />
-                                </Link>
+                              <Button variant="ghost" size="sm" onClick={() => handleViewLesson(lesson)}>
+                                <Eye className="w-4 h-4" />
                               </Button>
                             </div>
                           </motion.div>
@@ -486,9 +549,6 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-
-                {/* Enrolled Student */}
-
                 <div className="space-y-3">
                   <h4 className="font-medium">Enrolled Students</h4>
                   {students.map((student, index) => (
@@ -507,8 +567,11 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
                     </div>
                   ))}
                 </div>
-
-                <Button className="w-full bg-transparent" variant="outline" onClick={() => router.push(`/instructor/courses/${course.id}/students`)}>
+                <Button
+                  className="w-full bg-transparent"
+                  variant="outline"
+                  onClick={() => router.push(`/instructor/courses/${course.id}/students`)}
+                >
                   View All Students
                 </Button>
               </div>
@@ -533,7 +596,6 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
                     {course.isPublished ? "Published" : "Draft"}
                   </Badge>
                 </div>
-
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="font-medium">Course Price</div>
@@ -541,7 +603,6 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
                   </div>
                   <div className="text-lg font-bold text-primary">${course.price}</div>
                 </div>
-
                 <div className="flex gap-2 pt-4">
                   <Button variant="outline">
                     <Settings className="w-4 h-4 mr-2" />
@@ -554,14 +615,13 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
                 </div>
               </CardContent>
             </Card>
-
             <Card>
               <CardHeader>
                 <CardTitle>Danger Zone</CardTitle>
                 <CardDescription>Irreversible actions for this course</CardDescription>
               </CardHeader>
               <CardContent>
-                <Button variant="destructive" className="w-full">
+                <Button variant="destructive" className="w-full" onClick={handleDelete}>
                   Delete Course
                 </Button>
               </CardContent>
@@ -569,6 +629,32 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
           </div>
         </TabsContent>
       </Tabs>
+
+      <LessonDetailModal lesson={selectedLesson} open={isLessonModalOpen} onOpenChange={setIsLessonModalOpen} />
+      <CourseBasicInfoModal
+        course={course}
+        open={isEditCourseOpen}
+        onOpenChange={setIsEditCourseOpen}
+        onSave={handleSaveCourseInfo}
+      />
+      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Course</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this course? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
+              Cancel
+            </Button>
+            <Button className="bg-red-600 text-white" onClick={confirmDelete} disabled={isDeleting}>
+              {isDeleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

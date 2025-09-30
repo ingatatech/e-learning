@@ -14,9 +14,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Search, Users, MoreHorizontal, Mail, Calendar, Award, TrendingUp, ChevronLeft, ChevronRight, User } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Search, Users, MoreHorizontal, Mail, Calendar, Award, TrendingUp, ChevronLeft, ChevronRight, User, BookOpen, Clock, BarChart3 } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/hooks/use-auth"
+
+interface Course {
+  id: number
+  title: string
+}
 
 interface Student {
   id: number
@@ -31,13 +43,17 @@ interface Student {
   isEmailVerified: boolean
   createdAt: string
   updatedAt: string
+  courses?: Course[] // Add courses to the student interface
 }
 
 interface StudentsResponse {
   success: boolean
   instructorId: string
   studentCount: number
-  students: Student[]
+  students: Array<{
+    student: Student
+    courses: Course[]
+  }>
 }
 
 // Skeleton Loading Components
@@ -84,10 +100,89 @@ const SkeletonTableRow = () => (
   </TableRow>
 )
 
+// Student Info Modal Component
+interface StudentInfoModalProps {
+  student: Student | null
+  isOpen: boolean
+  onClose: () => void
+}
+
+const StudentInfoModal = ({ student, isOpen, onClose }: StudentInfoModalProps) => {
+  if (!student) return null
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Student Information</DialogTitle>
+          <DialogDescription>
+            Detailed information about {student.firstName} {student.lastName}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-6">
+          {/* Student Profile */}
+          <div className="flex items-start gap-4">
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+              {student.profilePicUrl ? (
+                <img 
+                  src={student.profilePicUrl} 
+                  alt={`${student.firstName} ${student.lastName}`}
+                  className="w-16 h-16 rounded-full"
+                />
+              ) : (
+                <User className="w-8 h-8 text-muted-foreground" />
+              )}
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold">
+                {student.firstName} {student.lastName}
+              </h3>
+              <p className="text-muted-foreground">{student.email}</p>
+            </div>
+          </div>
+
+          {/* Enrolled Courses */}
+          <div>
+            <h4 className="font-medium mb-3 flex items-center gap-2">
+              <BookOpen className="w-4 h-4" />
+              Enrolled Courses
+            </h4>
+            {student.courses && student.courses.length > 0 ? (
+              <div className="space-y-2">
+                {student.courses.map((course) => (
+                  <div
+                    key={course.id}
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                  >
+                    <div>
+                      <p className="font-medium">{course.title}</p>
+                      <p className="text-sm text-muted-foreground">Course ID: {course.id}</p>
+                    </div>
+                    <Badge variant="outline">Enrolled</Badge>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-4 border rounded-lg">
+                <BookOpen className="w-8 h-8 mx-auto mb-2 text-muted-foreground opacity-50" />
+                <p className="text-muted-foreground">No courses enrolled</p>
+              </div>
+            )}
+          </div>
+
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export default function StudentsManagement() {
   const [searchTerm, setSearchTerm] = useState("")
   const [students, setStudents] = useState<Student[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
   const { token, user } = useAuth()
   
   // Pagination state
@@ -114,7 +209,12 @@ export default function StudentsManagement() {
         
         if (response.ok) {
           const data: StudentsResponse = await response.json()
-          setStudents(data.students)
+          const formatted = data.students.map((s) => ({
+            ...s.student,   // spread student fields
+            courses: s.courses, // attach their courses
+          }))
+
+          setStudents(formatted)
         }
       } catch (error) {
         console.error("Failed to fetch students:", error)
@@ -144,6 +244,16 @@ export default function StudentsManagement() {
   useEffect(() => {
     setCurrentPage(1)
   }, [searchTerm, itemsPerPage])
+
+  const handleViewStudentInfo = (student: Student) => {
+    setSelectedStudent(student)
+    setIsModalOpen(true)
+  }
+
+  const closeModal = () => {
+    setIsModalOpen(false)
+    setSelectedStudent(null)
+  }
 
   const getLevelBadgeColor = (level: number) => {
     if (level >= 10) return "bg-purple-100 text-purple-800"
@@ -225,9 +335,6 @@ export default function StudentsManagement() {
                 <TableRow>
                   <TableHead>Student</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Level</TableHead>
-                  <TableHead>Points</TableHead>
-                  <TableHead>Streak</TableHead>
                   <TableHead>Joined</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -341,6 +448,7 @@ export default function StudentsManagement() {
                   <TableRow>
                     <TableHead>Student</TableHead>
                     <TableHead>Email</TableHead>
+                    <TableHead>Courses</TableHead>
                     <TableHead>Joined</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -374,8 +482,13 @@ export default function StudentsManagement() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {student.email}
-                          {!student.isEmailVerified && <Mail className="w-3 h-3 text-yellow-500" title="Email not verified" />}
+                          {!student.isEmailVerified && <Mail className="w-3 h-3 text-yellow-500" />}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {student.courses?.length || 0} courses
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2 text-sm">
@@ -392,18 +505,9 @@ export default function StudentsManagement() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem>
-                              <Mail className="mr-2 h-4 w-4" />
-                              Send Message
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Award className="mr-2 h-4 w-4" />
-                              View Progress
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-blue-600">
+                            <DropdownMenuItem onClick={() => handleViewStudentInfo(student)}>
                               <User className="mr-2 h-4 w-4" />
-                              View Profile
+                              View Details
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -468,6 +572,13 @@ export default function StudentsManagement() {
           )}
         </CardContent>
       </Card>
+
+      {/* Student Info Modal */}
+      <StudentInfoModal 
+        student={selectedStudent}
+        isOpen={isModalOpen}
+        onClose={closeModal}
+      />
     </div>
   )
 }

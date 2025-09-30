@@ -140,12 +140,6 @@ export function CourseCreationWizard() {
     return Math.floor(points / 100) + 1
   }
 
-  const getPointsToNextLevel = (points: number) => {
-    const currentLevel = getLevel(points)
-    const pointsForNextLevel = currentLevel * 100
-    return pointsForNextLevel - points
-  }
-
   const formatCourseDataForAPI = () => {
     return {
       title: courseData.title || "",
@@ -157,7 +151,7 @@ export function CourseCreationWizard() {
       duration: courseData.duration || 0,
       tags: courseData.tags || [],
       instructorId: user!.id,
-      organizationId: user!.organization.id,
+      organizationId: user!.organization!.id,
       certificateIncluded: courseData.certificateIncluded || false,
       language: courseData.language || "English",
       about: courseData.about || "",

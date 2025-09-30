@@ -10,19 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
-import {
-  FileText,
-  Video,
-  Upload,
-  ImageIcon,
-  FileDown,
-  Trash2,
-  GripVertical,
-  Clock,
-  Briefcase,
-  Zap,
-  Check,
-} from "lucide-react"
+import { LessonImageUpload } from "./lesson-image-upload"
+import { FileText, Video, ImageIcon, FileDown, Trash2, GripVertical, Clock, Briefcase, Zap, Check } from "lucide-react"
 import type { Lesson } from "@/types"
 
 interface ContentBlock {
@@ -72,36 +61,56 @@ export function LessonEditor({ lesson, onUpdate, onDelete }: LessonEditorProps) 
     setHasUnsavedChanges(true)
   }
 
-  // Initialize content blocks from lesson content
-  // Update your content initialization useEffect:
-useEffect(() => {
-  if (lesson.content) {
-    try {
-      // Try to parse as JSON first
-      const parsedContent = JSON.parse(lesson.content);
-      
-      if (Array.isArray(parsedContent)) {
-        // It's an array of blocks
-        setContentBlocks(
-          parsedContent.map((block: any, index: number) => ({
-            id: `block-${Date.now()}-${index}`,
-            type: block.type || "text",
-            content: block.content || block.data || "",
-            order: index + 1,
-          }))
-        );
-      } else if (parsedContent.blocks && Array.isArray(parsedContent.blocks)) {
-        // It's the structure you were saving {"blocks": [...]}
-        setContentBlocks(
-          parsedContent.blocks.map((block: any, index: number) => ({
-            id: `block-${Date.now()}-${index}`,
-            type: "text",
-            content: block.text || "",
-            order: index + 1,
-          }))
-        );
-      } else {
-        // It's some other structure, treat as text
+  const handleImageUploadComplete = (blockId: string, imageUrl: string) => {
+    updateContentBlock(blockId, {
+      imageUrl: imageUrl,
+      alt: "",
+      caption: "",
+    })
+  }
+
+  const handleImageUploadStart = () => {
+    // Optional: Show loading state
+  }
+
+  const handleImageUploadError = (error: string) => {
+    alert(`Image upload failed: ${error}`)
+  }
+
+  useEffect(() => {
+    if (lesson.content) {
+      try {
+        const parsedContent = JSON.parse(lesson.content)
+
+        if (Array.isArray(parsedContent)) {
+          setContentBlocks(
+            parsedContent.map((block: any, index: number) => ({
+              id: `block-${Date.now()}-${index}`,
+              type: block.type || "text",
+              content: block.content || block.data || "",
+              order: index + 1,
+            })),
+          )
+        } else if (parsedContent.blocks && Array.isArray(parsedContent.blocks)) {
+          setContentBlocks(
+            parsedContent.blocks.map((block: any, index: number) => ({
+              id: `block-${Date.now()}-${index}`,
+              type: "text",
+              content: block.text || "",
+              order: index + 1,
+            })),
+          )
+        } else {
+          setContentBlocks([
+            {
+              id: `block-${Date.now()}`,
+              type: "text",
+              content: lesson.content,
+              order: 1,
+            },
+          ])
+        }
+      } catch (error) {
         setContentBlocks([
           {
             id: `block-${Date.now()}`,
@@ -109,24 +118,12 @@ useEffect(() => {
             content: lesson.content,
             order: 1,
           },
-        ]);
+        ])
       }
-    } catch (error) {
-      // If content is not JSON, treat it as plain text
-      setContentBlocks([
-        {
-          id: `block-${Date.now()}`,
-          type: "text",
-          content: lesson.content,
-          order: 1,
-        },
-      ]);
+    } else {
+      setContentBlocks([])
     }
-  } else {
-    // Default empty state
-    setContentBlocks([]);
-  }
-}, [lesson.id, lesson.content]); // Add lesson.content to dependencies
+  }, [lesson.id, lesson.content])
 
   const addContentBlock = (type: ContentBlock["type"]) => {
     const newBlock: ContentBlock = {
@@ -146,7 +143,7 @@ useEffect(() => {
       case "video":
         return { url: "", title: "", description: "" }
       case "image":
-        return { url: "", alt: "", caption: "" }
+        return { imageUrl: "", alt: "", caption: "" }
       case "file":
         return { url: "", name: "", description: "" }
       case "quiz":
@@ -165,63 +162,52 @@ useEffect(() => {
     setContentBlocks((blocks) => blocks.filter((block) => block.id !== id))
   }
 
-  // Save handler
-  // Replace your current handleSave function with this:
-const handleSave = () => {
-  // For text blocks, save the actual text content, not the object structure
-  const contentToSave = contentBlocks.map(block => {
-    if (block.type === "text") {
-      // If it's already a string, use it directly
-      if (typeof block.content === "string") {
-        return block.content;
+  const handleSave = () => {
+    const contentToSave = contentBlocks.map((block, index) => {
+      if (block.type === "text") {
+        if (typeof block.content === "string") {
+          return block.content
+        }
+        return block.content?.text || ""
       }
-      // If it's an object with text property, extract the text
-      return block.content?.text || "";
+      return {
+        type: block.type,
+        content: block.content,
+      }
+    })
+
+    let finalContent
+    if (contentBlocks.length === 1 && contentBlocks[0].type === "text") {
+      finalContent = contentToSave[0]
+    } else {
+      finalContent = JSON.stringify(contentToSave)
     }
-    // For other block types, save the entire content
-    return block.content;
-  });
 
-  // If there's only one text block, save it as plain text
-  // Otherwise, save as JSON array
-  let finalContent;
-  if (contentBlocks.length === 1 && contentBlocks[0].type === "text") {
-    finalContent = contentToSave[0];
-  } else {
-    finalContent = JSON.stringify(contentBlocks.map(block => ({
-      type: block.type,
-      content: block.content
-    })));
+    onUpdate({
+      content: finalContent,
+      duration: lesson.duration,
+      isProject: lesson.isProject,
+      isExercise: lesson.isExercise,
+      resources: resourceLinks.filter((link) => link.url.trim() !== ""),
+    })
+    setHasUnsavedChanges(false)
   }
-
-  onUpdate({
-    content: finalContent,
-    duration: lesson.duration,
-    videoUrl: lesson.videoUrl,
-    isProject: lesson.isProject,
-    isExercise: lesson.isExercise,
-    resources: JSON.stringify(resourceLinks.filter((link) => link.url.trim() !== "")),
-  });
-  setHasUnsavedChanges(false);
-}
 
   const renderContentBlock = (block: ContentBlock) => {
     switch (block.type) {
       case "text":
-         const textValue = typeof block.content === "string" 
-    ? block.content 
-    : block.content?.text || "";
-    
-  return (
-    <div className="space-y-2">
-      <Label>Text Content</Label>
-      <RichTextEditor
-        value={textValue}
-        onChange={(value) => updateContentBlock(block.id, value)}
-        className="min-h-[300px]"
-      />
-    </div>
-  )
+        const textValue = typeof block.content === "string" ? block.content : block.content?.text || ""
+
+        return (
+          <div className="space-y-2">
+            <Label>Text Content</Label>
+            <RichTextEditor
+              value={textValue}
+              onChange={(value) => updateContentBlock(block.id, value)}
+              className="min-h-[300px]"
+            />
+          </div>
+        )
 
       case "video":
         return (
@@ -257,18 +243,17 @@ const handleSave = () => {
       case "image":
         return (
           <div className="space-y-4">
-            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
-              <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-              <p className="text-sm text-gray-600 dark:text-gray-300">Click to upload or drag and drop an image</p>
-              <Button variant="outline" size="sm" className="mt-2 bg-transparent">
-                <Upload className="w-4 h-4 mr-2" />
-                Upload Image
-              </Button>
-            </div>
+            <Label>Lesson Image</Label>
+            <LessonImageUpload
+              onUploadComplete={(url) => handleImageUploadComplete(block.id, url)}
+              onUploadStart={handleImageUploadStart}
+              onUploadError={handleImageUploadError}
+              currentImageUrl={block.content.imageUrl}
+            />
             <div className="space-y-2">
               <Label>Alt Text</Label>
               <Input
-                value={block.content.alt}
+                value={block.content.alt || ""}
                 onChange={(e) => updateContentBlock(block.id, { ...block.content, alt: e.target.value })}
                 placeholder="Describe the image for accessibility"
               />
@@ -276,7 +261,7 @@ const handleSave = () => {
             <div className="space-y-2">
               <Label>Caption (Optional)</Label>
               <Input
-                value={block.content.caption}
+                value={block.content.caption || ""}
                 onChange={(e) => updateContentBlock(block.id, { ...block.content, caption: e.target.value })}
                 placeholder="Image caption"
               />
@@ -313,7 +298,6 @@ const handleSave = () => {
 
         <TabsContent value="content" className="flex-1 overflow-y-auto">
           <div className="space-y-4">
-            {/* Lesson Title */}
             <div className="space-y-2">
               <Label>Lesson Title</Label>
               <Input
@@ -324,7 +308,6 @@ const handleSave = () => {
               />
             </div>
 
-            {/* Content Blocks */}
             <div className="space-y-4">
               {contentBlocks.map((block) => (
                 <Card key={block.id} className="relative">
@@ -352,7 +335,6 @@ const handleSave = () => {
               ))}
             </div>
 
-            {/* Add Content Block */}
             <Card className="border-dashed border-2 border-gray-300 hover:border-primary-400 transition-colors">
               <CardContent className="p-6">
                 <div className="text-center mb-4">
@@ -408,14 +390,6 @@ const handleSave = () => {
                     value={lesson.duration}
                     onChange={(e) => onUpdate({ duration: Number.parseInt(e.target.value) || 0 })}
                     placeholder="15"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Video URL (Optional)</Label>
-                  <Input
-                    value={lesson.videoUrl || ""}
-                    onChange={(e) => onUpdate({ videoUrl: e.target.value })}
-                    placeholder="https://youtube.com/watch?v=..."
                   />
                 </div>
 
@@ -508,7 +482,6 @@ const handleSave = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Save Actions */}
       <div className="flex justify-between items-center pt-4 border-t">
         <Button variant="outline" onClick={onDelete} className="text-red-600 hover:text-red-700 bg-transparent">
           <Trash2 className="w-4 h-4 mr-2" />

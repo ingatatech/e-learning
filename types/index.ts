@@ -118,6 +118,8 @@ export interface Lesson {
   title: string
   content: string
   videoUrl?: string
+  imageFiles?: File[] | null
+  imageUrl?: string
   duration: number
   order: number
   moduleId: string
