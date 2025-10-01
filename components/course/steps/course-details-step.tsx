@@ -103,9 +103,7 @@ export function CourseDetailsStep({
       courseData.title?.trim() &&
       courseData.description?.trim() &&
       courseData.level &&
-      courseData.duration &&
-      courseData.language?.trim() &&
-      courseData.about?.trim()
+      courseData.language?.trim()
     )
   }
 
@@ -140,7 +138,7 @@ export function CourseDetailsStep({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Short Description *</Label>
+                <Label htmlFor="description">Description *</Label>
                 <Textarea
                   id="description"
                   placeholder="Brief overview of your course (2-3 sentences)"
@@ -152,7 +150,7 @@ export function CourseDetailsStep({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="about">Detailed About Section *</Label>
+                <Label htmlFor="about">Talk More About Your Course</Label>
                 <Textarea
                   id="about"
                   placeholder="Comprehensive description of what this course covers, who it's for, and what makes it unique..."
@@ -224,7 +222,7 @@ export function CourseDetailsStep({
                 <div className="space-y-2">
                   <Label htmlFor="duration" className="flex items-center gap-2">
                     <Clock className="w-4 h-4" />
-                    Duration (hours) *
+                    Duration (hours)
                   </Label>
                   <Input
                     id="duration"
@@ -233,7 +231,6 @@ export function CourseDetailsStep({
                     placeholder="12"
                     value={courseData.duration || ""}
                     onChange={(e) => setCourseData({ ...courseData, duration: Number.parseInt(e.target.value) || 0 })}
-                    required
                   />
                 </div>
               </div>

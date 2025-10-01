@@ -136,10 +136,6 @@ export function CourseCreationWizard() {
     }
   }
 
-  const getLevel = (points: number) => {
-    return Math.floor(points / 100) + 1
-  }
-
   const formatCourseDataForAPI = () => {
     return {
       title: courseData.title || "",
