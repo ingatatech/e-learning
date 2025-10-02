@@ -157,7 +157,6 @@ export function CourseDetailsStep({
                   value={courseData.about || ""}
                   onChange={(e) => setCourseData({ ...courseData, about: e.target.value })}
                   rows={5}
-                  required
                 />
               </div>
 

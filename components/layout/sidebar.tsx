@@ -51,7 +51,8 @@ import {
   Users2,
   BarChart2,
   Wallet,
-  Cog
+  Cog,
+  FileCog
 } from "lucide-react"
 import React from "react"
 import { useAuth } from "@/hooks/use-auth"
@@ -87,6 +88,7 @@ const navigationItems: Record<string, NavigationItem[]> = {
       children: [
         { name: "Add Course", href: "/instructor/courses/create", icon: BookPlus },
         { name: "All Courses", href: "/instructor/courses", icon: BookOpen }, 
+        { name: "Assessments", href: "/instructor/assessments", icon: FileCog }, 
       ]
     },
     { 

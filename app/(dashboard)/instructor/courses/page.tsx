@@ -6,10 +6,36 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { BookOpen, Users, Star, Clock, Play, Edit, Eye, TrendingUp, Search, Filter, Grid3X3, List, Trophy, Target, Zap, Award } from "lucide-react"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationPrevious,
+  PaginationNext,
+  PaginationEllipsis,
+} from "@/components/ui/pagination"
+import {
+  BookOpen,
+  Users,
+  Star,
+  Clock,
+  Play,
+  Edit,
+  Eye,
+  TrendingUp,
+  Search,
+  Filter,
+  Grid3X3,
+  List,
+  Trophy,
+  Target,
+  Zap,
+  Award,
+} from "lucide-react"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
-import { CourseLevel, type Course } from "@/types"
+import type { Course } from "@/types"
 import { useAuth } from "@/hooks/use-auth"
 
 export default function CourseOverviewPage() {
@@ -19,6 +45,8 @@ export default function CourseOverviewPage() {
   const [filterStatus, setFilterStatus] = useState<"all" | "published" | "draft">("all")
   const [sortBy, setSortBy] = useState<"title" | "students" | "rating" | "created">("created")
   const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(6)
   const { token, user } = useAuth()
 
   useEffect(() => {
@@ -72,6 +100,15 @@ export default function CourseOverviewPage() {
       }
     })
 
+  const totalPages = Math.ceil(filteredCourses.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedCourses = filteredCourses.slice(startIndex, endIndex)
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, filterStatus, sortBy])
+
   const formatDuration = (minutes: number) => {
     const hours = Math.floor(minutes / 60)
     const mins = minutes % 60
@@ -100,10 +137,9 @@ export default function CourseOverviewPage() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: index * 0.1 }}
       whileHover={{ y: -5 }}
-      className="group"
+      className="group h-full"
     >
-      <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/20 relative pt-0">
-        {/* Gamification Elements */}
+      <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/20 relative pt-0 flex flex-col h-full">
         <div className="absolute top-3 left-3 z-10 flex gap-2">
           {course.isPublished && (
             <Badge className="bg-green-500 hover:bg-green-600 animate-pulse">
@@ -125,16 +161,14 @@ export default function CourseOverviewPage() {
           )}
         </div>
 
-        {/* Course Thumbnail */}
         <div className="relative overflow-hidden">
           <img
-            src={ course.thumbnail || "/placeholder0.svg"}
+            src={course.thumbnail || "/placeholder0.svg"}
             alt={course.title}
             className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-          {/* Action Buttons Overlay */}
           <div className="absolute inset-0 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <Button size="sm" className="bg-white/90 text-gray-900 hover:bg-white" asChild>
               <Link href={`/instructor/courses/${course.id}`}>
@@ -162,7 +196,9 @@ export default function CourseOverviewPage() {
               {course.level.charAt(0).toUpperCase() + course.level.slice(1)}
             </Badge>
             <div className="text-right">
-              <div className="text-lg font-bold text-primary">{course.price == 0 || null ? "Free" : `${course.price} RWF`}</div>
+              <div className="text-lg font-bold text-primary">
+                {course.price == 0 || null ? "Free" : `${course.price} RWF`}
+              </div>
               {course.isPublished && (
                 <div className="flex items-center gap-1 text-sm">
                   <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
@@ -175,11 +211,10 @@ export default function CourseOverviewPage() {
           <CardTitle className="text-lg line-clamp-2 group-hover:text-primary transition-colors">
             {course.title}
           </CardTitle>
-          <CardDescription className="line-clamp-2">{course.description}</CardDescription>
+          <CardDescription className="line-clamp-2 min-h-[2.5rem]">{course.description}</CardDescription>
         </CardHeader>
 
-        <CardContent className="pt-0">
-          {/* Course Stats */}
+        <CardContent className="pt-0 flex-1 flex flex-col">
           <div className="grid grid-cols-3 gap-4 mb-4 text-sm">
             <div className="flex items-center gap-1 text-muted-foreground">
               <Users className="w-4 h-4" />
@@ -195,7 +230,6 @@ export default function CourseOverviewPage() {
             </div>
           </div>
 
-          {/* Tags */}
           <div className="flex flex-wrap gap-1 mb-4">
             {course.tags.slice(0, 3).map((tag, tagIndex) => (
               <Badge key={tagIndex} variant="secondary" className="text-xs">
@@ -209,12 +243,10 @@ export default function CourseOverviewPage() {
             )}
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 mt-auto">
             <Button className="flex-1" asChild>
               <Link href={`/instructor/courses/${course.id}`}>
                 <Play className="w-4 h-4 mr-2" />
-                {/* {course.isPublished ? "Manage" : "Continue"} */}
                 Manage
               </Link>
             </Button>
@@ -257,7 +289,6 @@ export default function CourseOverviewPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">My Courses</h1>
@@ -271,7 +302,6 @@ export default function CourseOverviewPage() {
         </Button>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
@@ -329,7 +359,6 @@ export default function CourseOverviewPage() {
         </Card>
       </div>
 
-      {/* Filters and Search */}
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
         <div className="flex flex-1 gap-4 w-full sm:w-auto">
           <div className="relative flex-1 max-w-sm">
@@ -377,14 +406,61 @@ export default function CourseOverviewPage() {
         </div>
       </div>
 
-      {/* Courses Grid */}
       <AnimatePresence>
-        {filteredCourses.length > 0 ? (
-          <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
-            {filteredCourses.map((course, index) => (
-              <CourseCard key={course.id} course={course} index={index} />
-            ))}
-          </div>
+        {paginatedCourses.length > 0 ? (
+          <>
+            <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
+              {paginatedCourses.map((course, index) => (
+                <CourseCard key={course.id} course={course} index={index} />
+              ))}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="flex justify-center mt-8">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                        className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+
+                    {[...Array(totalPages)].map((_, i) => {
+                      const pageNum = i + 1
+                      if (
+                        pageNum === 1 ||
+                        pageNum === totalPages ||
+                        (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                      ) {
+                        return (
+                          <PaginationItem key={pageNum}>
+                            <PaginationLink
+                              onClick={() => setCurrentPage(pageNum)}
+                              isActive={currentPage === pageNum}
+                              className="cursor-pointer"
+                            >
+                              {pageNum}
+                            </PaginationLink>
+                          </PaginationItem>
+                        )
+                      } else if (pageNum === currentPage - 2 || pageNum === currentPage + 2) {
+                        return <PaginationEllipsis key={pageNum} />
+                      }
+                      return null
+                    })}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
+          </>
         ) : (
           <Card className="p-12 text-center">
             <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />

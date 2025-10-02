@@ -39,12 +39,12 @@ import {
   FileDown,
   FileText,
   Target,
-  CheckCircle,
 } from "lucide-react"
 import Link from "next/link"
 import { motion, Reorder } from "framer-motion"
 import type { Course, Module, Lesson, Assessment, AssessmentQuestion } from "@/types"
 import { useAuth } from "@/hooks/use-auth"
+import { Checkbox } from "@/components/ui/checkbox"
 
 interface ContentBlock {
   id: string
@@ -257,8 +257,7 @@ export default function ModulesManagementPage({ params }: { params: Promise<{ id
   const addQuestion = (moduleId: string, lessonId: string, assessmentId: string) => {
     if (!editingLesson) return
 
-    const newQuestion: AssessmentQuestion = {
-      id: `question-${Date.now()}`,
+    const newQuestion: Partial<AssessmentQuestion> = {
       question: "",
       type: "multiple_choice",
       options: ["", "", "", ""],
@@ -577,6 +576,43 @@ export default function ModulesManagementPage({ params }: { params: Promise<{ id
     moduleId: string,
     lessonId: string,
   ) => {
+    const correctAnswers = Array.isArray(question.correctAnswer)
+      ? question.correctAnswer
+      : question.correctAnswer
+        ? [question.correctAnswer]
+        : []
+
+    const toggleCorrectAnswer = (option: string) => {
+      if (question.type === "multiple_choice") {
+        const newCorrectAnswers = correctAnswers.includes(option)
+          ? correctAnswers.filter((a) => a !== option)
+          : [...correctAnswers, option]
+        updateQuestion(moduleId, lessonId, assessmentId, questionIndex, {
+          correctAnswer: newCorrectAnswers.length > 0 ? newCorrectAnswers : "",
+        })
+      }
+    }
+
+    const addOption = () => {
+      const newOptions = [...(question.options || []), ""]
+      updateQuestion(moduleId, lessonId, assessmentId, questionIndex, { options: newOptions })
+    }
+
+    const removeOption = (optionIndex: number) => {
+      const newOptions = question.options?.filter((_, i) => i !== optionIndex) || []
+      // Remove from correct answers if it was selected
+      const optionToRemove = question.options?.[optionIndex]
+      if (optionToRemove && correctAnswers.includes(optionToRemove)) {
+        const newCorrectAnswers = correctAnswers.filter((a) => a !== optionToRemove)
+        updateQuestion(moduleId, lessonId, assessmentId, questionIndex, {
+          options: newOptions,
+          correctAnswer: newCorrectAnswers.length > 0 ? newCorrectAnswers : "",
+        })
+      } else {
+        updateQuestion(moduleId, lessonId, assessmentId, questionIndex, { options: newOptions })
+      }
+    }
+
     return (
       <Card key={question.id} className="relative">
         <CardHeader className="pb-3">
@@ -653,7 +689,10 @@ export default function ModulesManagementPage({ params }: { params: Promise<{ id
 
           {question.type === "multiple_choice" && (
             <div className="space-y-2">
-              <Label>Answer Options</Label>
+              <div className="flex items-center justify-between">
+                <Label>Answer Options</Label>
+                <span className="text-xs text-muted-foreground">Select one or more correct answers</span>
+              </div>
               {question.options?.map((option, optionIndex) => (
                 <div key={optionIndex} className="flex gap-2">
                   <Input
@@ -665,17 +704,32 @@ export default function ModulesManagementPage({ params }: { params: Promise<{ id
                     }}
                     placeholder={`Option ${optionIndex + 1}`}
                   />
-                  <Button
-                    variant={question.correctAnswer === option ? "default" : "outline"}
-                    size="sm"
-                    onClick={() =>
-                      updateQuestion(moduleId, lessonId, assessmentId, questionIndex, { correctAnswer: option })
-                    }
-                  >
-                    {question.correctAnswer === option ? <CheckCircle className="w-4 h-4" /> : "Correct"}
-                  </Button>
+                  <div className="flex items-center gap-2 px-3 border rounded-md">
+                    <Checkbox
+                      id={`correct-${question.id}-${optionIndex}`}
+                      checked={correctAnswers.includes(option)}
+                      onCheckedChange={() => toggleCorrectAnswer(option)}
+                    />
+                    <Label htmlFor={`correct-${question.id}-${optionIndex}`} className="text-sm cursor-pointer">
+                      Correct
+                    </Label>
+                  </div>
+                  {(question.options?.length || 0) > 2 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeOption(optionIndex)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               ))}
+              <Button variant="outline" size="sm" onClick={addOption} className="w-full bg-transparent">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Option
+              </Button>
             </div>
           )}
 

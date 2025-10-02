@@ -6,11 +6,36 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Star, Clock, Users, Play, BookOpen, Trophy, Target, Zap, Crown, Award, TrendingUp, Filter, X, SquarePen, ArrowLeft } from "lucide-react"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationPrevious,
+  PaginationNext,
+  PaginationEllipsis,
+} from "@/components/ui/pagination"
+import {
+  Search,
+  Star,
+  Clock,
+  Users,
+  Play,
+  BookOpen,
+  Trophy,
+  Target,
+  Zap,
+  Crown,
+  Award,
+  Filter,
+  X,
+  SquarePen,
+  ArrowLeft,
+} from "lucide-react"
 import Link from "next/link"
 import { Header } from "@/components/layout/header"
 import { useAuth } from "@/hooks/use-auth"
-import { Course } from "@/types"
+import type { Course } from "@/types"
 
 export default function CoursesPage() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -20,6 +45,8 @@ export default function CoursesPage() {
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(6)
   const { token, user } = useAuth()
 
   useEffect(() => {
@@ -27,12 +54,15 @@ export default function CoursesPage() {
       if (!user || !token) return
       setLoading(true)
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/organization/${user?.organization.id}/courses`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/courses/organization/${user?.organization.id}/courses`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
           },
-        })
+        )
         if (response.ok) {
           const data = await response.json()
           setCourses(data.courses)
@@ -55,16 +85,31 @@ export default function CoursesPage() {
 
     const matchesLevel = selectedLevel === "all" || course.level === selectedLevel
     const matchesCategory = selectedCategory === "all" || course.category?.name === selectedCategory
-    
+
     const isFree = course.price == 0 || course.price === null || course.price === undefined
-    const matchesPrice = selectedPrice === "all" || 
-                        (selectedPrice === "free" && isFree) ||
-                        (selectedPrice === "paid" && !isFree)
+    const matchesPrice =
+      selectedPrice === "all" || (selectedPrice === "free" && isFree) || (selectedPrice === "paid" && !isFree)
 
     return matchesSearch && matchesLevel && matchesCategory && matchesPrice
   })
 
-  const categories = ["Web Development", "Data Science", "Design", "Backend Development", "Mobile Development", "testing category"]
+  const totalPages = Math.ceil(filteredCourses.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedCourses = filteredCourses.slice(startIndex, endIndex)
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, selectedLevel, selectedCategory, selectedPrice])
+
+  const categories = [
+    "Web Development",
+    "Data Science",
+    "Design",
+    "Backend Development",
+    "Mobile Development",
+    "testing category",
+  ]
   const levels = ["beginner", "intermediate", "advanced"]
 
   const getLevelIcon = (level: string) => {
@@ -100,13 +145,13 @@ export default function CoursesPage() {
     setSelectedPrice("all")
   }
 
-  const hasActiveFilters = searchTerm || selectedLevel !== "all" || selectedCategory !== "all" || selectedPrice !== "all"
+  const hasActiveFilters =
+    searchTerm || selectedLevel !== "all" || selectedCategory !== "all" || selectedPrice !== "all"
 
   if (!user || !token) {
     return null
   }
 
-  // Show loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -127,38 +172,31 @@ export default function CoursesPage() {
   return (
     <div className="min-h-screen bg-background">
       <Header user={user} />
-      
-      
+
       <div className="flex">
         {/* Fixed Sidebar */}
-        <div className={`fixed left-0 top-16 h-[calc(100vh-4rem)] w-80 bg-card border-r border-border z-40 transform transition-transform duration-300 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0`}>
+        <div
+          className={`fixed left-0 top-16 h-[calc(100vh-4rem)] w-80 bg-card border-r border-border z-40 transform transition-transform duration-300 ${
+            sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          } lg:translate-x-0`}
+        >
           <div className="p-6 h-full overflow-y-auto">
-            {/* Back Button */}
-      <Button className="mb-8 hover:bg-primary/10" variant="ghost" size="sm" asChild>
-        <Link href="/student">
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to dashboard
-        </Link>
-      </Button>
-            {/* Sidebar Header */}
+            <Button className="mb-8 hover:bg-primary/10" variant="ghost" size="sm" asChild>
+              <Link href="/student">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to dashboard
+              </Link>
+            </Button>
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
                 <Filter className="w-5 h-5 text-primary" />
                 <h3 className="font-bold text-lg">Course Filters</h3>
               </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setSidebarOpen(false)}
-                className="lg:hidden"
-              >
+              <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(false)} className="lg:hidden">
                 <X className="w-4 h-4" />
               </Button>
             </div>
 
-            {/* Search */}
             <div className="mb-6">
               <label className="text-sm font-medium mb-2 block">Search Adventures</label>
               <div className="relative">
@@ -172,7 +210,6 @@ export default function CoursesPage() {
               </div>
             </div>
 
-            {/* Category Filter */}
             <div className="mb-6">
               <label className="text-sm font-medium mb-2 block">Category</label>
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
@@ -190,7 +227,6 @@ export default function CoursesPage() {
               </Select>
             </div>
 
-            {/* Level Filter */}
             <div className="mb-6">
               <label className="text-sm font-medium mb-2 block">Difficulty Level</label>
               <div className="space-y-2">
@@ -198,9 +234,7 @@ export default function CoursesPage() {
                   <div
                     key={level}
                     className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                      selectedLevel === level
-                        ? "border-primary bg-primary/10"
-                        : "border-border hover:border-primary/50"
+                      selectedLevel === level ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
                     }`}
                     onClick={() => setSelectedLevel(level)}
                   >
@@ -215,14 +249,18 @@ export default function CoursesPage() {
               </div>
             </div>
 
-            {/* Price Filter */}
             <div className="mb-6">
               <label className="text-sm font-medium mb-2 block">Price Range</label>
               <div className="space-y-2">
                 {[
                   { value: "all", label: "All Prices", icon: null, color: "" },
                   { value: "free", label: "Free Courses", icon: <Zap className="w-3 h-3" />, color: "text-green-500" },
-                  { value: "paid", label: "Premium Courses", icon: <Crown className="w-3 h-3" />, color: "text-yellow-500" }
+                  {
+                    value: "paid",
+                    label: "Premium Courses",
+                    icon: <Crown className="w-3 h-3" />,
+                    color: "text-yellow-500",
+                  },
                 ].map((option) => (
                   <div
                     key={option.value}
@@ -242,19 +280,13 @@ export default function CoursesPage() {
               </div>
             </div>
 
-            {/* Clear Filters */}
             {hasActiveFilters && (
-              <Button 
-                onClick={clearAllFilters}
-                variant="outline" 
-                className="w-full"
-              >
+              <Button onClick={clearAllFilters} variant="outline" className="w-full bg-transparent">
                 <Target className="w-4 h-4 mr-2" />
                 Clear All Filters
               </Button>
             )}
 
-            {/* Stats in Sidebar */}
             <div className="mt-8 p-4 bg-muted/50 rounded-lg">
               <h4 className="font-medium mb-3">Course Statistics</h4>
               <div className="space-y-2 text-sm">
@@ -265,13 +297,13 @@ export default function CoursesPage() {
                 <div className="flex items-center justify-between">
                   <span>Free Courses:</span>
                   <Badge className="bg-green-500 hover:bg-green-600">
-                    {courses.filter(c => c.price == 0 || c.price === null || c.price === undefined).length}
+                    {courses.filter((c) => c.price == 0 || c.price === null || c.price === undefined).length}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span>Premium Courses:</span>
                   <Badge className="bg-yellow-500 hover:bg-yellow-600">
-                    {courses.filter(c => c.price > 0).length}
+                    {courses.filter((c) => c.price > 0).length}
                   </Badge>
                 </div>
               </div>
@@ -279,18 +311,13 @@ export default function CoursesPage() {
           </div>
         </div>
 
-        {/* Mobile Sidebar Overlay */}
         {sidebarOpen && (
-          <div 
-            className="fixed inset-0 bg-black/50 z-30 lg:hidden" 
-            onClick={() => setSidebarOpen(false)}
-          />
+          <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />
         )}
 
         {/* Main Content */}
         <div className="flex-1 lg:ml-80">
           <div className="px-6 py-8">
-            {/* Mobile Filter Toggle */}
             <Button
               onClick={() => setSidebarOpen(true)}
               className="lg:hidden mb-6 bg-primary/10 hover:bg-primary/20 text-primary border-primary/20"
@@ -300,7 +327,6 @@ export default function CoursesPage() {
               Show Filters
             </Button>
 
-            {/* Gamified Header */}
             <div className="text-center mb-12 relative">
               <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-secondary/10 rounded-3xl -z-10"></div>
               <div className="py-12">
@@ -308,15 +334,12 @@ export default function CoursesPage() {
                   <div className="p-3 bg-primary/10 rounded-full">
                     <BookOpen className="w-8 h-8 text-primary" />
                   </div>
-                  <h1 className="text-4xl font-bold text-primary">
-                    Browse the courses
-                  </h1>
+                  <h1 className="text-4xl font-bold text-primary">Browse the courses</h1>
                 </div>
                 <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-6">
                   Embark on your learning journey and unlock new achievements
                 </p>
-                
-                {/* Stats Bar */}
+
                 <div className="flex items-center justify-center gap-8 text-sm">
                   <div className="flex items-center gap-2">
                     <Award className="w-4 h-4 text-yellow-500" />
@@ -333,7 +356,6 @@ export default function CoursesPage() {
               </div>
             </div>
 
-            {/* Results Count */}
             <div className="mb-6 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Badge variant="outline" className="px-3 py-1">
@@ -344,139 +366,187 @@ export default function CoursesPage() {
               </div>
             </div>
 
-            {/* Course Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {filteredCourses.map((course) => (
-                <Card key={course.id} className="pt-0 overflow-hidden hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group border-2 hover:border-primary/20 bg-gradient-to-b from-card to-card/50">
-                  <div className="relative">
-                    <img
-                      src={course.thumbnail || "/placeholder0.svg"}
-                      alt={course.title}
-                      className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    
-                    {/* Enhanced Badges */}
-                    <div className="absolute top-2 left-2 flex flex-col gap-1">
-                      {course.isPopular && (
-                        <Badge className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 shadow-md">
-                          <Crown className="w-3 h-3 mr-1" />
-                          Popular
-                        </Badge>
-                      )}
-                      <Badge className={`${getLevelColor(course.level)} shadow-md flex items-center gap-1`}>
-                        {getLevelIcon(course.level)}
-                        {course.level.charAt(0).toUpperCase() + course.level.slice(1)}
-                      </Badge>
-                    </div>
+            {paginatedCourses.length > 0 ? (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {paginatedCourses.map((course) => (
+                    <Card
+                      key={course.id}
+                      className="pt-0 overflow-hidden hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group border-2 hover:border-primary/20 bg-gradient-to-b from-card to-card/50 flex flex-col h-full"
+                    >
+                      <div className="relative">
+                        <img
+                          src={course.thumbnail || "/placeholder0.svg"}
+                          alt={course.title}
+                          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
 
-                    {/* Price Badge */}
-                    <div className="absolute top-2 right-2">
-                      {course.price == 0 || course.price === null || course.price === undefined ? (
-                        <Badge className="bg-green-500 hover:bg-green-600 shadow-md">
-                          <Zap className="w-3 h-3 mr-1" />
-                          FREE
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary" className="shadow-md font-bold">
-                          {course.price}RWF
-                        </Badge>
-                      )}
-                    </div>
+                        <div className="absolute top-2 left-2 flex flex-col gap-1">
+                          {course.isPopular && (
+                            <Badge className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 shadow-md">
+                              <Crown className="w-3 h-3 mr-1" />
+                              Popular
+                            </Badge>
+                          )}
+                          <Badge className={`${getLevelColor(course.level)} shadow-md flex items-center gap-1`}>
+                            {getLevelIcon(course.level)}
+                            {course.level.charAt(0).toUpperCase() + course.level.slice(1)}
+                          </Badge>
+                        </div>
 
-                    {/* Play Button Overlay */}
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
-                      <Button 
-                        size="sm" 
-                        className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-75 group-hover:scale-100 bg-primary/90 hover:bg-primary shadow-lg" 
-                        asChild
-                      >
-                        <Link href={`/courses/${course.id}`}>
-                          <Play className="w-4 h-4 mr-2" />
-                          Start Course
-                        </Link>
-                      </Button>
-                    </div>
+                        <div className="absolute top-2 right-2">
+                          {course.price == 0 || course.price === null || course.price === undefined ? (
+                            <Badge className="bg-green-500 hover:bg-green-600 shadow-md">
+                              <Zap className="w-3 h-3 mr-1" />
+                              FREE
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="shadow-md font-bold">
+                              {course.price}RWF
+                            </Badge>
+                          )}
+                        </div>
+
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                          <Button
+                            size="sm"
+                            className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-75 group-hover:scale-100 bg-primary/90 hover:bg-primary shadow-lg"
+                            asChild
+                          >
+                            <Link href={`/courses/${course.id}`}>
+                              <Play className="w-4 h-4 mr-2" />
+                              Start Course
+                            </Link>
+                          </Button>
+                        </div>
+                      </div>
+
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-1">
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <span className="text-sm font-bold">{course.rating}</span>
+                            <span className="text-xs text-muted-foreground">({course.reviewCount})</span>
+                          </div>
+                        </div>
+                        <CardTitle className="text-lg line-clamp-2 group-hover:text-primary transition-colors">
+                          {course.title}
+                        </CardTitle>
+                        <CardDescription className="line-clamp-2 min-h-[2.5rem]">{course.description}</CardDescription>
+                      </CardHeader>
+
+                      <CardContent className="pt-0 flex-1 flex flex-col">
+                        <div className="flex items-center gap-2 mb-4">
+                          <img
+                            src={course.instructor?.profilePicUrl || "/placeholder.svg"}
+                            alt={course.instructor?.profilePicUrl}
+                            className="w-7 h-7 rounded-full border-2 border-primary/20"
+                          />
+                          <div className="flex items-center gap-1">
+                            <Award className="w-3 h-3 text-primary" />
+                            <span className="text-sm font-medium text-primary">
+                              {course.instructor?.firstName ?? ""} {course.instructor?.lastName ?? ""}
+                              {course.instructor?.firstName || course.instructor?.lastName ? "" : "Unknown Instructor"}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2 mb-4 text-xs">
+                          <div className="flex items-center gap-1 p-2 bg-muted/50 rounded-lg">
+                            <Users className="w-3 h-3 text-blue-500" />
+                            <span className="font-medium">{course.enrollmentCount?.toLocaleString()}</span>
+                          </div>
+                          <div className="flex items-center gap-1 p-2 bg-muted/50 rounded-lg">
+                            <BookOpen className="w-3 h-3 text-green-500" />
+                            {course.modules?.reduce((sum, mod) => sum + (mod.lessons?.length ?? 0), 0) ?? 0}
+                          </div>
+                          <div className="flex items-center gap-1 p-2 bg-muted/50 rounded-lg">
+                            <Clock className="w-3 h-3 text-orange-500" />
+                            <span className="font-medium">{course.duration}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between mt-auto">
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg font-bold text-primary">
+                              {course.price == 0 || course.price === null || course.price === undefined
+                                ? "FREE"
+                                : `${course.price}RWF`}
+                            </span>
+                            {course.originalPrice > course.price && (
+                              <span className="text-sm text-muted-foreground line-through">
+                                {course.originalPrice}RWF
+                              </span>
+                            )}
+                          </div>
+                          <Button size="sm" className="bg-primary hover:bg-primary/70 shadow-md" asChild>
+                            <Link href={`/courses/${course.id}`}>
+                              <SquarePen className="w-3 h-3 mr-1" />
+                              Enroll
+                            </Link>
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                {totalPages > 1 && (
+                  <div className="flex justify-center mt-8">
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                            className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                        </PaginationItem>
+
+                        {[...Array(totalPages)].map((_, i) => {
+                          const pageNum = i + 1
+                          if (
+                            pageNum === 1 ||
+                            pageNum === totalPages ||
+                            (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                          ) {
+                            return (
+                              <PaginationItem key={pageNum}>
+                                <PaginationLink
+                                  onClick={() => setCurrentPage(pageNum)}
+                                  isActive={currentPage === pageNum}
+                                  className="cursor-pointer"
+                                >
+                                  {pageNum}
+                                </PaginationLink>
+                              </PaginationItem>
+                            )
+                          } else if (pageNum === currentPage - 2 || pageNum === currentPage + 2) {
+                            return <PaginationEllipsis key={pageNum} />
+                          }
+                          return null
+                        })}
+
+                        <PaginationItem>
+                          <PaginationNext
+                            onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                            className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
                   </div>
-
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                        <span className="text-sm font-bold">{course.rating}</span>
-                        <span className="text-xs text-muted-foreground">({course.reviewCount})</span>
-                      </div>
-                    </div>
-                    <CardTitle className="text-lg line-clamp-2 group-hover:text-primary transition-colors">
-                      {course.title}
-                    </CardTitle>
-                    <CardDescription className="line-clamp-2">{course.description}</CardDescription>
-                  </CardHeader>
-
-                  <CardContent className="pt-0">
-                    <div className="flex items-center gap-2 mb-4">
-                      <img
-                        src={course.instructor?.profilePicUrl || "/placeholder.svg"}
-                        alt={course.instructor?.profilePicUrl}
-                        className="w-7 h-7 rounded-full border-2 border-primary/20"
-                      />
-                      <div className="flex items-center gap-1">
-                        <Award className="w-3 h-3 text-primary" />
-                        <span className="text-sm font-medium text-primary">
-                          {course.instructor?.firstName ?? ""} {course.instructor?.lastName ?? ""} 
-                          {(course.instructor?.firstName || course.instructor?.lastName) ? "" : "Unknown Instructor"}
-                          </span>
-                      </div>
-                    </div>
-
-                    {/* Stats Grid */}
-                    <div className="grid grid-cols-3 gap-2 mb-4 text-xs">
-                      <div className="flex items-center gap-1 p-2 bg-muted/50 rounded-lg">
-                        <Users className="w-3 h-3 text-blue-500" />
-                        <span className="font-medium">{course.enrollmentCount?.toLocaleString()}</span>
-                      </div>
-                      <div className="flex items-center gap-1 p-2 bg-muted/50 rounded-lg">
-                        <BookOpen className="w-3 h-3 text-green-500" />
-                        {course.modules?.reduce((sum, mod) => sum + (mod.lessons?.length ?? 0), 0) ?? 0}
-                      </div>
-                      <div className="flex items-center gap-1 p-2 bg-muted/50 rounded-lg">
-                        <Clock className="w-3 h-3 text-orange-500" />
-                        <span className="font-medium">{course.duration}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg font-bold text-primary">
-                          {course.price == 0 || course.price === null || course.price === undefined ? "FREE" : `${course.price}RWF`}
-                        </span>
-                        {course.originalPrice > course.price && (
-                          <span className="text-sm text-muted-foreground line-through">{course.originalPrice}RWF</span>
-                        )}
-                      </div>
-                      <Button size="sm" className="bg-primary hover:bg-primary/70 shadow-md" asChild>
-                        <Link href={`/courses/${course.id}`}>
-                          <SquarePen className="w-3 h-3 mr-1" />
-                          Enroll
-                        </Link>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {/* Enhanced Empty State */}
-            {filteredCourses.length === 0 && (
+                )}
+              </>
+            ) : (
               <div className="text-center py-16">
                 <div className="bg-muted/50 rounded-full w-24 h-24 mx-auto mb-6 flex items-center justify-center">
                   <BookOpen className="w-12 h-12 text-muted-foreground" />
                 </div>
                 <h3 className="text-xl font-bold mb-3">No Courses match your criteria</h3>
-                <p className="text-muted-foreground mb-6">Try adjusting your filters to discover more learning adventures</p>
-                <Button 
-                  onClick={clearAllFilters}
-                  variant="outline"
-                >
+                <p className="text-muted-foreground mb-6">
+                  Try adjusting your filters to discover more learning adventures
+                </p>
+                <Button onClick={clearAllFilters} variant="outline">
                   <Target className="w-4 h-4 mr-2" />
                   Reset Filters
                 </Button>

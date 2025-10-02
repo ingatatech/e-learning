@@ -13,6 +13,7 @@ interface LearningStep {
   score?: number
   assessment?: any
   assessmentId?: number
+  status?: "pending" | "completed" | "in_progress"
 }
 
 interface ProgressData {
@@ -266,6 +267,91 @@ const isStepCompletedHelper = (step: LearningStep, progressData: ProgressData) =
     [progressData],
   )
 
+  // Mark a step as pending
+const markStepPending = useCallback(
+  async (payload: { courseId: string; userId: string; lessonId?: string; assessmentId?: string }) => {
+    if (!token) return
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/progress/pending-step`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...payload,
+          status: "pending",
+          lastAccessedAt: new Date().toISOString(),
+        }),
+      })
+
+      if (response.ok) {
+        // update local state optimistically
+        setProgressData((prev) => {
+          if (!prev) return prev
+
+          const stepId = payload.assessmentId
+            ? `${payload.assessmentId}-assessment`
+            : `${payload.lessonId}-lesson`
+
+          const updatedSteps = [...prev.completedSteps]
+          const existingIndex = updatedSteps.findIndex((s) => s.id === stepId)
+
+          const stepData: LearningStep = {
+            id: stepId,
+            type: payload.assessmentId ? "assessment" : "content",
+            lessonId: payload.lessonId || "",
+            assessmentId: payload.assessmentId ? Number(payload.assessmentId) : undefined,
+            isCompleted: false,
+            status: "pending",
+          }
+
+          if (existingIndex >= 0) {
+            updatedSteps[existingIndex] = { ...updatedSteps[existingIndex], ...stepData }
+          } else {
+            updatedSteps.push(stepData)
+          }
+
+          return { ...prev, completedSteps: updatedSteps }
+        })
+      }
+    } catch (err) {
+      console.error("Failed to mark step pending:", err)
+    }
+  },
+  [token],
+)
+
+// Check if step is pending
+const isStepPending = useCallback(
+  (stepId: string) => {
+    // console.log(stepId)
+    if (!progressData) return false
+
+    // Parse step ID to get lesson/assessment info
+      const parts = stepId.split("-")
+      const assessmentId = parts[2] // only for assessments
+      // console.log(assessmentId, stepId, progressData.completedSteps)
+
+    const step = progressData.completedSteps.find((s) => s.assessmentId?.toString() === assessmentId)
+    // console.log(step)
+    return step?.status === "pending"
+
+    // if (stepType === "assessment" && assessmentId) {
+    //     return progressData.completedSteps.some(
+    //       (s) => s.assessmentId && s.assessmentId.toString() === assessmentId && s.isCompleted,
+    //     )
+    //   }
+
+    //   // For content/video steps, check by lessonId and step type
+    //   return progressData.completedSteps.some(
+    //     (s) => String(s.lessonId) === lessonId && !s.assessmentId && s.isCompleted,
+    //   )
+  },
+  [progressData],
+)
+
   useEffect(() => {
     fetchProgress()
   }, [fetchProgress])
@@ -281,5 +367,7 @@ const isStepCompletedHelper = (step: LearningStep, progressData: ProgressData) =
     isStepCompleted,
     getStepScore,
     refetch: fetchProgress,
+    markStepPending,
+    isStepPending
   }
 }

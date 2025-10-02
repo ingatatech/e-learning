@@ -45,7 +45,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
   const router = useRouter()
 
 
-  const { progressData, markStepComplete, getCurrentStep, calculateProgress, isStepCompleted, getStepScore } =
+  const { progressData, markStepComplete, getCurrentStep, calculateProgress, isStepCompleted, getStepScore, markStepPending, isStepPending } =
     useLearningProgress(id)
 
   useEffect(() => {
@@ -275,6 +275,17 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
     }
   }
 
+  const handleStepPending = async () => {
+    const currentStep = allSteps[currentStepIndex]
+    if (currentStep.type === "assessment") {
+      await markStepPending({
+        courseId: id,
+        userId: user!.id,
+        assessmentId: currentStep.assessment.id,
+      })
+    }
+  }
+
   const handleNextStep = () => {
     if (currentStepIndex < allSteps.length - 1) {
       const nextIndex = currentStepIndex + 1
@@ -446,8 +457,11 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
                     key={`${currentStep.assessment.id}-${currentStepIndex}`}
                     assessment={currentStep.assessment}
                     onComplete={(score, passed) => handleStepComplete(score, passed)}
+                    onPending={handleStepPending}
                     onRetake={() => {}}
                     isCompleted={isStepCompleted(currentStep.id)}
+                    isPending={isStepPending(currentStep.id)}
+                    markStepPending={markStepPending}
                     previousScore={getStepScore(currentStep.dbId)}
                     previousPassed={isStepCompleted(currentStep.id)}
                     isStepping={isStepping}

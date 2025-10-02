@@ -86,12 +86,12 @@ export function LearningNavigation({
             {user ? (
               <>
                 {/* User Points & Level */}
-                <div className="hidden sm:flex items-center gap-2">
+                {/* <div className="hidden sm:flex items-center gap-2">
                   <Badge variant="secondary" className="bg-primary/10 text-primary">
                     Level {user.level}
                   </Badge>
                   <Badge variant="outline">{user.totalPoints.toLocaleString()} pts</Badge>
-                </div>
+                </div> */}
 
                 {/* Notifications */}
                 <Button variant="ghost" size="sm" className="relative">

@@ -9,7 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Trash2, GripVertical, Target, Save, CheckCircle } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Plus, Trash2, GripVertical, Target, X } from "lucide-react"
 import type { Assessment, AssessmentQuestion } from "@/types"
 
 interface AssessmentEditorProps {
@@ -44,6 +45,41 @@ export function AssessmentEditor({ assessment, onUpdate, onDelete }: AssessmentE
   }
 
   const renderQuestionEditor = (question: AssessmentQuestion, index: number) => {
+    const correctAnswers = Array.isArray(question.correctAnswer)
+      ? question.correctAnswer
+      : question.correctAnswer
+        ? [question.correctAnswer]
+        : []
+
+    const toggleCorrectAnswer = (option: string) => {
+      if (question.type === "multiple_choice") {
+        const newCorrectAnswers = correctAnswers.includes(option)
+          ? correctAnswers.filter((a) => a !== option)
+          : [...correctAnswers, option]
+        updateQuestion(index, { correctAnswer: newCorrectAnswers.length > 0 ? newCorrectAnswers : "" })
+      }
+    }
+
+    const addOption = () => {
+      const newOptions = [...(question.options || []), ""]
+      updateQuestion(index, { options: newOptions })
+    }
+
+    const removeOption = (optionIndex: number) => {
+      const newOptions = question.options?.filter((_, i) => i !== optionIndex) || []
+      // Remove from correct answers if it was selected
+      const optionToRemove = question.options?.[optionIndex]
+      if (optionToRemove && correctAnswers.includes(optionToRemove)) {
+        const newCorrectAnswers = correctAnswers.filter((a) => a !== optionToRemove)
+        updateQuestion(index, {
+          options: newOptions,
+          correctAnswer: newCorrectAnswers.length > 0 ? newCorrectAnswers : "",
+        })
+      } else {
+        updateQuestion(index, { options: newOptions })
+      }
+    }
+
     return (
       <Card key={question.id} className="relative">
         <CardHeader className="pb-3">
@@ -111,7 +147,10 @@ export function AssessmentEditor({ assessment, onUpdate, onDelete }: AssessmentE
           {/* Question Options */}
           {question.type === "multiple_choice" && (
             <div className="space-y-2">
-              <Label>Answer Options</Label>
+              <div className="flex items-center justify-between">
+                <Label>Answer Options</Label>
+                <span className="text-xs text-muted-foreground">Select one or more correct answers</span>
+              </div>
               {question.options?.map((option, optionIndex) => (
                 <div key={optionIndex} className="flex gap-2">
                   <Input
@@ -123,15 +162,32 @@ export function AssessmentEditor({ assessment, onUpdate, onDelete }: AssessmentE
                     }}
                     placeholder={`Option ${optionIndex + 1}`}
                   />
-                  <Button
-                    variant={question.correctAnswer === option ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => updateQuestion(index, { correctAnswer: option })}
-                  >
-                    {question.correctAnswer === option ? <CheckCircle className="w-4 h-4" /> : "Correct"}
-                  </Button>
+                  <div className="flex items-center gap-2 px-3 border rounded-md">
+                    <Checkbox
+                      id={`correct-${question.id}-${optionIndex}`}
+                      checked={correctAnswers.includes(option)}
+                      onCheckedChange={() => toggleCorrectAnswer(option)}
+                    />
+                    <Label htmlFor={`correct-${question.id}-${optionIndex}`} className="text-sm cursor-pointer">
+                      Correct
+                    </Label>
+                  </div>
+                  {(question.options?.length || 0) > 2 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeOption(optionIndex)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               ))}
+              <Button variant="outline" size="sm" onClick={addOption} className="w-full bg-transparent">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Option
+              </Button>
             </div>
           )}
 
@@ -315,7 +371,6 @@ export function AssessmentEditor({ assessment, onUpdate, onDelete }: AssessmentE
           </div>
         </TabsContent>
       </Tabs>
-
     </div>
   )
 }

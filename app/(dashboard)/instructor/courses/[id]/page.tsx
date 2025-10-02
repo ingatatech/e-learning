@@ -649,7 +649,7 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
             <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
               Cancel
             </Button>
-            <Button className="bg-red-600 text-white" onClick={confirmDelete} disabled={isDeleting}>
+            <Button className="bg-red-600 text-white hover:bg-red-700" onClick={confirmDelete} disabled={isDeleting}>
               {isDeleting ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>

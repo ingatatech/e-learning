@@ -11,21 +11,16 @@ import {
   Search, 
   Star, 
   Clock, 
-  Users, 
   Play, 
   BookOpen, 
   Trophy, 
   Target, 
-  Zap, 
   Crown, 
   Award, 
-  TrendingUp, 
-  ArrowLeft,
   CheckCircle,
   PlayCircle,
   PauseCircle,
   Calendar,
-  Flame,
   BookmarkCheck,
   GraduationCap,
   BarChart3
@@ -36,8 +31,32 @@ import { useAuth } from "@/hooks/use-auth"
 // Enhanced Course type with enrollment data
 interface EnrolledCourse {
   id: string
-  courseTitle: string
-  courseDesc: string
+  course: {
+    id: string
+    title: string
+    description: string
+    thumbnail: string
+    level: string
+    price: number
+    isPublished: boolean
+    modules: Array<{
+      id: string
+      title: string
+      lessons: Array<{
+        id: string
+        title: string
+        completed: boolean
+        duration: string
+        isProject: boolean
+        isExercise: boolean
+        order: number
+      }>
+    }>
+    instructor: {
+      firstName: string
+      lastName: string
+    }
+  }
   thumbnail: string
   instructor: {
     firstName: string
@@ -68,6 +87,8 @@ interface EnrolledCourse {
       title: string
       completed: boolean
       duration: string
+      isProject: boolean
+      isExercise: boolean
     }>
   }>
 }
