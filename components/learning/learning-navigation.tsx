@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Bell, ChevronLeft, ChevronRight, LogOut, Moon, Settings, Sun, User } from "lucide-react"
+import { Bell, ChevronDown, ChevronLeft, ChevronRight, LogOut, Moon, Settings, Sun, User } from "lucide-react"
 import Link from "next/link"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
@@ -102,49 +102,82 @@ export function LearningNavigation({
                 {/* User Menu */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                      {user.avatar ? (
-                        <img
-                          src={user.avatar || "/placeholder.svg"}
-                          alt={`${user.firstName} ${user.lastName}`}
-                          className="h-8 w-8 rounded-full object-cover"
-                        />
-                      ) : (
-                        <User className="h-4 w-4" />
-                      )}
+                    <Button variant="ghost" className="h-auto p-0 hover:bg-transparent">
+                      <div className="flex items-center gap-3">
+                        {/* Desktop User Info Display */}
+                        <div className="hidden md:flex items-center gap-3 bg-muted/50 hover:bg-muted/70 transition-colors rounded-lg px-3 py-2">
+                          <div className="flex items-center gap-3">
+                            {user.avatar ? (
+                              <img
+                                src={user.avatar}
+                                alt={`${user.firstName} ${user.lastName}`}
+                                className="h-8 w-8 rounded-full object-cover ring-2 ring-background"
+                              />
+                            ) : (
+                              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                <User className="h-4 w-4 text-primary" />
+                              </div>
+                            )}
+                            <div className="flex flex-col text-left">
+                              <span className="text-sm font-medium text-foreground">
+                                {user.firstName} {user.lastName}
+                              </span>
+                              <span className="text-xs text-muted-foreground capitalize">
+                                {user.role}
+                              </span>
+                            </div>
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        </div>
+
+                        {/* Mobile User Avatar */}
+                        <div className="md:hidden h-9 w-9 rounded-lg flex items-center justify-center">
+                          {user.avatar ? (
+                            <img
+                              src={user.avatar}
+                              alt={`${user.firstName} ${user.lastName}`}
+                              className="h-8 w-8 rounded-full object-cover ring-2 ring-background"
+                            />
+                          ) : (
+                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                              <User className="h-4 w-4 text-primary" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56" align="end" forceMount>
-                    <DropdownMenuLabel className="font-normal">
-                      <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium leading-none">
-                          {user.firstName} {user.lastName}
-                        </p>
-                        <p className="text-xs leading-none text-muted-foreground">
-                          {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                        </p>
-                      </div>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link href="/profile">
-                        <User className="mr-2 h-4 w-4" />
-                        Profile
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/settings">
-                        <Settings className="mr-2 h-4 w-4" />
-                        Settings
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => handleLogout()}>
-                      <LogOut className="mr-2 h-4 w-4" />
-                      Log out
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                    <DropdownMenuContent className="w-56" align="end" forceMount>
+                      <DropdownMenuLabel className="font-normal">
+                        <div className="flex flex-col space-y-1">
+                          <p className="text-sm font-medium leading-none">
+                            {user.firstName} {user.lastName}
+                          </p>
+                          <p className="text-xs leading-none text-muted-foreground">
+                            {user.email}
+                          </p>
+                        </div>
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link href="/profile">
+                          <User className="mr-2 h-4 w-4" />
+                          Profile
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/settings">
+                          <Settings className="mr-2 h-4 w-4" />
+                          Settings
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleLogout()} className="text-destructive focus:text-destructive">
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Log out
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
               </>
             ) : (
               <div className="flex items-center gap-2">
