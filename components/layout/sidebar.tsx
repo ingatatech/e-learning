@@ -88,9 +88,10 @@ const navigationItems: Record<string, NavigationItem[]> = {
       children: [
         { name: "Add Course", href: "/instructor/courses/create", icon: BookPlus },
         { name: "All Courses", href: "/instructor/courses", icon: BookOpen }, 
-        { name: "Assessments", href: "/instructor/assessments", icon: FileCog }, 
       ]
     },
+    { name: "Submissions", href: "/instructor/assessments", icon: FileCog }, 
+
     { 
       name: "Students", 
       icon: Users2,

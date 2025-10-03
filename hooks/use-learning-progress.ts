@@ -13,7 +13,7 @@ interface LearningStep {
   score?: number
   assessment?: any
   assessmentId?: number
-  status?: "pending" | "completed" | "in_progress"
+  status?: "pending" | "completed" | "failed"
 }
 
 interface ProgressData {
@@ -326,28 +326,28 @@ const markStepPending = useCallback(
 // Check if step is pending
 const isStepPending = useCallback(
   (stepId: string) => {
-    // console.log(stepId)
     if (!progressData) return false
 
     // Parse step ID to get lesson/assessment info
       const parts = stepId.split("-")
       const assessmentId = parts[2] // only for assessments
-      // console.log(assessmentId, stepId, progressData.completedSteps)
 
     const step = progressData.completedSteps.find((s) => s.assessmentId?.toString() === assessmentId)
-    // console.log(step)
     return step?.status === "pending"
+  },
+  [progressData],
+)
 
-    // if (stepType === "assessment" && assessmentId) {
-    //     return progressData.completedSteps.some(
-    //       (s) => s.assessmentId && s.assessmentId.toString() === assessmentId && s.isCompleted,
-    //     )
-    //   }
+const isStepFailed = useCallback(
+  (stepId: string) => {
+    if (!progressData) return false
 
-    //   // For content/video steps, check by lessonId and step type
-    //   return progressData.completedSteps.some(
-    //     (s) => String(s.lessonId) === lessonId && !s.assessmentId && s.isCompleted,
-    //   )
+    // Parse step ID to get lesson/assessment info
+      const parts = stepId.split("-")
+      const assessmentId = parts[2] // only for assessments
+
+    const step = progressData.completedSteps.find((s) => s.assessmentId?.toString() === assessmentId)
+    return step?.status === "failed"
   },
   [progressData],
 )
@@ -368,6 +368,7 @@ const isStepPending = useCallback(
     getStepScore,
     refetch: fetchProgress,
     markStepPending,
-    isStepPending
+    isStepPending,
+    isStepFailed
   }
 }

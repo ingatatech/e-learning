@@ -45,7 +45,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
   const router = useRouter()
 
 
-  const { progressData, markStepComplete, getCurrentStep, calculateProgress, isStepCompleted, getStepScore, markStepPending, isStepPending } =
+  const { progressData, markStepComplete, getCurrentStep, calculateProgress, isStepCompleted, getStepScore, markStepPending, isStepPending, isStepFailed, refetch } =
     useLearningProgress(id)
 
   useEffect(() => {
@@ -458,13 +458,14 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
                     assessment={currentStep.assessment}
                     onComplete={(score, passed) => handleStepComplete(score, passed)}
                     onPending={handleStepPending}
-                    onRetake={() => {}}
                     isCompleted={isStepCompleted(currentStep.id)}
                     isPending={isStepPending(currentStep.id)}
+                    isFailed={isStepFailed(currentStep.id)}
                     markStepPending={markStepPending}
                     previousScore={getStepScore(currentStep.dbId)}
                     previousPassed={isStepCompleted(currentStep.id)}
                     isStepping={isStepping}
+                    refetch={refetch}
                   />
                 )}
               </>

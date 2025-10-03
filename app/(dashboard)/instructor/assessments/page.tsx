@@ -23,6 +23,8 @@ import { useToast } from "@/hooks/use-toast"
 
 interface PendingSubmission {
   id: string
+  assessmentId: string
+  studentId: string
   studentName: string
   studentEmail: string
   courseName: string
@@ -33,6 +35,7 @@ interface PendingSubmission {
     question: string
     type: string
     answer: string
+    answerId: string
     points: number
     isCorrect: boolean
     pointsEarned: number
@@ -53,6 +56,7 @@ export default function InstructorAssessmentsPage() {
   useEffect(() => {
     fetchPendingSubmissions()
   }, [])
+  console.log(selectedSubmission)
 
   const fetchPendingSubmissions = async () => {
     if (!token || !user) return
@@ -97,42 +101,69 @@ export default function InstructorAssessmentsPage() {
   }
 
   const handleSubmitGrade = async () => {
-    if (!selectedSubmission || !token) return
+  if (!selectedSubmission || !token) return
 
-    setSubmittingGrade(true)
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/assessments/grade/${selectedSubmission.id}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          grades: gradingAnswers,
-        }),
-      })
+  setSubmittingGrade(true)
+  try {
+    // Calculate final score percentage
+    const { earned, total } = calculateTotalPoints()
+    const finalScore = total > 0 ? Math.round((earned / total) * 100) : 0
+    console.log(gradingAnswers)
 
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Assessment graded successfully",
-        })
-        setSelectedSubmission(null)
-        fetchPendingSubmissions()
-      } else {
-        throw new Error("Failed to submit grade")
-      }
-    } catch (error) {
-      console.error("Failed to submit grade:", error)
-      toast({
-        title: "Error",
-        description: "Failed to submit grade",
-        variant: "destructive",
+     // Only include gradable questions that were actually manually graded
+    const gradedAnswers = Object.entries(gradingAnswers)
+      .map(([questionId, grade]) => {
+        const question = selectedSubmission.questions.find(q => q.id === questionId)
+        // Only include if it's a gradable question type AND points were assigned
+        if (question && ["essay", "short_answer"].includes(question.type) && 
+            (grade.pointsEarned !== undefined && grade.pointsEarned !== null)) {
+          return {
+            answerId: question.answerId, 
+            pointsEarned: grade.pointsEarned
+          }
+        }
+        return null
       })
-    } finally {
-      setSubmittingGrade(false)
+      .filter(item => item !== null) // Remove null entries
+
+
+    const payload = {
+      assessmentId: selectedSubmission.assessmentId,
+      studentId: selectedSubmission.studentId,
+      gradedAnswers,
+      finalScore
     }
+
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/answers/grade-manually`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    })
+
+    if (response.ok) {
+      toast({
+        title: "Success",
+        description: "Assessment graded successfully",
+      })
+      setSelectedSubmission(null)
+      fetchPendingSubmissions()
+    } else {
+      throw new Error("Failed to submit grade")
+    }
+  } catch (error) {
+    console.error("Failed to submit grade:", error)
+    toast({
+      title: "Error",
+      description: "Failed to submit grade",
+      variant: "destructive",
+    })
+  } finally {
+    setSubmittingGrade(false)
   }
+}
 
   const updateQuestionGrade = (
     questionId: string,
@@ -148,13 +179,26 @@ export default function InstructorAssessmentsPage() {
   }
 
   const calculateTotalPoints = () => {
-    if (!selectedSubmission) return { earned: 0, total: 0 }
+  if (!selectedSubmission) return { earned: 0, total: 0 }
 
-    const total = selectedSubmission.questions.reduce((acc, q) => acc + q.points, 0)
-    const earned = selectedSubmission.questions.reduce((acc, q) => acc + q.pointsEarned, 0)
+  const total = selectedSubmission.questions.reduce((acc, q) => acc + q.points, 0)
+  
+  const earned = selectedSubmission.questions.reduce((acc, q) => {
+    const isGradable = ["essay", "short_answer"].includes(q.type);
+    const gradedAnswer = gradingAnswers[q.id];
+    
+    if (isGradable && gradedAnswer) {
+      // For gradable questions, use the manually assigned points from gradingAnswers
+      return acc + (gradedAnswer.pointsEarned || 0);
+    } else {
+      // For auto-graded questions OR gradable questions not yet manually graded,
+      // use the original pointsEarned from the submission
+      return acc + q.pointsEarned;
+    }
+  }, 0);
 
-    return { earned, total }
-  }
+  return { earned, total }
+}
 
   const hasGradableQuestions =
   selectedSubmission?.questions.some((q) =>
@@ -334,7 +378,7 @@ export default function InstructorAssessmentsPage() {
 
                         {/* Grading Controls */}
                         {isGradable ? (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+                          <div className="grid grid-cols-1 gap-4 pt-4 border-t">
                             <div className="space-y-2">
                               <Label>Points Earned</Label>
                               <Input
@@ -350,7 +394,7 @@ export default function InstructorAssessmentsPage() {
                                 }
                               />
                             </div>
-                            <div className="space-y-2">
+                            {/* <div className="space-y-2">
                               <Label>Status</Label>
                               <div className="flex gap-2">
                                 <Button
@@ -382,7 +426,7 @@ export default function InstructorAssessmentsPage() {
                                   Incorrect
                                 </Button>
                               </div>
-                            </div>
+                            </div> */}
                           </div>
                         ) : (
                           <div className="pt-4 border-t text-sm text-muted-foreground">
