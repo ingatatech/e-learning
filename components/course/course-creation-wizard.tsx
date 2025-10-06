@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Card, CardContent } from "@/components/ui/card"
 import { BookOpen, Users, PlayCircle, Trophy, CheckCircle } from "lucide-react"
@@ -36,6 +36,28 @@ export function CourseCreationWizard() {
   const [thumbnailUrl, setThumbnailUrl] = useState<string>("")
   const [isThumbnailUploading, setIsThumbnailUploading] = useState(false)
   const [thumbnailUploadError, setThumbnailUploadError] = useState<string>("")
+  const [instructors, setInstructos] = useState([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const fetchInstructors = async () => {
+      setLoading(true)
+      if (!token || !user) return
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/instructors/org/${user.organization?.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setInstructos(data.instructors)
+      }
+      setLoading(false)
+    }
+    if (user && token) {
+      fetchInstructors()
+    }
+  }, [user, token])
 
   const steps: WizardStep[] = [
     {
@@ -146,7 +168,7 @@ export function CourseCreationWizard() {
       isPublished: false,
       duration: courseData.duration || 0,
       tags: courseData.tags || [],
-      instructorId: user!.id,
+      instructorId: user!.role === "instructor" ? user!.id : courseData.instructorId,
       organizationId: user!.organization!.id,
       certificateIncluded: courseData.certificateIncluded || false,
       language: courseData.language || "English",
@@ -186,12 +208,12 @@ export function CourseCreationWizard() {
     }
   }
 
+
   const handleCourseSubmission = async () => {
     setIsSubmitting(true)
     try {
       const formattedData = formatCourseDataForAPI()
 
-      console.log(formattedData)
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/create`, {
         method: "POST",
         headers: {
@@ -299,6 +321,9 @@ export function CourseCreationWizard() {
                 onThumbnailUploadComplete={handleThumbnailUploadComplete}
                 onThumbnailUploadError={handleThumbnailUploadError}
                 isThumbnailUploading={isThumbnailUploading}
+                instructors={instructors}
+                user={user}
+                loading={loading}
               />
             </motion.div>
           </AnimatePresence>

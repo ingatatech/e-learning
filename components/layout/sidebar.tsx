@@ -141,7 +141,7 @@ const navigationItems: Record<string, NavigationItem[]> = {
       name: "Courses", 
       icon: BookMarked,
       children: [
-        { name: "Add Course", href: "/sysAdmin/courses/add", icon: BookPlus },
+        { name: "Add Course", href: "/sysAdmin/courses/create", icon: BookPlus },
         { name: "All Courses", href: "/sysAdmin/courses", icon: BookOpen },
       ]
     },
@@ -149,19 +149,9 @@ const navigationItems: Record<string, NavigationItem[]> = {
       name: "Manage Organization",
       icon: Building,
       children: [
-        { name: "View Organization", href: "/sysAdmin/organizations", icon: Building },
+        { name: "View Organization", href: "/sysAdmin/org", icon: Building },
       ],
     },
-    {
-      name: "Analytics",
-      icon: BarChart2,
-      children: [
-        { name: "Revenue", href: "/sysAdmin/analytics/revenue", icon: DollarSign },
-        { name: "User Analytics", href: "/sysAdmin/analytics/users", icon: Users },
-      ],
-    },
-    { name: "Gamification", href: "/gamification", icon: Trophy },
-    { name: "Payments", href: "/sysAdmin/payments", icon: Wallet },
     { name: "Settings", href: "/sysAdmin/settings", icon: Cog },
   ],
 }

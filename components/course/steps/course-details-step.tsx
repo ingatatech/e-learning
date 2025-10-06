@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
-import { Plus, X, ImageIcon, Clock, DollarSign, Tag, Award, BookOpen, Target, CheckSquare } from "lucide-react"
+import { Plus, X, ImageIcon, Clock, DollarSign, Tag, Award, BookOpen, Target, CheckSquare, Loader2 } from "lucide-react"
 import { ThumbnailUpload } from "../thumbnail-upload"
 import type { Course } from "@/types"
 
@@ -25,6 +25,9 @@ interface CourseDetailsStepProps {
   onThumbnailUploadComplete: (url: string) => void
   onThumbnailUploadError: (error: string) => void
   isThumbnailUploading: boolean
+  instructors: any
+  user: any
+  loading: any
 }
 
 export function CourseDetailsStep({
@@ -37,6 +40,9 @@ export function CourseDetailsStep({
   onThumbnailUploadComplete,
   onThumbnailUploadError,
   isThumbnailUploading,
+  instructors,
+  user,
+  loading,
 }: CourseDetailsStepProps) {
   const [currentTag, setCurrentTag] = useState("")
   const [currentLearningObjective, setCurrentLearningObjective] = useState("")
@@ -105,6 +111,14 @@ export function CourseDetailsStep({
       courseData.level &&
       courseData.language?.trim()
     )
+  }
+
+  if (loading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      )
   }
 
   return (
@@ -234,28 +248,52 @@ export function CourseDetailsStep({
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
-                <Select
-                  value={courseData.category || ""}
-                  onValueChange={(value) => setCourseData({ ...courseData, category: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Programming">Programming</SelectItem>
-                    <SelectItem value="Design">Design</SelectItem>
-                    <SelectItem value="Business">Business</SelectItem>
-                    <SelectItem value="Marketing">Marketing</SelectItem>
-                    <SelectItem value="Data Science">Data Science</SelectItem>
-                    <SelectItem value="Photography">Photography</SelectItem>
-                    <SelectItem value="Music">Music</SelectItem>
-                    <SelectItem value="Health & Fitness">Health & Fitness</SelectItem>
-                    <SelectItem value="Language">Language</SelectItem>
-                    <SelectItem value="Personal Development">Personal Development</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="category">Category</Label>
+                  <Select
+                    value={courseData.category || ""}
+                    onValueChange={(value) => setCourseData({ ...courseData, category: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Programming">Programming</SelectItem>
+                      <SelectItem value="Design">Design</SelectItem>
+                      <SelectItem value="Business">Business</SelectItem>
+                      <SelectItem value="Marketing">Marketing</SelectItem>
+                      <SelectItem value="Data Science">Data Science</SelectItem>
+                      <SelectItem value="Photography">Photography</SelectItem>
+                      <SelectItem value="Music">Music</SelectItem>
+                      <SelectItem value="Health & Fitness">Health & Fitness</SelectItem>
+                      <SelectItem value="Language">Language</SelectItem>
+                      <SelectItem value="Personal Development">Personal Development</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {user?.role !== "instructor" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="instructor">Instructor</Label>
+                    <Select
+                      value={courseData.instructorId || ""}
+                      onValueChange={(value) => setCourseData({ ...courseData, instructorId: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Instructor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {instructors.map((instructor: any) => (
+                          <SelectItem key={instructor.id} value={instructor.id.toString()}>
+                            {instructor.firstName} {instructor.lastName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
               </div>
 
               <div className="flex items-center justify-between">
