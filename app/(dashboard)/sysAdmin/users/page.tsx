@@ -18,6 +18,8 @@ import { Search, UserPlus, MoreHorizontal, Edit, Trash2, Mail, ChevronLeft, Chev
 import Link from "next/link"
 import { useAuth } from "@/hooks/use-auth"
 import { User } from "@/types"
+import { DialogHeader, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 
 // Skeleton Loading Components
 const SkeletonCard = () => (
@@ -66,12 +68,40 @@ export default function UsersManagement() {
   
   // Available items per page options
   const itemsPerPageOptions = [5, 10, 25, 50, 100]
+    const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+  const [userToDelete, setUserToDelete] = useState<number | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+
+const handleDeleteClick= (id: number) => {
+  setUserToDelete(id)
+  setIsDeleteOpen(true)
+}
+
+const confirmDelete = async () => {
+  if (!userToDelete) return
+  setIsDeleting(true)
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/delete/${userToDelete}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) throw new Error("Failed to delete organization")
+    setUsers((prev) => prev.filter((o) => Number(o.id) !== Number(userToDelete)))
+  } catch (err: any) {
+    console.error(err)
+  } finally {
+    setIsDeleting(false)
+    setIsDeleteOpen(false)
+    setUserToDelete(null)
+  }
+}
 
   useEffect(() => {
     const fetchUsers = async () => {
       if (!user) return
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/all/org/${user.organization.id}`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/all/org/${user.organization?.id}`, {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
@@ -80,7 +110,7 @@ export default function UsersManagement() {
         if (response.ok) {
           const data = await response.json()
           // filter out the current user
-          data.users = data.users.filter((a: { id: string }) => Number(a.id) !== Number(user.id))
+          data.users = data.users.filter((a: { id: string, role: string }) => Number(a.id) !== Number(user.id) && Number(a.role !== "admin"))
           setUsers(data.users)
         }
       } catch (error) {
@@ -320,7 +350,7 @@ export default function UsersManagement() {
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-red-600">
+                            <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteClick(Number(user.id))}>
                               <Trash2 className="mr-2 h-4 w-4" />
                               Delete User
                             </DropdownMenuItem>
@@ -387,6 +417,23 @@ export default function UsersManagement() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Organization</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this organization? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>Cancel</Button>
+            <Button className="bg-red-600 text-white hover:bg-red-700" onClick={confirmDelete} disabled={isDeleting}>
+              {isDeleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -8,6 +8,7 @@ import { AuthProvider } from "@/hooks/use-auth"
 import { Suspense } from "react"
 import Script from "next/script" 
 import "./globals.css"
+import { Toaster } from "sonner"
 
 export const metadata: Metadata = {
   title: "Ingata E-learning - Learning Management System",
@@ -27,6 +28,7 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
             <AuthProvider>{children}</AuthProvider>
+            <Toaster richColors position="top-right" />
           </ThemeProvider>
           <Analytics />
         </Suspense>

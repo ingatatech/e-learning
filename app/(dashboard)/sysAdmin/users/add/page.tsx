@@ -18,15 +18,16 @@ export default function AddUserPage() {
   const { token, user } = useAuth()
   const userId = searchParams.get("id")
 
+
   const [isLoading, setIsLoading] = useState(false)
-  const [isFetching, setIsFetching] = useState(true)
+  const [isFetching, setIsFetching] = useState(false)
   const [organizations, setOrganizations] = useState<{ id: string; name: string }[]>([])
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
     role: "",
-    organizationId: user?.organization.id,
+    organizationId: user?.organization?.id,
   })
 
   const fetchUser = async (id: string) => {
@@ -39,6 +40,7 @@ export default function AddUserPage() {
         },
       })
       const data = await res.json()
+      console.log(data)
       if (res.ok) setFormData({
         firstName: data.user.firstName,
         lastName: data.user.lastName,
@@ -46,7 +48,7 @@ export default function AddUserPage() {
         role: data.user.role,
         organizationId: data.user.organization?.id.toString() || "",
       })
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
     } finally {
       setIsFetching(false)
@@ -80,11 +82,12 @@ export default function AddUserPage() {
         body: JSON.stringify(formData),
       })
 
-      if (!res.ok) throw new Error("Failed to save user")
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message || "Failed to save user")
       toast.success(`User ${userId ? "updated" : "created"} successfully!`)
       router.push("/sysAdmin/users")
-    } catch (err) {
-      toast.error(`Failed to ${userId ? "update" : "create"} user`)
+    } catch (err:any) {
+      toast.error(err.message || `Failed to ${userId ? "update" : "create"} user`)
     } finally {
       setIsLoading(false)
     }

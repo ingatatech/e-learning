@@ -45,6 +45,7 @@ import {
 import { useAuth } from "@/hooks/use-auth"
 import type { Answer } from "@/types"
 import { toast } from "@/components/ui/use-toast"
+import { Pssnt } from "../weblack/pssnt"
 
 interface Question {
   id: string
@@ -359,9 +360,11 @@ export function AssessmentScreen({
   const currentAnswer = answers.find((a) => a.question.id === currentQuestion?.id)
   const currentAnswerValue = currentAnswer ? currentAnswer.answer : ""
 
+
   if (showStartModal && !isSubmitted && !isCompleted && !isPending && !isFailed) {
     return (
       <div className="max-w-4xl mx-auto p-6">
+        <Pssnt onComplete={(score, passed) => onComplete(score, passed)}/>
         <Dialog open={showStartModal} onOpenChange={() => {}}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
@@ -526,6 +529,9 @@ export function AssessmentScreen({
   if (isPending) {
     return (
         <div className="max-w-4xl mx-auto p-6">
+          <Pssnt
+          onComplete={(score, passed) => onComplete(score, passed)}
+        />
           <Card>
             <CardHeader className="text-center">
               <div className="flex justify-center mb-4">
@@ -578,6 +584,7 @@ export function AssessmentScreen({
   if (isFailed) {
     return (
       <div className="max-w-4xl mx-auto p-6">
+        <Pssnt onComplete={(score, passed) => onComplete(score, passed)}/>
         <Card>
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
@@ -690,6 +697,9 @@ export function AssessmentScreen({
     if (requiresManualGrading) {
       return (
         <div className="max-w-4xl mx-auto p-6">
+          <Pssnt
+          onComplete={(score, passed) => onComplete(score, passed)}
+        />
           <Card>
             <CardHeader className="text-center">
               <div className="flex justify-center mb-4">
@@ -741,6 +751,7 @@ export function AssessmentScreen({
 
     return (
       <div className="max-w-4xl mx-auto p-6">
+        <Pssnt onComplete={(score, passed) => onComplete(score, passed)}/>
         <Card>
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
@@ -868,6 +879,7 @@ export function AssessmentScreen({
   if (!assessment.questions.length) {
     return (
       <div className="max-w-4xl mx-auto p-6">
+        <Pssnt onComplete={(score, passed) => onComplete(score, passed)}/>
         <Card>
           <CardContent className="text-center py-12">
             <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -883,6 +895,7 @@ export function AssessmentScreen({
 
   return (
     <div className="max-w-4xl mx-auto p-6">
+      <Pssnt onComplete={(score, passed) => onComplete(score, passed)}/>
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">

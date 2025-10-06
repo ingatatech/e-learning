@@ -270,21 +270,21 @@ const confirmDelete = async () => {
       </Card>
 
       <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-  <DialogContent>
-    <DialogHeader>
-      <DialogTitle>Delete Organization</DialogTitle>
-      <DialogDescription>
-        Are you sure you want to delete this organization? This action cannot be undone.
-      </DialogDescription>
-    </DialogHeader>
-    <DialogFooter className="flex gap-2">
-      <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>Cancel</Button>
-      <Button className="bg-red-600 text-white" onClick={confirmDelete} disabled={isDeleting}>
-        {isDeleting ? "Deleting..." : "Delete"}
-      </Button>
-    </DialogFooter>
-  </DialogContent>
-</Dialog>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Organization</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this organization? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>Cancel</Button>
+            <Button className="bg-red-600 text-white hover:bg-red-700" onClick={confirmDelete} disabled={isDeleting}>
+              {isDeleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div>
   )

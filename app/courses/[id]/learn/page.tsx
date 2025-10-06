@@ -264,7 +264,6 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
     setIsStepping(false)
 
     if (currentStep.type !== "assessment" || passed) {
-      console.log("Step completed:", { currentStepIndex, allSteps })
       // setShowCelebration(true)
       // setShowCelebration(false)
       if (currentStepIndex < allSteps.length - 1) {
