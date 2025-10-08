@@ -1,10 +1,8 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { BookOpen, Menu, X, Bell, User, Settings, LogOut, Sun, Moon, ChevronDown } from "lucide-react"
+import { Bell, User, Settings, LogOut, Sun, Moon, ChevronDown } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +24,7 @@ interface HeaderProps {
     role: string
     totalPoints: number
     level: number
+    profilePicture: any
   }
 }
 
@@ -85,9 +84,9 @@ export function Header({ user }: HeaderProps) {
                         {/* Desktop User Info Display */}
                         <div className="hidden md:flex items-center gap-3 bg-muted/50 hover:bg-muted/70 transition-colors rounded-lg px-3 py-2">
                           <div className="flex items-center gap-3">
-                            {user.avatar ? (
+                            {user.profilePicture ? (
                               <img
-                                src={user.avatar}
+                                src={user.profilePicture}
                                 alt={`${user.firstName} ${user.lastName}`}
                                 className="h-8 w-8 rounded-full object-cover ring-2 ring-background"
                               />
@@ -110,9 +109,9 @@ export function Header({ user }: HeaderProps) {
 
                         {/* Mobile User Avatar */}
                         <div className="md:hidden h-9 w-9 rounded-lg flex items-center justify-center">
-                          {user.avatar ? (
+                          {user.profilePicture ? (
                             <img
-                              src={user.avatar}
+                              src={user.profilePicture}
                               alt={`${user.firstName} ${user.lastName}`}
                               className="h-8 w-8 rounded-full object-cover ring-2 ring-background"
                             />

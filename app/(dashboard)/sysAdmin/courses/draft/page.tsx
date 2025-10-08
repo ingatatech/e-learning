@@ -25,11 +25,9 @@ import {
   Eye,
   TrendingUp,
   Search,
-  Filter,
   Grid3X3,
   List,
   Trophy,
-  Target,
   Zap,
   Award,
   Pen,
@@ -53,12 +51,15 @@ export default function CourseOverviewPage() {
   useEffect(() => {
     const fetcCourses = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/organization/${user?.organization?.id}/draft/courses`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/courses/organization/${user?.organization?.id}/draft/courses`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
           },
-        })
+        )
         if (response.ok) {
           const data = await response.json()
           setCourses(data.courses)
@@ -251,7 +252,7 @@ export default function CourseOverviewPage() {
 
           <div className="flex gap-2 mt-auto">
             <Button className="flex-1" asChild>
-              <Link href={`/sysAdmin/courses/${course.id}`}>
+              <Link href={`/sysAdmin/courses/${course.id}/review`}>
                 <Play className="w-4 h-4 mr-2" />
                 Review
               </Link>
@@ -272,8 +273,8 @@ export default function CourseOverviewPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">All Courses</h1>
-            <p className="text-muted-foreground">Manage and track course portfolio</p>
+            <h1 className="text-3xl font-bold">Unpublished Courses</h1>
+            <p className="text-muted-foreground">Manage and track all draft course portfolio</p>
           </div>
         </div>
 

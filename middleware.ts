@@ -8,7 +8,7 @@ const secret = new TextEncoder().encode(JWT_SECRET)
 
 // Define protected routes
 const protectedRoutes = ["/admin", "/instructor", "/student", "/profile", "/settings", "/sysAdmin"]
-const authRoutes = ["/login", "/verify-otp"]
+const authRoutes = ["/login", "/verify-otp", "forgot-password", "reset-password"]
 
 async function verifyToken(token: string) {
   try {

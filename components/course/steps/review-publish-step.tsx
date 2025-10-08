@@ -18,6 +18,8 @@ import {
   Rocket,
   Eye,
   Settings,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react"
 import { CourseCompletionCelebration } from "../gamification/course-completion-celebration"
 import type { Course, Module } from "@/types"
@@ -41,6 +43,7 @@ export function ReviewPublishStep({
 }: ReviewPublishStepProps) {
   const [isPublished, setIsPublished] = useState(false)
   const [showCelebration, setShowCelebration] = useState(false)
+  const [expandedModules, setExpandedModules] = useState<Set<number>>(new Set())
 
   const totalLessons = modules.reduce((acc, module) => acc + (module.lessons?.length || 0), 0)
   const totalAssessments = modules.reduce(
@@ -132,6 +135,16 @@ export function ReviewPublishStep({
 
   const qualityScore = getQualityScore()
 
+  const toggleModule = (moduleIndex: number) => {
+    const newExpanded = new Set(expandedModules)
+    if (newExpanded.has(moduleIndex)) {
+      newExpanded.delete(moduleIndex)
+    } else {
+      newExpanded.add(moduleIndex)
+    }
+    setExpandedModules(newExpanded)
+  }
+
   return (
     <div className="space-y-6">
       {showCelebration && (
@@ -162,8 +175,8 @@ export function ReviewPublishStep({
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="content">Content Details</TabsTrigger>
             <TabsTrigger value="checklist">Checklist</TabsTrigger>
-            <TabsTrigger value="preview">Preview</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -228,20 +241,84 @@ export function ReviewPublishStep({
               </CardContent>
             </Card>
 
-            {/* Course Structure */}
+            {/* Course Preview */}
             <Card>
               <CardHeader>
-                <CardTitle>Course Structure</CardTitle>
-                <CardDescription>Overview of your course organization</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <Eye className="w-5 h-5" />
+                  Course Preview
+                </CardTitle>
+                <CardDescription>How your course will appear to students</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="border rounded-lg p-6 bg-gray-50 dark:bg-gray-800">
+                  <div className="flex gap-4 mb-4">
+                    <div className="w-24 h-16 bg-gray-300 dark:bg-gray-600 rounded flex items-center justify-center">
+                      {courseData.thumbnail ? (
+                        <img
+                          src={courseData.thumbnail || "/placeholder.svg"}
+                          alt="Course thumbnail"
+                          className="w-full h-full object-cover rounded"
+                        />
+                      ) : (
+                        <BookOpen className="w-8 h-8 text-gray-500" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
+                        {courseData.title || "Course Title"}
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-300 text-sm mb-2">
+                        {courseData.description || "Course description will appear here..."}
+                      </p>
+                      <div className="flex gap-2">
+                        <Badge variant="outline">{courseData.level || "beginner"}</Badge>
+                        <Badge variant="outline">{modules.length} modules</Badge>
+                        <Badge variant="outline">{totalLessons} lessons</Badge>
+                        {courseData.price && <Badge variant="outline">${courseData.price}</Badge>}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    {courseData.tags?.map((tag, index) => (
+                      <Badge key={index} variant="secondary" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Content Details Tab */}
+          <TabsContent value="content" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Detailed Course Structure</CardTitle>
+                <CardDescription>Complete breakdown of all modules, lessons, and assessments</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {modules.map((module, index) => (
-                    <div key={module.id} className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-medium text-gray-900 dark:text-white">
-                          {index + 1}. {module.title}
-                        </h4>
+                  {modules.map((module, moduleIndex) => (
+                    <div key={module.id} className="border rounded-lg overflow-hidden">
+                      <div
+                        className="flex items-center justify-between p-4 bg-muted/50 cursor-pointer hover:bg-muted"
+                        onClick={() => toggleModule(moduleIndex)}
+                      >
+                        <div className="flex items-center gap-3 flex-1">
+                          {expandedModules.has(moduleIndex) ? (
+                            <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                          ) : (
+                            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                          )}
+                          <div>
+                            <h4 className="font-medium text-gray-900 dark:text-white">
+                              Module {moduleIndex + 1}: {module.title}
+                            </h4>
+                            <p className="text-sm text-muted-foreground">{module.description}</p>
+                          </div>
+                        </div>
                         <div className="flex gap-2">
                           <Badge variant="outline" className="text-xs">
                             {module.lessons?.length || 0} lessons
@@ -252,7 +329,52 @@ export function ReviewPublishStep({
                           </Badge>
                         </div>
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">{module.description}</p>
+
+                      {expandedModules.has(moduleIndex) && (
+                        <div className="p-4 space-y-3 bg-background">
+                          {module.lessons && module.lessons.length > 0 ? (
+                            module.lessons.map((lesson, lessonIndex) => (
+                              <div key={lesson.id} className="border-l-2 border-primary pl-4 py-2">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <PlayCircle className="w-4 h-4 text-primary" />
+                                      <h5 className="font-medium text-sm">
+                                        Lesson {lessonIndex + 1}: {lesson.title}
+                                      </h5>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mb-2">{lesson.description}</p>
+
+                                    {lesson.assessments && lesson.assessments.length > 0 && (
+                                      <div className="mt-2 space-y-2">
+                                        {lesson.assessments.map((assessment, assessmentIndex) => (
+                                          <div key={assessment.id} className="bg-muted/30 rounded p-2">
+                                            <div className="flex items-center gap-2 mb-1">
+                                              <Trophy className="w-3 h-3 text-orange-500" />
+                                              <span className="text-xs font-medium">
+                                                Assessment {assessmentIndex + 1}: {assessment.title}
+                                              </span>
+                                            </div>
+                                            <div className="flex gap-2 text-xs text-muted-foreground">
+                                              <span>{assessment.questions.length} questions</span>
+                                              <span>•</span>
+                                              <span>{assessment.passingScore}% passing score</span>
+                                              <span>•</span>
+                                              <span>{assessment.timeLimit} min</span>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-sm text-muted-foreground italic">No lessons added yet</p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -310,48 +432,6 @@ export function ReviewPublishStep({
               </CardContent>
             </Card>
           </TabsContent>
-
-          <TabsContent value="preview" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Eye className="w-5 h-5" />
-                  Course Preview
-                </CardTitle>
-                <CardDescription>How your course will appear to students</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="border rounded-lg p-6 bg-gray-50 dark:bg-gray-800">
-                  <div className="flex gap-4 mb-4">
-                    <div className="w-24 h-16 bg-gray-300 dark:bg-gray-600 rounded flex items-center justify-center">
-                      <BookOpen className="w-8 h-8 text-gray-500" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
-                        {courseData.title || "Course Title"}
-                      </h3>
-                      <p className="text-gray-600 dark:text-gray-300 text-sm mb-2">
-                        {courseData.description || "Course description will appear here..."}
-                      </p>
-                      <div className="flex gap-2">
-                        <Badge variant="outline">{courseData.level || "beginner"}</Badge>
-                        <Badge variant="outline">{modules.length} modules</Badge>
-                        <Badge variant="outline">{totalLessons} lessons</Badge>
-                        {courseData.price && <Badge variant="outline">${courseData.price}</Badge>}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    {courseData.tags?.map((tag, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
       ) : (
         /* Published State */
@@ -392,9 +472,6 @@ export function ReviewPublishStep({
 
         {!isPublished && (
           <div className="flex gap-2">
-            <Button variant="outline" disabled={isSubmitting}>
-              Save as Draft
-            </Button>
             <Button onClick={handlePublish} disabled={!canPublish || isSubmitting} size="lg" className="px-8">
               {isSubmitting ? (
                 <>

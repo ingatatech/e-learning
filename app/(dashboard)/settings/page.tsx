@@ -1,41 +1,77 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { User, Bell, Shield, Palette, Save } from "lucide-react"
+import { Shield, Palette, Save, Lock } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
 export default function SettingsPage() {
-  const { user } = useAuth()
+  const { user, token } = useAuth()
   const [isSaving, setIsSaving] = useState(false)
+  const router = useRouter()
+
+  const [userInfo, setUserInfo] = useState({
+    firstName: user?.firstName || "",
+    lastName: user?.lastName || "",
+    email: user?.email || "",
+    organization: user?.organization?.name || "",
+  })
 
   // Notification settings
-  const [notifications, setNotifications] = useState({
-    emailNotifications: true,
-    courseUpdates: true,
-    newEnrollments: true,
-    systemAlerts: true,
-  })
+  // const [notifications, setNotifications] = useState({
+  //   emailNotifications: true,
+  //   courseUpdates: true,
+  //   newEnrollments: true,
+  //   systemAlerts: true,
+  // })
 
   // Appearance settings
   const [appearance, setAppearance] = useState({
-    theme: "system",
-    language: "en",
+    theme: user?.theme || "light",
+    language: user?.preferredLanguage || "en",
   })
+
+  useEffect(() => {
+    if (user) {
+      setUserInfo({
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        organization: user.organization?.name || "",
+      })
+      setAppearance({
+        theme: user.theme || "light",
+        language: user.preferredLanguage || "en",
+      })
+    }
+  }, [user])
 
   const handleSaveProfile = async () => {
     setIsSaving(true)
     try {
-      // API call to update profile
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      toast.success("Profile updated successfully!")
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/update/${user?.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          firstName: userInfo.firstName,
+          lastName: userInfo.lastName,
+        }),
+      })
+
+      if (response.ok) {
+        toast.success("Profile updated successfully!")
+      } else {
+        toast.error("Failed to update profile")
+      }
     } catch (error) {
       toast.error("Failed to update profile")
     } finally {
@@ -59,9 +95,23 @@ export default function SettingsPage() {
   const handleSaveAppearance = async () => {
     setIsSaving(true)
     try {
-      // API call to update appearance settings
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      toast.success("Appearance settings updated!")
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/update/${user?.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          theme: appearance.theme,
+          preferredLanguage: appearance.language,
+        }),
+      })
+
+      if (response.ok) {
+        toast.success("Appearance settings updated!")
+      } else {
+        toast.error("Failed to update settings")
+      }
     } catch (error) {
       toast.error("Failed to update settings")
     } finally {
@@ -78,15 +128,15 @@ export default function SettingsPage() {
       </div>
 
       {/* Settings Tabs */}
-      <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+      <Tabs defaultValue="appearance" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          {/* <TabsTrigger value="notifications">Notifications</TabsTrigger> */}
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
         </TabsList>
 
         {/* Notifications Tab */}
-        <TabsContent value="notifications">
+        {/* <TabsContent value="notifications">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -148,7 +198,7 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent> */}
 
         {/* Appearance Tab */}
         <TabsContent value="appearance">
@@ -219,26 +269,9 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="currentPassword">Current Password</Label>
-                  <Input id="currentPassword" type="password" placeholder="Enter current password" />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="newPassword">New Password</Label>
-                  <Input id="newPassword" type="password" placeholder="Enter new password" />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                  <Input id="confirmPassword" type="password" placeholder="Confirm new password" />
-                </div>
-              </div>
-
-              <div className="flex gap-2 pt-4 border-t">
-                <Button disabled={isSaving}>
-                  <Save className="w-4 h-4 mr-2" />
-                  Update Password
+                <Button onClick={() => router.push("/change-password")} disabled={isSaving}>
+                  <Lock className="w-4 h-4 mr-2" />
+                  Change Password
                 </Button>
               </div>
             </CardContent>
