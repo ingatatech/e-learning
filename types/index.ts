@@ -2,6 +2,7 @@ export enum UserRole {
   ADMIN = "admin",
   INSTRUCTOR = "instructor",
   STUDENT = "student",
+  SYSADMIN = "sysAdmin",
 }
 
 export enum CourseLevel {

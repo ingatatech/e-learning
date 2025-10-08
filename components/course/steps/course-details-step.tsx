@@ -109,7 +109,8 @@ export function CourseDetailsStep({
       courseData.title?.trim() &&
       courseData.description?.trim() &&
       courseData.level &&
-      courseData.language?.trim()
+      courseData.language?.trim() &&
+      user.role === "sysAdmin" ? courseData.instructorId : true
     )
   }
 

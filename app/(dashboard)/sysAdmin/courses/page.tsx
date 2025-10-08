@@ -32,6 +32,7 @@ import {
   Target,
   Zap,
   Award,
+  Pen,
 } from "lucide-react"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
@@ -141,10 +142,15 @@ export default function CourseOverviewPage() {
     >
       <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/20 relative pt-0 flex flex-col h-full">
         <div className="absolute top-3 left-3 z-10 flex gap-2">
-          {course.isPublished && (
+          {course.isPublished ? (
             <Badge className="bg-green-500 hover:bg-green-600 animate-pulse">
               <Zap className="w-3 h-3 mr-1" />
               Live
+            </Badge>
+          ) : (
+            <Badge className="bg-muted text-foreground">
+              <Pen className="w-3 h-3 mr-1 text-foreground" />
+              Draft
             </Badge>
           )}
           {course.rating >= 4.8 && (
@@ -266,8 +272,8 @@ export default function CourseOverviewPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">My Courses</h1>
-            <p className="text-muted-foreground">Manage and track your course portfolio</p>
+            <h1 className="text-3xl font-bold">All Courses</h1>
+            <p className="text-muted-foreground">Manage and track course portfolio</p>
           </div>
         </div>
 

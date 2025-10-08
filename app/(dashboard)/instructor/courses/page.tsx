@@ -52,7 +52,7 @@ export default function CourseOverviewPage() {
   useEffect(() => {
     const fetcCourses = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/instructor/${user?.id}/courses`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/instructor/${user?.id}/live/courses`, {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
@@ -302,7 +302,7 @@ export default function CourseOverviewPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -345,18 +345,6 @@ export default function CourseOverviewPage() {
             </div>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Target className="w-8 h-8 text-purple-500" />
-              <div>
-                <div className="text-2xl font-bold">{courses.filter((c) => c.isPublished).length}</div>
-                <div className="text-sm text-muted-foreground">Published</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
@@ -370,18 +358,6 @@ export default function CourseOverviewPage() {
               className="pl-10"
             />
           </div>
-
-          <Select value={filterStatus} onValueChange={(value: any) => setFilterStatus(value)}>
-            <SelectTrigger className="w-32">
-              <Filter className="w-4 h-4 mr-2" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="published">Published</SelectItem>
-              <SelectItem value="draft">Draft</SelectItem>
-            </SelectContent>
-          </Select>
 
           <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
             <SelectTrigger className="w-40">

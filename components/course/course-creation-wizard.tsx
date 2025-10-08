@@ -165,7 +165,7 @@ export function CourseCreationWizard() {
       thumbnail: thumbnailUrl || courseData.thumbnail || "",
       level: courseData.level || "beginner",
       price: courseData.price || 0,
-      isPublished: false,
+      isPublished: user!.role === "sysAdmin" ? true : courseData.isPublished || false,
       duration: courseData.duration || 0,
       tags: courseData.tags || [],
       instructorId: user!.role === "instructor" ? user!.id : courseData.instructorId,

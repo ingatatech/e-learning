@@ -7,7 +7,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"
 const secret = new TextEncoder().encode(JWT_SECRET)
 
 // Define protected routes
-const protectedRoutes = ["/admin", "/instructor", "/student", "/profile", "/settings"]
+const protectedRoutes = ["/admin", "/instructor", "/student", "/profile", "/settings", "/sysAdmin"]
 const authRoutes = ["/login", "/verify-otp"]
 
 async function verifyToken(token: string) {
