@@ -434,7 +434,7 @@ export function Sidebar({ userRole, className }: SidebarProps) {
                   <Button variant="ghost" className="w-full justify-start p-3 h-auto hover:bg-muted rounded-xl shadow-sm border border-transparent hover:border-border transition-all duration-300">
                     <div className="flex items-center gap-3 w-full">
                       <Avatar className="h-10 w-10 ring-2 ring-green-200">
-                        <AvatarImage src={user?.profilePicture} alt={user.firstName + " " + user.lastName} />
+                        <AvatarImage src={user?.profilePicture} alt={user.firstName + " " + user.lastName} className="object-cover" />
                         <AvatarFallback className="text-sm font-semibold bg-green-500 text-white">
                           {user.firstName + " " + user.lastName ? getInitials(user.firstName + " " + user.lastName) : "U"}
                         </AvatarFallback>
