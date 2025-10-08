@@ -31,7 +31,6 @@ import {
   Save,
   X,
   GripVertical,
-  Play,
   Trophy,
   Clock,
   Briefcase,
@@ -45,6 +44,7 @@ import { motion, Reorder } from "framer-motion"
 import type { Course, Module, Lesson, Assessment, AssessmentQuestion } from "@/types"
 import { useAuth } from "@/hooks/use-auth"
 import { Checkbox } from "@/components/ui/checkbox"
+import { toast } from "sonner"
 
 interface ContentBlock {
   id: string
@@ -247,11 +247,34 @@ export default function ModulesManagementPage({ params }: { params: Promise<{ id
     updateLesson(moduleId, lessonId, { assessments: updatedAssessments })
   }
 
-  const deleteAssessment = (moduleId: string, lessonId: string, assessmentId: string) => {
+  const deleteAssessment = async (moduleId: string, lessonId: string, assessmentId: string) => {
     if (!editingLesson) return
 
-    const updatedAssessments = editingLesson.lesson.assessments?.filter((a) => a.id !== assessmentId)
-    updateLesson(moduleId, lessonId, { assessments: updatedAssessments })
+    // Confirm deletion
+    if (!confirm("Are you sure you want to delete this assessment? This action cannot be undone.")) {
+      return
+    }
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/assessments/${assessmentId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (response.ok) {
+        const updatedAssessments = editingLesson.lesson.assessments?.filter((a) => a.id !== assessmentId)
+        updateLesson(moduleId, lessonId, { assessments: updatedAssessments })
+        toast.success("Assessment deleted successfully!")
+      } else {
+        throw new Error("Failed to delete assessment")
+      }
+    } catch (error) {
+      console.error("Failed to delete assessment:", error)
+      toast.error("Failed to delete assessment")
+    }
   }
 
   const addQuestion = (moduleId: string, lessonId: string, assessmentId: string) => {
@@ -473,21 +496,45 @@ export default function ModulesManagementPage({ params }: { params: Promise<{ id
     }
   }
 
-  const deleteLesson = (moduleId: string, lessonId: string) => {
+  const deleteLesson = async (moduleId: string, lessonId: string) => {
     if (!course) return
 
-    setCourse({
-      ...course,
-      modules:
-        course.modules?.map((module) =>
-          module.id === moduleId
-            ? {
-                ...module,
-                lessons: module.lessons?.filter((lesson) => lesson.id !== lessonId) || [],
-              }
-            : module,
-        ) || [],
-    })
+    // Confirm deletion
+    if (!confirm("Are you sure you want to delete this lesson? This action cannot be undone.")) {
+      return
+    }
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lessons/${lessonId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (response.ok) {
+        // Remove from local state
+        setCourse({
+          ...course,
+          modules:
+            course.modules?.map((module) =>
+              module.id === moduleId
+                ? {
+                    ...module,
+                    lessons: module.lessons?.filter((lesson) => lesson.id !== lessonId) || [],
+                  }
+                : module,
+            ) || [],
+        })
+        toast.success("Lesson deleted successfully!")
+      } else {
+        throw new Error("Failed to delete lesson")
+      }
+    } catch (error) {
+      console.error("Failed to delete lesson:", error)
+      toast.error("Failed to delete lesson")
+    }
   }
 
   const getContentTypeIcon = (lesson: Lesson) => {

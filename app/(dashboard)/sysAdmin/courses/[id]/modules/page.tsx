@@ -31,7 +31,6 @@ import {
   Save,
   X,
   GripVertical,
-  Play,
   Trophy,
   Clock,
   Briefcase,
@@ -578,7 +577,7 @@ export default function ModulesManagementPage({ params }: { params: Promise<{ id
   ) => {
     const correctAnswers = Array.isArray(question.correctAnswer)
       ? question.correctAnswer
-      : question.correctAnswer
+      : question.correctAnswer && typeof question.correctAnswer === "string"
         ? [question.correctAnswer]
         : []
 
@@ -588,10 +587,11 @@ export default function ModulesManagementPage({ params }: { params: Promise<{ id
           ? correctAnswers.filter((a) => a !== option)
           : [...correctAnswers, option]
         updateQuestion(moduleId, lessonId, assessmentId, questionIndex, {
-          correctAnswer: newCorrectAnswers.length > 0 ? newCorrectAnswers : "",
+          correctAnswer: newCorrectAnswers.length === 1 ? newCorrectAnswers[0] : newCorrectAnswers,
         })
       }
     }
+    // </CHANGE>
 
     const addOption = () => {
       const newOptions = [...(question.options || []), ""]
@@ -606,8 +606,14 @@ export default function ModulesManagementPage({ params }: { params: Promise<{ id
         const newCorrectAnswers = correctAnswers.filter((a) => a !== optionToRemove)
         updateQuestion(moduleId, lessonId, assessmentId, questionIndex, {
           options: newOptions,
-          correctAnswer: newCorrectAnswers.length > 0 ? newCorrectAnswers : "",
+          correctAnswer:
+            newCorrectAnswers.length === 0
+              ? ""
+              : newCorrectAnswers.length === 1
+                ? newCorrectAnswers[0]
+                : newCorrectAnswers,
         })
+        // </CHANGE>
       } else {
         updateQuestion(moduleId, lessonId, assessmentId, questionIndex, { options: newOptions })
       }

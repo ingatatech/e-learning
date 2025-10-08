@@ -4,14 +4,11 @@ import { jwtVerify } from "jose"
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"
 
-// turn secret into Uint8Array because jose is picky
 const secret = new TextEncoder().encode(JWT_SECRET)
 
 // Define protected routes
-// const protectedRoutes = ["/admin", "/instructor", "/student", "/profile", "/settings"]
-const protectedRoutes = ["/adminsss"]
-// const authRoutes = ["/login", "/verify-otp"]
-const authRoutes = ["/loginsss"]
+const protectedRoutes = ["/admin", "/instructor", "/student", "/profile", "/settings"]
+const authRoutes = ["/login", "/verify-otp"]
 
 async function verifyToken(token: string) {
   try {
