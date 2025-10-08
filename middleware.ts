@@ -51,7 +51,7 @@ export async function middleware(request: NextRequest) {
 
 
     // Role checks
-    if (!pathname.startsWith(`/${decoded.role}`)) {
+    if (!pathname.startsWith("/profile") && !pathname.startsWith("/settings") && !pathname.startsWith(`/${decoded.role}`)) {
       return NextResponse.redirect(new URL(`/${decoded.role}`, request.url))
     }
   }

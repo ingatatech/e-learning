@@ -799,7 +799,7 @@ export default function ModulesManagementPage({ params }: { params: Promise<{ id
       <div className="text-center py-12">
         <h1 className="text-2xl font-bold mb-4">Course not found</h1>
         <Button asChild>
-          <Link href="/instructor/courses">
+          <Link href="/sysAdmin/courses">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Courses
           </Link>
@@ -815,7 +815,7 @@ export default function ModulesManagementPage({ params }: { params: Promise<{ id
         <div>
           <div className="flex items-center gap-4 mb-2">
             <Button variant="ghost" size="sm" asChild>
-              <Link href={`/instructor/courses/${course.id}`}>
+              <Link href={`/sysAdmin/courses/${course.id}`}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Course
               </Link>
@@ -831,7 +831,7 @@ export default function ModulesManagementPage({ params }: { params: Promise<{ id
             {saving ? "Saving..." : "Save Changes"}
           </Button>
           {/* <Button asChild>
-            <Link href={`/instructor/courses/${course.id}/preview`}>
+            <Link href={`/sysAdmin/courses/${course.id}/preview`}>
               <Play className="w-4 h-4 mr-2" />
               Preview Course
             </Link>

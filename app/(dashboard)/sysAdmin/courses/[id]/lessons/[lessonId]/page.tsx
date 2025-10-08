@@ -222,7 +222,7 @@ Let's start building amazing applications with React!`,
       <div className="text-center py-12">
         <h1 className="text-2xl font-bold mb-4">Lesson not found</h1>
         <Button asChild>
-          <Link href={`/instructor/courses/${params.id}`}>
+          <Link href={`/sysAdmin/courses/${params.id}`}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Course
           </Link>
@@ -270,7 +270,7 @@ Let's start building amazing applications with React!`,
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="sm" asChild>
-              <Link href={`/instructor/courses/${params.id}`}>
+              <Link href={`/sysAdmin/courses/${params.id}`}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Course
               </Link>
@@ -492,7 +492,7 @@ Let's start building amazing applications with React!`,
               <div>
                 {getPreviousLesson() ? (
                   <Button variant="outline" asChild>
-                    <Link href={`/instructor/courses/${params.id}/lessons/${getPreviousLesson()?.id}`}>
+                    <Link href={`/sysAdmin/courses/${params.id}/lessons/${getPreviousLesson()?.id}`}>
                       <ArrowLeft className="w-4 h-4 mr-2" />
                       Previous Lesson
                     </Link>
@@ -505,14 +505,14 @@ Let's start building amazing applications with React!`,
               <div>
                 {getNextLesson() ? (
                   <Button asChild>
-                    <Link href={`/instructor/courses/${params.id}/lessons/${getNextLesson()?.id}`}>
+                    <Link href={`/sysAdmin/courses/${params.id}/lessons/${getNextLesson()?.id}`}>
                       Next Lesson
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </Link>
                   </Button>
                 ) : (
                   <Button asChild>
-                    <Link href={`/instructor/courses/${params.id}`}>
+                    <Link href={`/sysAdmin/courses/${params.id}`}>
                       Back to Course
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </Link>
@@ -556,7 +556,7 @@ Let's start building amazing applications with React!`,
                   {currentModule?.lessons?.map((moduleLesson, index) => (
                     <Link
                       key={moduleLesson.id}
-                      href={`/instructor/courses/${params.id}/lessons/${moduleLesson.id}`}
+                      href={`/sysAdmin/courses/${params.id}/lessons/${moduleLesson.id}`}
                       className={`flex items-center gap-3 p-2 rounded-lg text-sm transition-colors ${
                         moduleLesson.id === lesson.id ? "bg-primary text-primary-foreground" : "hover:bg-muted"
                       }`}
@@ -583,7 +583,7 @@ Let's start building amazing applications with React!`,
                 {/* Quick Actions */}
                 <div className="space-y-2 pt-4 border-t">
                   <Button variant="outline" size="sm" className="w-full justify-start bg-transparent" asChild>
-                    <Link href={`/instructor/courses/${params.id}/lessons/${lesson.id}/edit`}>
+                    <Link href={`/sysAdmin/courses/${params.id}/lessons/${lesson.id}/edit`}>
                       <Edit className="w-4 h-4 mr-2" />
                       Edit Lesson
                     </Link>

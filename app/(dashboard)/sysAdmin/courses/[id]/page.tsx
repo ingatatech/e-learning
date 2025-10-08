@@ -180,7 +180,7 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
         },
       })
       if (response.ok) {
-        router.push("/instructor/courses")
+        router.push("/sysAdmin/courses")
       }
     } catch (error) {
       console.error("Failed to delete course:", error)
@@ -211,7 +211,7 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
       <div className="text-center py-12">
         <h1 className="text-2xl font-bold mb-4">Course not found</h1>
         <Button asChild>
-          <Link href="/instructor/courses">
+          <Link href="/sysAdmin/courses">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Courses
           </Link>
@@ -227,7 +227,7 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
         <div className="flex-1">
           <div className="flex items-center gap-4 mb-4">
             <Button variant="ghost" size="sm" asChild>
-              <Link href="/instructor/courses/">
+              <Link href="/sysAdmin/courses/">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Courses
               </Link>
@@ -396,7 +396,7 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
                 <h3 className="font-semibold mb-2">Add Content</h3>
                 <p className="text-sm text-muted-foreground mb-4">Create new lessons and modules</p>
                 <Button size="sm" asChild>
-                  <Link href={`/instructor/courses/${course.id}/modules`}>Add Content</Link>
+                  <Link href={`/sysAdmin/courses/${course.id}/modules`}>Add Content</Link>
                 </Button>
               </CardContent>
             </Card>
@@ -407,7 +407,7 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
                 <h3 className="font-semibold mb-2">View Analytics</h3>
                 <p className="text-sm text-muted-foreground mb-4">Track student progress and engagement</p>
                 <Button size="sm" variant="outline" asChild>
-                  <Link href={`/instructor/courses/${course.id}/analytics`}>View Analytics</Link>
+                  <Link href={`/sysAdmin/courses/${course.id}/analytics`}>View Analytics</Link>
                 </Button>
               </CardContent>
             </Card>
@@ -437,7 +437,7 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
                   </CardDescription>
                 </div>
                 <Button asChild>
-                  <Link href={`/instructor/courses/${course.id}/modules`}>
+                  <Link href={`/sysAdmin/courses/${course.id}/modules`}>
                     <Plus className="w-4 h-4 mr-2" />
                     Manage Content
                   </Link>
@@ -528,7 +528,7 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
                   <h3 className="text-xl font-semibold mb-2">No content yet</h3>
                   <p className="text-muted-foreground mb-6">Start building your course by adding modules and lessons</p>
                   <Button asChild>
-                    <Link href={`/instructor/courses/${course.id}/modules`}>
+                    <Link href={`/sysAdmin/courses/${course.id}/modules`}>
                       <Plus className="w-4 h-4 mr-2" />
                       Add Your First Module
                     </Link>
@@ -570,7 +570,7 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
                 <Button
                   className="w-full bg-transparent"
                   variant="outline"
-                  onClick={() => router.push(`/instructor/courses/${course.id}/students`)}
+                  onClick={() => router.push(`/sysAdmin/courses/${course.id}/students`)}
                 >
                   View All Students
                 </Button>

@@ -101,7 +101,7 @@ export function Header({ user }: HeaderProps) {
                                 {user.firstName} {user.lastName}
                               </span>
                               <span className="text-xs text-muted-foreground capitalize">
-                                {user.role}
+                                {user.role === "sysAdmin" ? "System Administrator" : user.role}
                               </span>
                             </div>
                             <ChevronDown className="h-4 w-4 text-muted-foreground" />

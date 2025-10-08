@@ -93,9 +93,7 @@ const navigationItems: Record<string, NavigationItem[]> = {
     { name: "Submissions", href: "/instructor/assessments", icon: FileCog }, 
     
     { name: "Students", href: "/instructor/students", icon: Users },
-    { name: "Analytics", href: "/instructor/analytics", icon: BarChart2 },
-    { name: "Gamification", href: "/gamification", icon: Trophy },
-    { name: "Settings", href: "/instructor/settings", icon: Cog },
+    { name: "Settings", href: "/settings", icon: Cog },
   ],
   admin: [
     { name: "Dashboard", href: "/admin", icon: Home },
@@ -125,7 +123,7 @@ const navigationItems: Record<string, NavigationItem[]> = {
       ],
     },
     { name: "Payments", href: "/admin/payments", icon: Wallet },
-    { name: "Settings", href: "/admin/settings", icon: Cog },
+    { name: "Settings", href: "/settings", icon: Cog },
   ],
   sysAdmin: [
     { name: "Dashboard", href: "/sysAdmin", icon: Home },
@@ -143,6 +141,7 @@ const navigationItems: Record<string, NavigationItem[]> = {
       children: [
         { name: "Add Course", href: "/sysAdmin/courses/create", icon: BookPlus },
         { name: "All Courses", href: "/sysAdmin/courses", icon: BookOpen },
+        { name: "Draft Courses", href: "/sysAdmin/courses/draft", icon: BookOpen },
       ]
     },
     {
@@ -152,7 +151,7 @@ const navigationItems: Record<string, NavigationItem[]> = {
         { name: "View Organization", href: "/sysAdmin/org", icon: Building },
       ],
     },
-    { name: "Settings", href: "/sysAdmin/settings", icon: Cog },
+    { name: "Settings", href: "/settings", icon: Cog },
   ],
 }
 
@@ -168,7 +167,7 @@ export function Sidebar({ userRole, className }: SidebarProps) {
   const [expandedItems, setExpandedItems] = useState<string[]>([])
   const pathname = usePathname()
   const router = useRouter()
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
 
   if (!user) {
     return null
@@ -224,8 +223,7 @@ export function Sidebar({ userRole, className }: SidebarProps) {
   }
 
   const handleLogout = () => {
-    console.log("Logging out...")
-    router.push("/login")
+    logout()
   }
 
   const getInitials = (name: string) => {
@@ -462,15 +460,9 @@ export function Sidebar({ userRole, className }: SidebarProps) {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/notifications" className="cursor-pointer rounded-lg">
+                    <Link href="/profile" className="cursor-pointer rounded-lg">
                       <Bell className="mr-2 h-4 w-4" />
-                      Notifications
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/help" className="cursor-pointer rounded-lg">
-                      <HelpCircle className="mr-2 h-4 w-4" />
-                      Help & Support
+                      Profile
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
