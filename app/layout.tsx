@@ -5,15 +5,15 @@ import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/hooks/use-auth"
+import { AuthGuard } from "@/components/auth/auth-guard"
 import { Suspense } from "react"
-import Script from "next/script" 
+import Script from "next/script"
 import "./globals.css"
 import { Toaster } from "sonner"
 
 export const metadata: Metadata = {
   title: "Ingata E-learning - Learning Management System",
-  description:
-    "A comprehensive Learning Management System with gamification, and advanced analytics",
+  description: "A comprehensive Learning Management System with gamification, and advanced analytics",
   generator: "v0.app",
 }
 
@@ -27,17 +27,16 @@ export default function RootLayout({
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <Suspense fallback={null}>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-            <AuthProvider>{children}</AuthProvider>
+            <AuthProvider>
+              <AuthGuard>{children}</AuthGuard>
+            </AuthProvider>
             <Toaster richColors position="top-right" />
           </ThemeProvider>
           <Analytics />
         </Suspense>
 
         {/* Google Identity SDK */}
-        <Script
-          src="https://accounts.google.com/gsi/client"
-          strategy="afterInteractive"
-        />
+        <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
       </body>
     </html>
   )

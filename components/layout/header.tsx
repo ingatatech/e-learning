@@ -24,7 +24,7 @@ interface HeaderProps {
     role: string
     totalPoints: number
     level: number
-    profilePicture: any
+    profilePicture?: any
   }
 }
 
