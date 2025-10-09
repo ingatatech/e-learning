@@ -37,8 +37,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // If accessing protected route without token, redirect to login
+  console.log(isProtectedRoute, accessToken)
   if (isProtectedRoute && !accessToken) {
-    console.log("Protected route accessed without token")
     return NextResponse.redirect(new URL("/login", request.url))
   }
 
