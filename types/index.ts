@@ -277,6 +277,22 @@ export interface Certificate {
   issuedAt: Date
 }
 
+export interface Document {
+  id: string
+  title: string
+  content: string
+  instructorId: string
+  instructor?: User
+  status: "draft" | "submitted" | "approved" | "rejected"
+  submittedAt?: Date
+  reviewedAt?: Date
+  reviewedBy?: string
+  reviewNotes?: string
+  createdAt: Date
+  updatedAt: Date
+  lastEditedAt: Date
+}
+
 export interface Notification {
   id: string
   userId: string

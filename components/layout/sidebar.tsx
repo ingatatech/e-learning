@@ -14,45 +14,34 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { 
-  BookOpen, 
-  BarChart3, 
-  Users, 
-  Settings, 
-  Award, 
-  TrendingUp, 
-  Calendar, 
-  MessageSquare, 
-  FileText, 
-  CreditCard, 
-  ChevronLeft, 
-  ChevronRight, 
-  ChevronDown, 
-  ChevronUp, 
-  Home, 
-  GraduationCap, 
-  Trophy, 
-  Building, 
-  UserPlus, 
-  DollarSign, 
-  PieChart, 
-  BookPlus, 
-  FileSearch, 
-  UserRoundCheck, 
-  Shield, 
-  Server, 
-  LogOut, 
-  User, 
-  HelpCircle, 
+import {
+  BookOpen,
+  Users,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  Home,
+  GraduationCap,
+  Building,
+  UserPlus,
+  DollarSign,
+  PieChart,
+  BookPlus,
+  UserRoundCheck,
+  Shield,
+  Server,
+  LogOut,
+  User,
+  HelpCircle,
   Bell,
   Search,
-  PlayCircle,
   BookMarked,
   Users2,
   BarChart2,
   Wallet,
   Cog,
-  FileCog
+  FileCog,
 } from "lucide-react"
 import React from "react"
 import { useAuth } from "@/hooks/use-auth"
@@ -82,16 +71,17 @@ const navigationItems: Record<string, NavigationItem[]> = {
   ],
   instructor: [
     { name: "Dashboard", href: "/instructor", icon: Home },
-    { 
-      name: "My Courses", 
+    {
+      name: "My Courses",
       icon: BookMarked,
       children: [
         { name: "Add Course", href: "/instructor/courses/create", icon: BookPlus },
-        { name: "All Courses", href: "/instructor/courses", icon: BookOpen }, 
-      ]
+        { name: "All Courses", href: "/instructor/courses", icon: BookOpen },
+      ],
     },
-    { name: "Submissions", href: "/instructor/assessments", icon: FileCog }, 
-    
+    { name: "Documents", href: "/instructor/documents", icon: FileText },
+    { name: "Submissions", href: "/instructor/assessments", icon: FileCog },
+
     { name: "Students", href: "/instructor/students", icon: Users },
     { name: "Settings", href: "/settings", icon: Cog },
   ],
@@ -135,21 +125,20 @@ const navigationItems: Record<string, NavigationItem[]> = {
         { name: "All Users", href: "/sysAdmin/users", icon: Users },
       ],
     },
-    { 
-      name: "Courses", 
+    {
+      name: "Courses",
       icon: BookMarked,
       children: [
         { name: "Add Course", href: "/sysAdmin/courses/create", icon: BookPlus },
         { name: "All Courses", href: "/sysAdmin/courses", icon: BookOpen },
         { name: "Draft Courses", href: "/sysAdmin/courses/draft", icon: BookOpen },
-      ]
+      ],
     },
+    { name: "Documents", href: "/sysAdmin/documents", icon: FileText },
     {
       name: "Manage Organization",
       icon: Building,
-      children: [
-        { name: "View Organization", href: "/sysAdmin/org", icon: Building },
-      ],
+      children: [{ name: "View Organization", href: "/sysAdmin/org", icon: Building }],
     },
     { name: "Settings", href: "/settings", icon: Cog },
   ],
@@ -157,7 +146,7 @@ const navigationItems: Record<string, NavigationItem[]> = {
 
 const roleIcons: Record<string, any> = {
   admin: Shield,
-  "sysAdmin": Server,
+  sysAdmin: Server,
   instructor: UserRoundCheck,
   student: GraduationCap,
 }
@@ -169,19 +158,18 @@ export function Sidebar({ userRole, className }: SidebarProps) {
   const router = useRouter()
   const { user, logout } = useAuth()
 
-  if (!user) {
-    return null
-  }
-
   const items = navigationItems[userRole] || []
 
   // Function to get the most specific matching item for a given path
-  const getMostSpecificMatch = (items: NavigationItem[], currentPath: string): { item: NavigationItem; parent?: NavigationItem } | null => {
+  const getMostSpecificMatch = (
+    items: NavigationItem[],
+    currentPath: string,
+  ): { item: NavigationItem; parent?: NavigationItem } | null => {
     let bestMatch: { item: NavigationItem; parent?: NavigationItem } | null = null
     let bestMatchLength = 0
 
     const searchItems = (itemList: NavigationItem[], parent?: NavigationItem) => {
-      itemList.forEach(item => {
+      itemList.forEach((item) => {
         if (item.href && currentPath === item.href && item.href.length > bestMatchLength) {
           bestMatch = { item, parent }
           bestMatchLength = item.href.length
@@ -204,7 +192,7 @@ export function Sidebar({ userRole, className }: SidebarProps) {
       setExpandedItems([match.parent.name])
     } else {
       // If no child is active, collapse all
-      const directMatch = items.find(item => item.href === pathname)
+      const directMatch = items.find((item) => item.href === pathname)
       if (!directMatch?.children) {
         setExpandedItems([])
       }
@@ -229,7 +217,7 @@ export function Sidebar({ userRole, className }: SidebarProps) {
   const getInitials = (name: string) => {
     return name
       .split(" ")
-      .map(part => part[0])
+      .map((part) => part[0])
       .join("")
       .toUpperCase()
       .slice(0, 2)
@@ -237,14 +225,14 @@ export function Sidebar({ userRole, className }: SidebarProps) {
 
   const isItemActive = (item: NavigationItem): boolean => {
     if (!item.href) return false
-    
+
     const match = getMostSpecificMatch(items, pathname)
     return match?.item === item
   }
 
   const hasActiveChild = (item: NavigationItem): boolean => {
     if (!item.children) return false
-    
+
     const match = getMostSpecificMatch(items, pathname)
     return match?.parent === item
   }
@@ -267,26 +255,30 @@ export function Sidebar({ userRole, className }: SidebarProps) {
                 "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-300 dark:hover:bg-green-900/30 hover:bg-green-50 hover:text-green-700 dark:hover:text-white w-full group relative",
                 "border-l-4 border-transparent hover:border-green-400",
                 isCollapsed && "justify-center px-3",
-                childIsActive && "bg-gradient-to-r from-green-50 dark:from-green-900 to-green-25 text-green-700 dark:text-white border-l-green-500"
+                childIsActive &&
+                  "bg-gradient-to-r from-green-50 dark:from-green-900 to-green-25 text-green-700 dark:text-white border-l-green-500",
               )}
             >
-              
-              <Icon className={cn(
-                "h-5 w-5 flex-shrink-0 transition-colors duration-300",
-                childIsActive ? "text-green-600 dark:text-white" : "text-gray-600 group-hover:text-green-600"
-              )} />
+              <Icon
+                className={cn(
+                  "h-5 w-5 flex-shrink-0 transition-colors duration-300",
+                  childIsActive ? "text-green-600 dark:text-white" : "text-gray-600 group-hover:text-green-600",
+                )}
+              />
               {!isCollapsed && (
                 <>
                   <span className="flex-1 text-left font-medium">{item.name}</span>
-                  <ChevronDown className={cn(
-                    "h-4 w-4 transition-transform duration-300 text-gray-400",
-                    isExpanded && "rotate-180",
-                    childIsActive && "text-green-600"
-                  )} />
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 transition-transform duration-300 text-gray-400",
+                      isExpanded && "rotate-180",
+                      childIsActive && "text-green-600",
+                    )}
+                  />
                 </>
               )}
             </button>
-            
+
             {/* Children Items */}
             {isExpanded && !isCollapsed && item.children && (
               <div className="mt-2 space-y-1 ml-4 border-l border-gray-100 pl-4">
@@ -298,13 +290,16 @@ export function Sidebar({ userRole, className }: SidebarProps) {
                       "flex items-center gap-3 px-4 py-2.5 text-sm transition-all duration-300 group relative",
                       "border-l-4 border-transparent hover:border-green-400",
                       "hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-700 dark:hover:text-white",
-                      isItemActive(child) && "bg-gradient-to-r from-green-500 to-green-600 text-white border-l-green-600 shadow-lg transform scale-[1.02]"
+                      isItemActive(child) &&
+                        "bg-gradient-to-r from-green-500 to-green-600 text-white border-l-green-600 shadow-lg transform scale-[1.02]",
                     )}
                   >
-                    <child.icon className={cn(
-                      "h-4 w-4 flex-shrink-0 transition-colors duration-300",
-                      isItemActive(child) ? "text-white" : "text-gray-500 group-hover:text-green-600"
-                    )} />
+                    <child.icon
+                      className={cn(
+                        "h-4 w-4 flex-shrink-0 transition-colors duration-300",
+                        isItemActive(child) ? "text-white" : "text-gray-500 group-hover:text-green-600",
+                      )}
+                    />
                     <span className="font-medium">{child.name}</span>
                   </Link>
                 ))}
@@ -319,15 +314,17 @@ export function Sidebar({ userRole, className }: SidebarProps) {
               "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-300 group relative",
               "border-l-4 border-transparent hover:border-green-400",
               "hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-700 dark:hover:text-white",
-              isActive && "bg-gradient-to-r from-green-50 dark:from-green-900 to-green-25 text-green-700 dark:text-white border-l-green-600 shadow-lg transform scale-[1.02]",
-              isCollapsed && "justify-center px-3"
+              isActive &&
+                "bg-gradient-to-r from-green-50 dark:from-green-900 to-green-25 text-green-700 dark:text-white border-l-green-600 shadow-lg transform scale-[1.02]",
+              isCollapsed && "justify-center px-3",
             )}
           >
-            
-            <Icon className={cn(
-              "h-5 w-5 flex-shrink-0 transition-colors duration-300",
-              isActive ? "text-green" : "text-gray-600 group-hover:text-green-600"
-            )} />
+            <Icon
+              className={cn(
+                "h-5 w-5 flex-shrink-0 transition-colors duration-300",
+                isActive ? "text-green" : "text-gray-600 group-hover:text-green-600",
+              )}
+            />
             {!isCollapsed && (
               <>
                 <span className="font-medium">{item.name}</span>
@@ -339,11 +336,14 @@ export function Sidebar({ userRole, className }: SidebarProps) {
     )
   }
 
+  if (!user) {
+    return null
+  }
+
   return (
-    <div className={cn(
-      "sticky top-0 h-screen flex flex-col transition-all duration-300",
-      isCollapsed ? "w-20" : "w-80"
-    )}>
+    <div
+      className={cn("sticky top-0 h-screen flex flex-col transition-all duration-300", isCollapsed ? "w-20" : "w-80")}
+    >
       {/* Sidebar */}
       <div
         className={cn(
@@ -367,10 +367,10 @@ export function Sidebar({ userRole, className }: SidebarProps) {
               </div>
             </div>
           )}
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => setIsCollapsed(!isCollapsed)} 
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsCollapsed(!isCollapsed)}
             className="h-9 w-9 p-0 hover:bg-gray-100 rounded-xl transition-all duration-300"
           >
             {isCollapsed ? (
@@ -395,7 +395,10 @@ export function Sidebar({ userRole, className }: SidebarProps) {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="h-10 w-10 p-0 rounded-xl hover:bg-white">
                     <Avatar className="h-8 w-8 ring-2 ring-green-200">
-                      <AvatarImage src={user?.profilePicture} alt={user.firstName + " " + user.lastName} />
+                      <AvatarImage
+                        src={user?.profilePicture || "/placeholder.svg"}
+                        alt={user.firstName + " " + user.lastName}
+                      />
                       <AvatarFallback className="text-xs bg-green-500 text-white font-semibold">
                         {user.firstName + " " + user.lastName ? getInitials(user.firstName + " " + user.lastName) : "U"}
                       </AvatarFallback>
@@ -418,7 +421,10 @@ export function Sidebar({ userRole, className }: SidebarProps) {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 focus:text-red-600 rounded-lg">
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="cursor-pointer text-red-600 focus:text-red-600 rounded-lg"
+                  >
                     <LogOut className="mr-2 h-4 w-4" />
                     Logout
                   </DropdownMenuItem>
@@ -431,17 +437,30 @@ export function Sidebar({ userRole, className }: SidebarProps) {
               {/* User Info */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="w-full justify-start p-3 h-auto hover:bg-muted rounded-xl shadow-sm border border-transparent hover:border-border transition-all duration-300">
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start p-3 h-auto hover:bg-muted rounded-xl shadow-sm border border-transparent hover:border-border transition-all duration-300"
+                  >
                     <div className="flex items-center gap-3 w-full">
                       <Avatar className="h-10 w-10 ring-2 ring-green-200">
-                        <AvatarImage src={user?.profilePicture} alt={user.firstName + " " + user.lastName} className="object-cover" />
+                        <AvatarImage
+                          src={user?.profilePicture || "/placeholder.svg"}
+                          alt={user.firstName + " " + user.lastName}
+                          className="object-cover"
+                        />
                         <AvatarFallback className="text-sm font-semibold bg-green-500 text-white">
-                          {user.firstName + " " + user.lastName ? getInitials(user.firstName + " " + user.lastName) : "U"}
+                          {user.firstName + " " + user.lastName
+                            ? getInitials(user.firstName + " " + user.lastName)
+                            : "U"}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0 text-left">
-                        <p className="text-sm font-semibold truncate text-text">{user.firstName + " " + user.lastName || "User"}</p>
-                        <p className="text-xs text-gray-500 truncate font-medium">{user?.email || "user@example.com"}</p>
+                        <p className="text-sm font-semibold truncate text-text">
+                          {user.firstName + " " + user.lastName || "User"}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate font-medium">
+                          {user?.email || "user@example.com"}
+                        </p>
                       </div>
                       <ChevronDown className="h-4 w-4 text-gray-400 flex-shrink-0" />
                     </div>
@@ -466,7 +485,10 @@ export function Sidebar({ userRole, className }: SidebarProps) {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 focus:text-red-600 rounded-lg">
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="cursor-pointer text-red-600 focus:text-red-600 rounded-lg"
+                  >
                     <LogOut className="mr-2 h-4 w-4" />
                     Logout
                   </DropdownMenuItem>
@@ -475,17 +497,32 @@ export function Sidebar({ userRole, className }: SidebarProps) {
 
               {/* Quick Actions */}
               <div className="flex gap-2 pt-3 border-t border-muted">
-                <Button variant="ghost" size="sm" className="flex-1 hover:bg-white rounded-xl h-9 transition-all duration-300" asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex-1 hover:bg-white rounded-xl h-9 transition-all duration-300"
+                  asChild
+                >
                   <Link href="/help">
                     <HelpCircle className="h-4 w-4 text-gray-600" />
                   </Link>
                 </Button>
-                <Button variant="ghost" size="sm" className="flex-1 hover:bg-white rounded-xl h-9 transition-all duration-300" asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex-1 hover:bg-white rounded-xl h-9 transition-all duration-300"
+                  asChild
+                >
                   <Link href="/settings">
                     <Cog className="h-4 w-4 text-gray-600" />
                   </Link>
                 </Button>
-                <Button variant="ghost" size="sm" className="flex-1 rounded-xl h-9 text-red-600 hover:text-red-700 hover:bg-red-50 transition-all duration-300" onClick={handleLogout}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex-1 rounded-xl h-9 text-red-600 hover:text-red-700 hover:bg-red-50 transition-all duration-300"
+                  onClick={handleLogout}
+                >
                   <LogOut className="h-4 w-4" />
                 </Button>
               </div>
