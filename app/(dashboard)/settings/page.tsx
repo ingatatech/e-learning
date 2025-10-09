@@ -12,7 +12,7 @@ import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 
 export default function SettingsPage() {
-  const { user, token } = useAuth()
+  const { user, token, updateUser } = useAuth()
   const [isSaving, setIsSaving] = useState(false)
   const router = useRouter()
 
@@ -108,6 +108,10 @@ export default function SettingsPage() {
       })
 
       if (response.ok) {
+        updateUser({
+          theme: appearance.theme,
+          preferredLanguage: appearance.language,
+        })
         toast.success("Appearance settings updated!")
       } else {
         toast.error("Failed to update settings")

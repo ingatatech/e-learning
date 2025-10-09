@@ -2,8 +2,7 @@
 
 import { useState, useEffect, createContext, useContext, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
-import { User } from "@/types"
-
+import type { User } from "@/types"
 
 interface AuthContextType {
   user: User | null
@@ -15,6 +14,7 @@ interface AuthContextType {
   register: (data: RegisterData) => Promise<void>
   logout: () => Promise<void>
   refreshToken: () => Promise<void>
+  updateUser: (updates: Partial<User>) => void
 }
 
 interface RegisterData {
@@ -36,13 +36,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
-  const storedUser = localStorage.getItem("Euser")
-  if (storedUser) {
-    setUser(JSON.parse(storedUser))
-    setToken(JSON.parse(localStorage.getItem("Etoken") || ""))
-  }
-}, [])
-
+    const storedUser = localStorage.getItem("Euser")
+    if (storedUser) {
+      setUser(JSON.parse(storedUser))
+      setToken(JSON.parse(localStorage.getItem("Etoken") || ""))
+    }
+  }, [])
 
   const login = async (email: string, password: string) => {
     setIsLoading(true)
@@ -70,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-    const verifyOtp = async (email: string, otp: string) => {
+  const verifyOtp = async (email: string, otp: string) => {
     setIsLoading(true)
     try {
       const response = await fetch(`${API_BASE_URL}/auth/verify-otp`, {
@@ -101,7 +100,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false)
     }
   }
-const register = async (registerData: RegisterData) => {
+
+  const register = async (registerData: RegisterData) => {
     const response = await fetch("/api/auth/register", {
       method: "POST",
       headers: {
@@ -147,6 +147,14 @@ const register = async (registerData: RegisterData) => {
     }
   }
 
+  const updateUser = (updates: Partial<User>) => {
+    if (!user) return
+
+    const updatedUser = { ...user, ...updates }
+    setUser(updatedUser)
+    localStorage.setItem("Euser", JSON.stringify(updatedUser))
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -159,6 +167,7 @@ const register = async (registerData: RegisterData) => {
         register,
         logout,
         refreshToken,
+        updateUser,
       }}
     >
       {children}

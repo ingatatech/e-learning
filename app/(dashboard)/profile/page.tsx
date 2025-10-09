@@ -17,7 +17,7 @@ import { Camera, Save, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
 export default function ProfilePage() {
-  const { user, token } = useAuth()
+  const { user, token, updateUser } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -96,6 +96,13 @@ export default function ProfilePage() {
       })
 
       if (response.ok) {
+        updateUser({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          preferredLanguage: formData.preferredLanguage,
+          theme: formData.theme,
+          profilePicture: formData.profilePicture,
+        })
         toast.success("Profile updated successfully!")
         setIsEditing(false)
       } else {

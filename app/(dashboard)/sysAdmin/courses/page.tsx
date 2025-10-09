@@ -38,40 +38,21 @@ import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import type { Course } from "@/types"
 import { useAuth } from "@/hooks/use-auth"
+import { useCourses } from "@/hooks/use-courses"
 
 export default function CourseOverviewPage() {
-  const [courses, setCourses] = useState<Course[]>([])
+  const { courses, loading, fetchCourses } = useCourses()
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState<"all" | "published" | "draft">("all")
   const [sortBy, setSortBy] = useState<"title" | "students" | "rating" | "created">("created")
-  const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(6)
   const { token, user } = useAuth()
 
   useEffect(() => {
-    const fetcCourses = async () => {
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/organization/${user?.organization?.id}/courses`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        })
-        if (response.ok) {
-          const data = await response.json()
-          setCourses(data.courses)
-        }
-      } catch (error) {
-        console.error("Failed to fetch users:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetcCourses()
-  }, [])
+    fetchCourses()
+  }, [fetchCourses])
 
   const filteredCourses = courses
     .filter((course) => {
