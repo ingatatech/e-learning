@@ -33,10 +33,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Search, UserPlus, MoreHorizontal, Edit, Trash2, Mail, Shield, Plus, X } from "lucide-react"
+import { Search, UserPlus, MoreHorizontal, Trash2, Mail, Plus, X } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/hooks/use-auth"
-import { User } from "@/types"
+import type { User } from "@/types"
 
 interface StudentFormData {
   firstName: string
@@ -180,15 +180,15 @@ export default function StudentsManagement({ params }: { params: Promise<{ id: s
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [newStudents, setNewStudents] = useState<StudentFormData[]>([
-    { firstName: "", lastName: "", email: "", role: "student", organizationId: 1 }
+    { firstName: "", lastName: "", email: "", role: "student", organizationId: 1 },
   ])
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false)
   const [studentToRemove, setStudentToRemove] = useState<{ id: string; name: string } | null>(null)
   const [isRemoving, setIsRemoving] = useState(false)
-  
+
   const { token } = useAuth()
   const { id } = use(params)
-  
+
   useEffect(() => {
     const fetchStudents = async () => {
       try {
@@ -245,8 +245,8 @@ export default function StudentsManagement({ params }: { params: Promise<{ id: s
 
   const updateStudentField = (index: number, field: keyof StudentFormData, value: string) => {
     const updatedStudents = [...newStudents]
-    if (field === 'organizationId') {
-      updatedStudents[index][field] = parseInt(value) || 1
+    if (field === "organizationId") {
+      updatedStudents[index][field] = Number.parseInt(value) || 1
     } else {
       updatedStudents[index][field] = value
     }
@@ -258,7 +258,7 @@ export default function StudentsManagement({ params }: { params: Promise<{ id: s
     try {
       // Filter out empty student entries
       const validStudents = newStudents.filter(
-        student => student.firstName.trim() && student.lastName.trim() && student.email.trim()
+        (student) => student.firstName.trim() && student.lastName.trim() && student.email.trim(),
       )
 
       if (validStudents.length === 0) {
@@ -267,8 +267,8 @@ export default function StudentsManagement({ params }: { params: Promise<{ id: s
       }
 
       const payload = {
-        courseId: parseInt(id),
-        students: validStudents
+        courseId: Number.parseInt(id),
+        students: validStudents,
       }
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/enrollments/enrollMultiple`, {
@@ -288,7 +288,7 @@ export default function StudentsManagement({ params }: { params: Promise<{ id: s
             Authorization: `Bearer ${token}`,
           },
         })
-        
+
         if (fetchResponse.ok) {
           const data = await fetchResponse.json()
           setStudents(data.students)
@@ -299,7 +299,7 @@ export default function StudentsManagement({ params }: { params: Promise<{ id: s
         setIsAddDialogOpen(false)
       } else {
         const errorData = await response.json()
-        alert(`Failed to add students: ${errorData.message || 'Unknown error'}`)
+        alert(`Failed to add students: ${errorData.message || "Unknown error"}`)
       }
     } catch (error) {
       console.error("Failed to add students:", error)
@@ -312,7 +312,7 @@ export default function StudentsManagement({ params }: { params: Promise<{ id: s
   const openRemoveDialog = (student: User) => {
     setStudentToRemove({
       id: student.id,
-      name: `${student.firstName} ${student.lastName}`
+      name: `${student.firstName} ${student.lastName}`,
     })
     setRemoveDialogOpen(true)
   }
@@ -329,8 +329,8 @@ export default function StudentsManagement({ params }: { params: Promise<{ id: s
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          courseId: parseInt(id),
-          studentIds: [parseInt(studentToRemove.id)]
+          courseId: Number.parseInt(id),
+          studentIds: [Number.parseInt(studentToRemove.id)],
         }),
       })
 
@@ -342,7 +342,7 @@ export default function StudentsManagement({ params }: { params: Promise<{ id: s
             Authorization: `Bearer ${token}`,
           },
         })
-        
+
         if (fetchResponse.ok) {
           const data = await fetchResponse.json()
           setStudents(data.students)
@@ -353,7 +353,7 @@ export default function StudentsManagement({ params }: { params: Promise<{ id: s
         setStudentToRemove(null)
       } else {
         const errorData = await response.json()
-        alert(`Failed to remove student: ${errorData.message || 'Unknown error'}`)
+        alert(`Failed to remove student: ${errorData.message || "Unknown error"}`)
       }
     } catch (error) {
       console.error("Failed to remove student:", error)
@@ -401,16 +401,21 @@ export default function StudentsManagement({ params }: { params: Promise<{ id: s
                 Add one or more students to this course. Fill in the details for each student below.
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-medium">Student Details</h3>
-                <Button type="button" variant="outline" onClick={addStudentField} className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addStudentField}
+                  className="flex items-center gap-2 bg-transparent"
+                >
                   <Plus className="w-4 h-4" />
                   Add Another Student
                 </Button>
               </div>
-              
+
               {newStudents.map((student, index) => (
                 <div key={index} className="border rounded-lg p-4 space-y-4 relative">
                   {newStudents.length > 1 && (
@@ -424,7 +429,7 @@ export default function StudentsManagement({ params }: { params: Promise<{ id: s
                       <X className="w-4 h-4" />
                     </Button>
                   )}
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label htmlFor={`firstName-${index}`} className="text-sm font-medium">
@@ -433,12 +438,12 @@ export default function StudentsManagement({ params }: { params: Promise<{ id: s
                       <Input
                         id={`firstName-${index}`}
                         value={student.firstName}
-                        onChange={(e) => updateStudentField(index, 'firstName', e.target.value)}
+                        onChange={(e) => updateStudentField(index, "firstName", e.target.value)}
                         placeholder="John"
                         required
                       />
                     </div>
-                    
+
                     <div>
                       <label htmlFor={`lastName-${index}`} className="text-sm font-medium">
                         Last Name *
@@ -446,12 +451,12 @@ export default function StudentsManagement({ params }: { params: Promise<{ id: s
                       <Input
                         id={`lastName-${index}`}
                         value={student.lastName}
-                        onChange={(e) => updateStudentField(index, 'lastName', e.target.value)}
+                        onChange={(e) => updateStudentField(index, "lastName", e.target.value)}
                         placeholder="Doe"
                         required
                       />
                     </div>
-                    
+
                     <div>
                       <label htmlFor={`email-${index}`} className="text-sm font-medium">
                         Email *
@@ -460,13 +465,13 @@ export default function StudentsManagement({ params }: { params: Promise<{ id: s
                         id={`email-${index}`}
                         type="email"
                         value={student.email}
-                        onChange={(e) => updateStudentField(index, 'email', e.target.value)}
+                        onChange={(e) => updateStudentField(index, "email", e.target.value)}
                         placeholder="john.doe@example.com"
                         required
                       />
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label htmlFor={`role-${index}`} className="text-sm font-medium">
@@ -475,7 +480,7 @@ export default function StudentsManagement({ params }: { params: Promise<{ id: s
                       <select
                         id={`role-${index}`}
                         value={student.role}
-                        onChange={(e) => updateStudentField(index, 'role', e.target.value)}
+                        onChange={(e) => updateStudentField(index, "role", e.target.value)}
                         className="w-full p-2 border rounded-md"
                       >
                         <option value="student">Student</option>
@@ -483,7 +488,7 @@ export default function StudentsManagement({ params }: { params: Promise<{ id: s
                         <option value="admin">Admin</option>
                       </select>
                     </div>
-                    
+
                     <div>
                       <label htmlFor={`organizationId-${index}`} className="text-sm font-medium">
                         Organization ID
@@ -492,7 +497,7 @@ export default function StudentsManagement({ params }: { params: Promise<{ id: s
                         id={`organizationId-${index}`}
                         type="number"
                         value={student.organizationId}
-                        onChange={(e) => updateStudentField(index, 'organizationId', e.target.value)}
+                        onChange={(e) => updateStudentField(index, "organizationId", e.target.value)}
                         placeholder="1"
                         min="1"
                       />
@@ -501,7 +506,7 @@ export default function StudentsManagement({ params }: { params: Promise<{ id: s
                 </div>
               ))}
             </div>
-            
+
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                 Cancel
@@ -580,7 +585,9 @@ export default function StudentsManagement({ params }: { params: Promise<{ id: s
                         {student.isActive ? "Active" : "Inactive"}
                       </Badge>
                     </TableCell>
-                    <TableCell>{student.createdAt ? new Date(student.createdAt).toLocaleDateString() : "N/A"}</TableCell>
+                    <TableCell>
+                      {student.createdAt ? new Date(student.createdAt).toLocaleDateString() : "N/A"}
+                    </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -591,10 +598,7 @@ export default function StudentsManagement({ params }: { params: Promise<{ id: s
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            className="text-red-600"
-                            onClick={() => openRemoveDialog(student)}
-                          >
+                          <DropdownMenuItem className="text-red-600" onClick={() => openRemoveDialog(student)}>
                             <Trash2 className="mr-2 h-4 w-4" />
                             Remove Student
                           </DropdownMenuItem>
@@ -615,13 +619,13 @@ export default function StudentsManagement({ params }: { params: Promise<{ id: s
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Student</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove <strong>{studentToRemove?.name}</strong> from this course?
-              This action cannot be undone and the student will lose access to all course materials.
+              Are you sure you want to remove <strong>{studentToRemove?.name}</strong> from this course? This action
+              cannot be undone and the student will lose access to all course materials.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setStudentToRemove(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleRemoveStudent}
               disabled={isRemoving}
               className="bg-red-600 hover:bg-red-700 focus:ring-red-600"

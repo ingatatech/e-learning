@@ -10,6 +10,7 @@ interface CoursesContextType {
   error: string | null
   fetchCourses: (forceRefresh?: boolean) => Promise<void>
   getCourse: (id: string) => Course | undefined
+  fetchSingleCourse: (id: string) => Promise<Course | null>
   invalidateCache: () => void
   updateCourseInCache: (id: string, updates: Partial<Course>) => void
 }
@@ -25,10 +26,12 @@ export function CoursesProvider({ children }: { children: ReactNode }) {
 
   const fetchCourses = async (forceRefresh = false) => {
     if (hasFetched && courses.length > 0 && !forceRefresh) {
+      console.log(" Using cached courses")
       return
     }
 
     if (!user || !token) {
+      console.log(" No user or token, skipping course fetch")
       return
     }
 
@@ -49,6 +52,8 @@ export function CoursesProvider({ children }: { children: ReactNode }) {
         url = `${process.env.NEXT_PUBLIC_API_URL}/courses`
       }
 
+      console.log(" Fetching courses from:", url)
+
       const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -59,11 +64,12 @@ export function CoursesProvider({ children }: { children: ReactNode }) {
         const data = await response.json()
         setCourses(data.courses || data)
         setHasFetched(true)
+        console.log(" Courses fetched and cached:", data.courses?.length || data.length)
       } else {
         throw new Error("Failed to fetch courses")
       }
     } catch (err) {
-      console.error("Error fetching courses:", err)
+      console.error(" Error fetching courses:", err)
       setError(err instanceof Error ? err.message : "Failed to fetch courses")
     } finally {
       setLoading(false)
@@ -71,15 +77,49 @@ export function CoursesProvider({ children }: { children: ReactNode }) {
   }
 
   const getCourse = (id: string) => {
-    return courses.find((course) => course.id === id)
+    const course = courses.find((course) => Number(course.id) === Number(id))
+    console.log(" Getting course from cache:", id, course ? "found" : "not found")
+    return course
+  }
+
+  const fetchSingleCourse = async (id: string): Promise<Course | null> => {
+    // First check cache
+    const cachedCourse = getCourse(id)
+    if (cachedCourse) {
+      console.log(" Returning course from cache:", id)
+      return cachedCourse
+    }
+
+    // If not in cache, fetch it
+    console.log(" Course not in cache, fetching:", id)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (response.ok) {
+        const course = await response.json()
+        // Add to cache
+        setCourses((prev) => [...prev, course])
+        return course
+      }
+      return null
+    } catch (err) {
+      console.error(" Error fetching single course:", err)
+      return null
+    }
   }
 
   const invalidateCache = () => {
+    console.log(" Invalidating courses cache")
     setCourses([])
     setHasFetched(false)
   }
 
   const updateCourseInCache = (id: string, updates: Partial<Course>) => {
+    console.log(" Updating course in cache:", id)
     setCourses((prev) => prev.map((course) => (course.id === id ? { ...course, ...updates } : course)))
   }
 
@@ -91,6 +131,7 @@ export function CoursesProvider({ children }: { children: ReactNode }) {
         error,
         fetchCourses,
         getCourse,
+        fetchSingleCourse,
         invalidateCache,
         updateCourseInCache,
       }}

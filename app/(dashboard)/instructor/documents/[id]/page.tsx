@@ -2,11 +2,11 @@
 import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
+import { useDocuments } from "@/hooks/use-documents"
 import type { Document } from "@/types"
 import { DocumentEditor } from "@/components/documents/document-editor"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Save, Send, Clock } from "lucide-react"
 import { toast } from "sonner"
 import { formatDistanceToNow } from "date-fns"
@@ -25,6 +25,7 @@ export default function DocumentEditorPage({ params }: { params: Promise<{ id: s
   const { id } = use(params)
   const router = useRouter()
   const { token } = useAuth()
+  const { getDocument, updateDocumentInCache } = useDocuments()
   const [document, setDocument] = useState<Document | null>(null)
   const [title, setTitle] = useState("")
   const [content, setContent] = useState("")
@@ -32,24 +33,59 @@ export default function DocumentEditorPage({ params }: { params: Promise<{ id: s
   const [saving, setSaving] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false)
 
   useEffect(() => {
     fetchDocument()
   }, [id])
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault()
+        e.returnValue = ""
+      }
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload)
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload)
+  }, [hasUnsavedChanges])
 
   // Auto-save functionality
   useEffect(() => {
     if (!document) return
 
     const timer = setTimeout(() => {
-      saveDocument(false)
+      if (hasUnsavedChanges) {
+        saveDocument(false)
+      }
     }, 2000) // Auto-save after 2 seconds of inactivity
 
     return () => clearTimeout(timer)
-  }, [title, content])
+  }, [title, content, hasUnsavedChanges])
+
+  useEffect(() => {
+    if (document && (title !== document.title || content !== document.content)) {
+      setHasUnsavedChanges(true)
+    }
+  }, [title, content, document])
 
   const fetchDocument = async () => {
     try {
+      const cachedDoc = getDocument(id)
+      if (cachedDoc) {
+        console.log("[v0] Using cached document")
+        setDocument(cachedDoc)
+        setTitle(cachedDoc.title)
+        setContent(cachedDoc.content)
+        if (cachedDoc?.lastEditedAt) {
+          setLastSaved(new Date(cachedDoc.lastEditedAt))
+        }
+        setLoading(false)
+        return
+      }
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/docs/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -96,6 +132,8 @@ export default function DocumentEditorPage({ params }: { params: Promise<{ id: s
       if (response.ok) {
         const now = new Date()
         setLastSaved(now)
+        updateDocumentInCache(id, { title, content, lastEditedAt: now.toISOString() })
+        setHasUnsavedChanges(false)
         if (showToast) {
           toast.success("Document saved")
         }
@@ -119,7 +157,7 @@ export default function DocumentEditorPage({ params }: { params: Promise<{ id: s
       // Save first
       await saveDocument(false)
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/docs/${id}/submit`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/docs/submit/${id}`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -128,6 +166,7 @@ export default function DocumentEditorPage({ params }: { params: Promise<{ id: s
 
       if (response.ok) {
         toast.success("Document submitted for review")
+        updateDocumentInCache(id, { status: "submitted" })
         router.push("/instructor/documents")
       } else {
         toast.error("Failed to submit document")
@@ -135,19 +174,6 @@ export default function DocumentEditorPage({ params }: { params: Promise<{ id: s
     } catch (error) {
       console.error("Error submitting document:", error)
       toast.error("Failed to submit document")
-    }
-  }
-
-  const getStatusBadge = (status: Document["status"]) => {
-    switch (status) {
-      case "draft":
-        return <Badge variant="secondary">Draft</Badge>
-      case "submitted":
-        return <Badge variant="default">Submitted</Badge>
-      case "approved":
-        return <Badge className="bg-green-600">Approved</Badge>
-      case "rejected":
-        return <Badge variant="destructive">Rejected</Badge>
     }
   }
 
@@ -170,7 +196,17 @@ export default function DocumentEditorPage({ params }: { params: Promise<{ id: s
       <div className="border-b bg-background">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-4 flex-1">
-            <Button variant="ghost" size="sm" onClick={() => router.push("/instructor/documents")}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                if (hasUnsavedChanges) {
+                  setShowUnsavedDialog(true)
+                } else {
+                  router.push("/instructor/documents")
+                }
+              }}
+            >
               <ArrowLeft className="w-4 h-4" />
             </Button>
             <Input
@@ -184,7 +220,11 @@ export default function DocumentEditorPage({ params }: { params: Promise<{ id: s
             {lastSaved && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Clock className="w-4 h-4" />
-                {saving ? "Saving..." : lastSaved ? `Saved ${formatDistanceToNow(lastSaved, { addSuffix: true })}` : "Not saved yet"}
+                {saving
+                  ? "Saving..."
+                  : hasUnsavedChanges
+                    ? "Unsaved changes"
+                    : `Saved ${formatDistanceToNow(lastSaved, { addSuffix: true })}`}
               </div>
             )}
             <Button variant="outline" onClick={() => saveDocument(true)} disabled={saving}>
@@ -205,6 +245,29 @@ export default function DocumentEditorPage({ params }: { params: Promise<{ id: s
       <div className="flex-1 overflow-hidden">
         <DocumentEditor content={content} onChange={setContent} />
       </div>
+
+      <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes. Are you sure you want to leave? Your changes will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Stay</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setHasUnsavedChanges(false)
+                router.push("/instructor/documents")
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Leave Without Saving
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={submitDialogOpen} onOpenChange={setSubmitDialogOpen}>
         <AlertDialogContent>

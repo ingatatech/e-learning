@@ -45,6 +45,7 @@ import type { Course, Module, Lesson, Assessment, AssessmentQuestion } from "@/t
 import { useAuth } from "@/hooks/use-auth"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
+import { useCourses } from "@/hooks/use-courses"
 
 interface ContentBlock {
   id: string
@@ -54,6 +55,7 @@ interface ContentBlock {
 }
 
 export default function ModulesManagementPage({ params }: { params: Promise<{ id: string }> }) {
+  const { getCourse, updateCourseInCache } = useCourses()
   const [course, setCourse] = useState<Course | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -70,15 +72,9 @@ export default function ModulesManagementPage({ params }: { params: Promise<{ id
   useEffect(() => {
     const fetchCourse = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/get/${id}`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        })
-        if (response.ok) {
-          const data = await response.json()
-          setCourse(data.course)
+        const data = await getCourse(id)
+        if (data) {
+          setCourse(data)
         }
       } catch (error) {
         console.error("Failed to fetch course:", error)
@@ -88,7 +84,7 @@ export default function ModulesManagementPage({ params }: { params: Promise<{ id
     }
 
     fetchCourse()
-  }, [id, token])
+  }, [id, getCourse])
 
   useEffect(() => {
     if (editingLesson?.lesson) {
@@ -387,6 +383,7 @@ export default function ModulesManagementPage({ params }: { params: Promise<{ id
       })
 
       if (response.ok) {
+        updateCourseInCache(id, course)
         console.log("Course updated successfully")
       }
     } catch (error) {
@@ -835,7 +832,7 @@ export default function ModulesManagementPage({ params }: { params: Promise<{ id
     )
   }
 
-  if (!course) {
+  if (!course && !loading) {
     return (
       <div className="text-center py-12">
         <h1 className="text-2xl font-bold mb-4">Course not found</h1>

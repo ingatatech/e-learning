@@ -2,12 +2,13 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
+import { useDocuments } from "@/hooks/use-documents"
 import type { Document } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { FileText, Plus, MoreVertical, Trash2, Send, Clock } from "lucide-react"
+import { FileText, Plus, MoreVertical, Trash2, Send, Clock, Grid3x3, ListIcon } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { toast } from "sonner"
 import {
@@ -20,40 +21,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 export default function DocumentsPage() {
   const router = useRouter()
   const { user, token } = useAuth()
-  const [documents, setDocuments] = useState<Document[]>([])
-  const [loading, setLoading] = useState(true)
+  const { documents, loading, fetchDocuments, removeDocumentFromCache, updateDocumentInCache, addDocumentToCache } =
+    useDocuments()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [documentToDelete, setDocumentToDelete] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
 
   useEffect(() => {
     fetchDocuments()
-  }, [user])
-
-  const fetchDocuments = async () => {
-    if (!user) return
-
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/docs/instructor/${user.id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setDocuments(data)
-      }
-    } catch (error) {
-      console.error("Error fetching documents:", error)
-      toast.error("Failed to load documents")
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [])
 
   const createNewDocument = async () => {
     try {
@@ -72,6 +53,7 @@ export default function DocumentsPage() {
 
       if (response.ok) {
         const newDoc = await response.json()
+        addDocumentToCache(newDoc)
         router.push(`/instructor/documents/${newDoc.id}`)
       } else {
         toast.error("Failed to create document")
@@ -92,7 +74,7 @@ export default function DocumentsPage() {
       })
 
       if (response.ok) {
-        setDocuments(documents.filter((doc) => doc.id !== id))
+        removeDocumentFromCache(id)
         toast.success("Document deleted")
       } else {
         console.log(response)
@@ -115,7 +97,7 @@ export default function DocumentsPage() {
 
       if (response.ok) {
         toast.success("Document submitted for review")
-        fetchDocuments()
+        updateDocumentInCache(id, { status: "submitted" })
       } else {
         toast.error("Failed to submit document")
       }
@@ -156,10 +138,30 @@ export default function DocumentsPage() {
           <h1 className="text-3xl font-bold">My Documents</h1>
           <p className="text-muted-foreground">Create and manage your course documents</p>
         </div>
-        <Button onClick={createNewDocument}>
-          <Plus className="w-4 h-4 mr-2" />
-          New Document
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center border rounded-md">
+            <Button
+              variant={viewMode === "grid" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("grid")}
+              className="rounded-r-none"
+            >
+              <Grid3x3 className="w-4 h-4" />
+            </Button>
+            <Button
+              variant={viewMode === "list" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("list")}
+              className="rounded-l-none"
+            >
+              <ListIcon className="w-4 h-4" />
+            </Button>
+          </div>
+          <Button onClick={createNewDocument}>
+            <Plus className="w-4 h-4 mr-2" />
+            New Document
+          </Button>
+        </div>
       </div>
 
       {documents.length === 0 ? (
@@ -174,7 +176,7 @@ export default function DocumentsPage() {
             </Button>
           </CardContent>
         </Card>
-      ) : (
+      ) : viewMode === "grid" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {documents.map((doc) => (
             <Card
@@ -236,6 +238,72 @@ export default function DocumentsPage() {
             </Card>
           ))}
         </div>
+      ) : (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Last Edited</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {documents.map((doc) => (
+                <TableRow
+                  key={doc.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => router.push(`/instructor/documents/${doc.id}`)}
+                >
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-muted-foreground" />
+                      {doc.title}
+                    </div>
+                  </TableCell>
+                  <TableCell>{getStatusBadge(doc.status)}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {formatDistanceToNow(new Date(doc.lastEditedAt), { addSuffix: true })}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="sm">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {doc.status === "draft" && (
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              submitDocument(doc.id)
+                            }}
+                          >
+                            <Send className="w-4 h-4 mr-2" />
+                            Submit for Review
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setDocumentToDelete(doc.id)
+                            setDeleteDialogOpen(true)
+                          }}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       )}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

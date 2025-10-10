@@ -123,7 +123,7 @@ export function DocumentEditor({ content, onChange }: DocumentEditorProps) {
   if (!editor) return null
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-background">
       {/* Toolbar */}
       <div className="border-b bg-background sticky top-0 z-10">
         <div className="flex flex-wrap items-center gap-1 p-2">
@@ -321,11 +321,11 @@ export function DocumentEditor({ content, onChange }: DocumentEditorProps) {
       </div>
 
       {/* Editor Content */}
-      <div className="flex-1 overflow-auto">
-        <div className="max-w-[850px] mx-auto py-12 px-16">
+      <div className="flex-1 overflow-auto bg-muted/30">
+        <div className="max-w-[1000px] mx-auto py-12 px-20 bg-background my-8 shadow-sm min-h-[calc(100vh-200px)]">
           <EditorContent
             editor={editor}
-            className="prose prose-lg max-w-none focus:outline-none min-h-[calc(100vh-200px)]"
+            className="prose prose-lg max-w-none focus:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[calc(100vh-250px)]"
           />
         </div>
       </div>

@@ -24,7 +24,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import type { Course, Lesson } from "@/types"
-import { useAuth } from "@/hooks/use-auth"
+import { useCourses } from "@/hooks/use-courses"
 
 export default function CoursePreviewPage({
   params,
@@ -33,6 +33,7 @@ export default function CoursePreviewPage({
   params: Promise<{ id: string }>
   searchParams: Promise<{ lesson?: string }>
 }) {
+  const { getCourse } = useCourses()
   const [course, setCourse] = useState<Course | null>(null)
   const [loading, setLoading] = useState(true)
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null)
@@ -40,30 +41,23 @@ export default function CoursePreviewPage({
   const [progress, setProgress] = useState(25)
   const [videoProgress, setVideoProgress] = useState(45)
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set())
-  const { token } = useAuth()
   const { id } = use(params)
   const { lesson: lessonId } = use(searchParams)
 
   useEffect(() => {
     const fetchCourse = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/get/${id}`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        })
-        if (response.ok) {
-          const data = await response.json()
-          setCourse(data.course)
+        const data = await getCourse(id)
+        if (data) {
+          setCourse(data)
 
           // Set first lesson as default if no lesson ID provided
-          if (data.course.modules && data.course.modules.length > 0) {
+          if (data.modules && data.modules.length > 0) {
             let targetLesson = null
 
             if (lessonId) {
               // Find specific lesson if ID provided
-              for (const module of data.course.modules) {
+              for (const module of data.modules) {
                 const lesson = module.lessons?.find((l) => l.id === lessonId)
                 if (lesson) {
                   targetLesson = lesson
@@ -73,8 +67,8 @@ export default function CoursePreviewPage({
             }
 
             // Default to first lesson if no specific lesson found
-            if (!targetLesson && data.course.modules[0]?.lessons?.[0]) {
-              targetLesson = data.course.modules[0].lessons[0]
+            if (!targetLesson && data.modules[0]?.lessons?.[0]) {
+              targetLesson = data.modules[0].lessons[0]
             }
 
             setCurrentLesson(targetLesson)
@@ -88,7 +82,7 @@ export default function CoursePreviewPage({
     }
 
     fetchCourse()
-  }, [id, token, lessonId])
+  }, [id, lessonId, getCourse])
 
   const getAllLessons = () => {
     const lessons: Array<{ lesson: Lesson; moduleTitle: string }> = []

@@ -290,7 +290,7 @@ export interface Document {
   reviewNotes?: string
   createdAt: Date
   updatedAt: Date
-  lastEditedAt: Date
+  lastEditedAt: Date | string
 }
 
 export interface Notification {

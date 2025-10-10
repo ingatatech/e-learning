@@ -1,45 +1,25 @@
 "use client"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/hooks/use-auth"
+import { useDocuments } from "@/hooks/use-documents"
 import type { Document } from "@/types"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { FileText, Clock, User } from "lucide-react"
+import { FileText, Clock, User, Grid3x3, ListIcon } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
-import { toast } from "sonner"
+import { Button } from "@/components/ui/button"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 export default function SysAdminDocumentsPage() {
   const router = useRouter()
-  const { token } = useAuth()
-  const [documents, setDocuments] = useState<Document[]>([])
-  const [loading, setLoading] = useState(true)
+  const { documents, loading, fetchDocuments } = useDocuments()
   const [activeTab, setActiveTab] = useState("submitted")
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
 
   useEffect(() => {
     fetchDocuments()
   }, [])
-
-  const fetchDocuments = async () => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/docs/submitted`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setDocuments(data)
-      }
-    } catch (error) {
-      console.error("Error fetching documents:", error)
-      toast.error("Failed to load documents")
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const getStatusBadge = (status: Document["status"]) => {
     switch (status) {
@@ -72,9 +52,29 @@ export default function SysAdminDocumentsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Document Review</h1>
-        <p className="text-muted-foreground">Review and approve instructor documents</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Document Review</h1>
+          <p className="text-muted-foreground">Review and approve instructor documents</p>
+        </div>
+        <div className="flex items-center border rounded-md">
+          <Button
+            variant={viewMode === "grid" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("grid")}
+            className="rounded-r-none"
+          >
+            <Grid3x3 className="w-4 h-4" />
+          </Button>
+          <Button
+            variant={viewMode === "list" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("list")}
+            className="rounded-l-none"
+          >
+            <ListIcon className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -93,7 +93,7 @@ export default function SysAdminDocumentsPage() {
                 <p className="text-muted-foreground">There are no {activeTab} documents at the moment</p>
               </CardContent>
             </Card>
-          ) : (
+          ) : viewMode === "grid" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredDocuments.map((doc) => (
                 <Card
@@ -101,30 +101,61 @@ export default function SysAdminDocumentsPage() {
                   className="hover:shadow-lg transition-shadow cursor-pointer"
                   onClick={() => router.push(`/sysAdmin/documents/${doc.id}`)}
                 >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-lg truncate">{doc.title}</CardTitle>
-                        <CardDescription className="flex items-center gap-2 mt-1">
-                          <User className="w-3 h-3" />
-                          {doc.instructor?.firstName} {doc.instructor?.lastName}
-                        </CardDescription>
-                        <CardDescription className="flex items-center gap-2 mt-1">
-                          <Clock className="w-3 h-3" />
-                          {formatDistanceToNow(new Date(doc.lastEditedAt), { addSuffix: true })}
-                        </CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
                   <CardContent>
                     <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-lg truncate">{doc.title}</div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <User className="w-3 h-3" />
+                          {doc.instructor?.firstName} {doc.instructor?.lastName}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Clock className="w-3 h-3" />
+                          {formatDistanceToNow(new Date(doc.lastEditedAt), { addSuffix: true })}
+                        </div>
+                      </div>
                       {getStatusBadge(doc.status)}
-                      <FileText className="w-8 h-8 text-muted-foreground" />
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
+          ) : (
+            <Card>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Instructor</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Last Edited</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredDocuments.map((doc) => (
+                    <TableRow
+                      key={doc.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => router.push(`/sysAdmin/documents/${doc.id}`)}
+                    >
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-muted-foreground" />
+                          {doc.title}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {doc.instructor?.firstName} {doc.instructor?.lastName}
+                      </TableCell>
+                      <TableCell>{getStatusBadge(doc.status)}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {formatDistanceToNow(new Date(doc.lastEditedAt), { addSuffix: true })}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
           )}
         </TabsContent>
       </Tabs>

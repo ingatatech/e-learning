@@ -2,6 +2,7 @@
 import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
+import { useDocuments } from "@/hooks/use-documents"
 import type { Document } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -24,12 +25,15 @@ import {
 export default function DocumentReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
-  const { user, token } = useAuth()
+  const { token } = useAuth()
+  const { getDocument, updateDocumentInCache } = useDocuments()
   const [document, setDocument] = useState<Document | null>(null)
   const [loading, setLoading] = useState(true)
   const [reviewNotes, setReviewNotes] = useState("")
   const [approveDialogOpen, setApproveDialogOpen] = useState(false)
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false)
+  const [isApproving, setIsApproving] = useState(false)
+  const [isRejecting, setIsRejecting] = useState(false)
 
   useEffect(() => {
     fetchDocument()
@@ -37,6 +41,15 @@ export default function DocumentReviewPage({ params }: { params: Promise<{ id: s
 
   const fetchDocument = async () => {
     try {
+      const cachedDoc = getDocument(id)
+      if (cachedDoc) {
+        console.log("[v0] Using cached document")
+        setDocument(cachedDoc)
+        setReviewNotes(cachedDoc.reviewNotes || "")
+        setLoading(false)
+        return
+      }
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/docs/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -60,6 +73,7 @@ export default function DocumentReviewPage({ params }: { params: Promise<{ id: s
   }
 
   const approveDocument = async () => {
+    setIsApproving(true)
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/docs/change-status/${id}`, {
         method: "POST",
@@ -75,6 +89,7 @@ export default function DocumentReviewPage({ params }: { params: Promise<{ id: s
 
       if (response.ok) {
         toast.success("Document approved")
+        updateDocumentInCache(id, { status: "approved", reviewNotes })
         router.push("/sysAdmin/documents")
       } else {
         toast.error("Failed to approve document")
@@ -82,6 +97,8 @@ export default function DocumentReviewPage({ params }: { params: Promise<{ id: s
     } catch (error) {
       console.error("Error approving document:", error)
       toast.error("Failed to approve document")
+    } finally {
+      setIsApproving(false)
     }
   }
 
@@ -91,6 +108,7 @@ export default function DocumentReviewPage({ params }: { params: Promise<{ id: s
       return
     }
 
+    setIsRejecting(true)
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/docs/change-status/${id}`, {
         method: "POST",
@@ -106,6 +124,7 @@ export default function DocumentReviewPage({ params }: { params: Promise<{ id: s
 
       if (response.ok) {
         toast.success("Document rejected")
+        updateDocumentInCache(id, { status: "rejected", reviewNotes })
         router.push("/sysAdmin/documents")
       } else {
         toast.error("Failed to reject document")
@@ -113,6 +132,8 @@ export default function DocumentReviewPage({ params }: { params: Promise<{ id: s
     } catch (error) {
       console.error("Error rejecting document:", error)
       toast.error("Failed to reject document")
+    } finally {
+      setIsRejecting(false)
     }
   }
 
@@ -165,20 +186,38 @@ export default function DocumentReviewPage({ params }: { params: Promise<{ id: s
             </div>
           </div>
         </div>
-          <div className="flex gap-2">
+        <div className="flex gap-2">
           {document.status !== "rejected" && (
-            <Button variant="outline" onClick={() => setRejectDialogOpen(true)}>
-              <X className="w-4 h-4 mr-2" />
-              Reject
+            <Button variant="outline" onClick={() => setRejectDialogOpen(true)} disabled={isRejecting || isApproving}>
+              {isRejecting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2" />
+                  Rejecting...
+                </>
+              ) : (
+                <>
+                  <X className="w-4 h-4 mr-2" />
+                  Reject
+                </>
+              )}
             </Button>
           )}
           {document.status !== "approved" && (
-            <Button onClick={() => setApproveDialogOpen(true)}>
-              <Check className="w-4 h-4 mr-2" />
-              Approve
+            <Button onClick={() => setApproveDialogOpen(true)} disabled={isApproving || isRejecting}>
+              {isApproving ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2" />
+                  Approving...
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4 mr-2" />
+                  Approve
+                </>
+              )}
             </Button>
           )}
-          </div>
+        </div>
       </div>
 
       {/* Content */}
@@ -232,8 +271,10 @@ export default function DocumentReviewPage({ params }: { params: Promise<{ id: s
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={approveDocument}>Approve</AlertDialogAction>
+            <AlertDialogCancel disabled={isApproving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={approveDocument} disabled={isApproving}>
+              {isApproving ? "Approving..." : "Approve"}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -247,12 +288,13 @@ export default function DocumentReviewPage({ params }: { params: Promise<{ id: s
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isRejecting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={rejectDocument}
+              disabled={isRejecting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Reject
+              {isRejecting ? "Rejecting..." : "Reject"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
