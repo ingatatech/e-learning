@@ -291,6 +291,8 @@ export interface Document {
   createdAt: Date
   updatedAt: Date
   lastEditedAt: Date | string
+  fileUrl?: string
+  fileType?: string
 }
 
 export interface Notification {

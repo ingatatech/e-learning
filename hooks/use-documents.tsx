@@ -24,7 +24,6 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
   const [hasFetched, setHasFetched] = useState(false)
   const { user, token } = useAuth()
-  console.log(documents)
 
   const fetchDocuments = async (forceRefresh = false) => {
     if (hasFetched && documents.length > 0 && !forceRefresh) {

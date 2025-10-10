@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { FileText, Plus, MoreVertical, Trash2, Send, Clock, Grid3x3, ListIcon } from "lucide-react"
+import { FileText, Plus, MoreVertical, Trash2, Send, Clock, Grid3x3, ListIcon, Upload, X } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { toast } from "sonner"
 import {
@@ -22,6 +22,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { FilePreview } from "@/components/documents/file-preview"
 
 export default function DocumentsPage() {
   const router = useRouter()
@@ -30,11 +33,17 @@ export default function DocumentsPage() {
     useDocuments()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [documentToDelete, setDocumentToDelete] = useState<string | null>(null)
-  const [viewMode, setViewMode] = useState<"grid" | "list">("list")
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const [uploadModalOpen, setUploadModalOpen] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [uploadLoading, setUploadLoading] = useState(false)
+  const [previewFile, setPreviewFile] = useState<Document | null>(null)
 
   useEffect(() => {
     fetchDocuments()
   }, [])
+  
+  const files = documents.filter((doc) => doc.fileUrl)
 
   const createNewDocument = async () => {
     try {
@@ -62,6 +71,61 @@ export default function DocumentsPage() {
       console.error("Error creating document:", error)
       toast.error("Failed to create document")
     }
+  }
+
+  const handleFileUpload = async () => {
+    if (!selectedFile) {
+      toast.error("Please select a file to upload")
+      return
+    }
+
+    setUploadLoading(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", selectedFile)
+      formData.append("title", selectedFile.name)
+      formData.append("instructorId", user?.id || "")
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/docs/upload-doc`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      })
+
+      if (response.ok) {
+        const uploadedDoc = await response.json()
+        addDocumentToCache(uploadedDoc)
+        setUploadModalOpen(false)
+        setSelectedFile(null)
+        toast.success("Document uploaded successfully")
+      } else {
+        const errorData = await response.json().catch(() => ({ message: "Failed to upload document" }))
+        toast.error(errorData.message || "Failed to upload document")
+      }
+    } catch (error) {
+      console.error("Error uploading document:", error)
+      toast.error("Failed to upload document")
+    } finally {
+      setUploadLoading(false)
+    }
+  }
+
+  const handleCardClick = (docu: Document) => {
+    const isDocWithFile = files.some(doc => doc.id === docu.id);
+
+    if (!isDocWithFile) {
+      router.push(`/instructor/documents/${docu.id}`)
+    }
+    else {
+      setPreviewFile(docu)
+    }
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null
+    setSelectedFile(file)
   }
 
   const deleteDocument = async (id: string) => {
@@ -157,7 +221,11 @@ export default function DocumentsPage() {
               <ListIcon className="w-4 h-4" />
             </Button>
           </div>
-          <Button onClick={createNewDocument}>
+          <Button onClick={() => setUploadModalOpen(true)} className="cursor-pointer">
+            <Upload className="w-4 h-4 mr-2" />
+            Upload
+          </Button>
+          <Button onClick={createNewDocument} className="cursor-pointer">
             <Plus className="w-4 h-4 mr-2" />
             New Document
           </Button>
@@ -170,10 +238,16 @@ export default function DocumentsPage() {
             <FileText className="w-16 h-16 text-muted-foreground mb-4" />
             <h3 className="text-xl font-semibold mb-2">No documents yet</h3>
             <p className="text-muted-foreground mb-4">Create your first document to get started</p>
-            <Button onClick={createNewDocument}>
-              <Plus className="w-4 h-4 mr-2" />
-              Create Document
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => setUploadModalOpen(true)} variant="outline">
+                <Upload className="w-4 h-4 mr-2" />
+                Upload Document
+              </Button>
+              <Button onClick={createNewDocument}>
+                <Plus className="w-4 h-4 mr-2" />
+                Create Document
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : viewMode === "grid" ? (
@@ -182,7 +256,7 @@ export default function DocumentsPage() {
             <Card
               key={doc.id}
               className="hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => router.push(`/instructor/documents/${doc.id}`)}
+              onClick={() => handleCardClick(doc)}
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
@@ -190,7 +264,7 @@ export default function DocumentsPage() {
                     <CardTitle className="text-lg truncate">{doc.title}</CardTitle>
                     <CardDescription className="flex items-center gap-2 mt-1">
                       <Clock className="w-3 h-3" />
-                      {formatDistanceToNow(new Date(doc.lastEditedAt), { addSuffix: true })}
+                      {formatDistanceToNow(doc.lastEditedAt && new Date(doc.lastEditedAt), { addSuffix: true })}
                     </CardDescription>
                   </div>
                   <DropdownMenu>
@@ -245,6 +319,7 @@ export default function DocumentsPage() {
               <TableRow>
                 <TableHead>Title</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Type</TableHead>
                 <TableHead>Last Edited</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -254,7 +329,7 @@ export default function DocumentsPage() {
                 <TableRow
                   key={doc.id}
                   className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => router.push(`/instructor/documents/${doc.id}`)}
+                  onClick={() => handleCardClick(doc)}
                 >
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
@@ -263,6 +338,7 @@ export default function DocumentsPage() {
                     </div>
                   </TableCell>
                   <TableCell>{getStatusBadge(doc.status)}</TableCell>
+                  <TableCell>{doc.fileUrl ? "File" : "Text"}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {formatDistanceToNow(new Date(doc.lastEditedAt), { addSuffix: true })}
                   </TableCell>
@@ -304,6 +380,113 @@ export default function DocumentsPage() {
             </TableBody>
           </Table>
         </Card>
+      )}
+
+      {/* Full Screen Preview Modal */}
+      {previewFile && (
+        <div className="fixed inset-0 bg-background z-50 flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b">
+            <div className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              <h2 className="text-xl font-semibold">{previewFile.title}</h2>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setPreviewFile(null)}
+              className="h-8 w-8 p-0"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {/* Preview Content */}
+          <div className="flex-1 p-4">
+            <FilePreview
+              fileUrl={previewFile.fileUrl!}
+              fileType={previewFile.fileType!}
+              fileName={previewFile.title!}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Upload Document Modal */}
+      {uploadModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background rounded-lg p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Upload Document</h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setUploadModalOpen(false)
+                  setSelectedFile(null)
+                }}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="file">Select File</Label>
+                <Input
+                  id="file"
+                  type="file"
+                  onChange={handleFileChange}
+                  className="mt-1"
+                  accept=".pdf,.doc,.docx,.txt,.md"
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  Supported formats: PDF, DOC, DOCX, TXT, MD
+                </p>
+              </div>
+              
+              {selectedFile && (
+                <div className="p-3 border rounded-md bg-muted/50">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    <span className="text-sm font-medium">{selectedFile.name}</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Size: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
+              )}
+              
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setUploadModalOpen(false)
+                    setSelectedFile(null)
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleFileUpload}
+                  disabled={!selectedFile || uploadLoading}
+                >
+                  {uploadLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
