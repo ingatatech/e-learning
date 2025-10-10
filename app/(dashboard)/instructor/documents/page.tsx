@@ -30,7 +30,7 @@ export default function DocumentsPage() {
     useDocuments()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [documentToDelete, setDocumentToDelete] = useState<string | null>(null)
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list")
 
   useEffect(() => {
     fetchDocuments()
@@ -200,7 +200,7 @@ export default function DocumentsPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      {doc.status === "draft" && (
+                      {doc.status === "draft" || doc.status === "rejected" && (
                         <DropdownMenuItem
                           onClick={(e) => {
                             e.stopPropagation()
@@ -274,7 +274,7 @@ export default function DocumentsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        {doc.status === "draft" && (
+                        {doc.status === "draft" || doc.status === "rejected" && (
                           <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation()

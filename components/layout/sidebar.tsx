@@ -444,7 +444,7 @@ export function Sidebar({ userRole, className }: SidebarProps) {
                     <div className="flex items-center gap-3 w-full">
                       <Avatar className="h-10 w-10 ring-2 ring-green-200">
                         <AvatarImage
-                          src={user?.profilePicture || "/placeholder.svg"}
+                          src={user?.profilePicture || ""}
                           alt={user.firstName + " " + user.lastName}
                           className="object-cover"
                         />
