@@ -12,7 +12,7 @@ import { toast } from "sonner"
 
 export default function SysAdminDocumentsPage() {
   const router = useRouter()
-  const { user } = useAuth()
+  const { token } = useAuth()
   const [documents, setDocuments] = useState<Document[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("submitted")
@@ -23,8 +23,7 @@ export default function SysAdminDocumentsPage() {
 
   const fetchDocuments = async () => {
     try {
-      const token = localStorage.getItem("Etoken")
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/documents/all`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/docs/submitted`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -56,7 +55,7 @@ export default function SysAdminDocumentsPage() {
   }
 
   const filteredDocuments = documents.filter((doc) => {
-    if (activeTab === "all") return true
+    if (activeTab === "submitted") return true
     return doc.status === activeTab
   })
 
@@ -83,7 +82,6 @@ export default function SysAdminDocumentsPage() {
           <TabsTrigger value="submitted">Submitted</TabsTrigger>
           <TabsTrigger value="approved">Approved</TabsTrigger>
           <TabsTrigger value="rejected">Rejected</TabsTrigger>
-          <TabsTrigger value="all">All</TabsTrigger>
         </TabsList>
 
         <TabsContent value={activeTab} className="mt-6">

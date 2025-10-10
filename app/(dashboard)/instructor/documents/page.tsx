@@ -23,7 +23,7 @@ import {
 
 export default function DocumentsPage() {
   const router = useRouter()
-  const { user } = useAuth()
+  const { user, token } = useAuth()
   const [documents, setDocuments] = useState<Document[]>([])
   const [loading, setLoading] = useState(true)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -37,8 +37,7 @@ export default function DocumentsPage() {
     if (!user) return
 
     try {
-      const token = localStorage.getItem("Etoken")
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/documents/instructor/${user.id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/docs/instructor/${user.id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -58,8 +57,7 @@ export default function DocumentsPage() {
 
   const createNewDocument = async () => {
     try {
-      const token = localStorage.getItem("Etoken")
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/documents`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/docs`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -86,8 +84,7 @@ export default function DocumentsPage() {
 
   const deleteDocument = async (id: string) => {
     try {
-      const token = localStorage.getItem("Etoken")
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/documents/${id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/docs/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -98,18 +95,18 @@ export default function DocumentsPage() {
         setDocuments(documents.filter((doc) => doc.id !== id))
         toast.success("Document deleted")
       } else {
+        console.log(response)
         toast.error("Failed to delete document")
       }
     } catch (error) {
-      console.error("Error deleting document:", error)
+      console.error("Error deleting document:", error instanceof Error ? error.message : error)
       toast.error("Failed to delete document")
     }
   }
 
   const submitDocument = async (id: string) => {
     try {
-      const token = localStorage.getItem("Etoken")
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/documents/${id}/submit`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/docs/submit/${id}`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

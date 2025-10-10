@@ -24,7 +24,7 @@ import {
 export default function DocumentEditorPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
-  const { user } = useAuth()
+  const { token } = useAuth()
   const [document, setDocument] = useState<Document | null>(null)
   const [title, setTitle] = useState("")
   const [content, setContent] = useState("")
@@ -50,8 +50,7 @@ export default function DocumentEditorPage({ params }: { params: Promise<{ id: s
 
   const fetchDocument = async () => {
     try {
-      const token = localStorage.getItem("Etoken")
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/documents/${id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/docs/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -62,7 +61,9 @@ export default function DocumentEditorPage({ params }: { params: Promise<{ id: s
         setDocument(data)
         setTitle(data.title)
         setContent(data.content)
-        setLastSaved(new Date(data.lastEditedAt))
+        if (data?.lastEditedAt) {
+          setLastSaved(new Date(data.lastEditedAt))
+        }
       } else {
         toast.error("Failed to load document")
         router.push("/instructor/documents")
@@ -80,8 +81,7 @@ export default function DocumentEditorPage({ params }: { params: Promise<{ id: s
 
     setSaving(true)
     try {
-      const token = localStorage.getItem("Etoken")
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/documents/${id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/docs/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -119,8 +119,7 @@ export default function DocumentEditorPage({ params }: { params: Promise<{ id: s
       // Save first
       await saveDocument(false)
 
-      const token = localStorage.getItem("Etoken")
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/documents/${id}/submit`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/docs/${id}/submit`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -180,13 +179,12 @@ export default function DocumentEditorPage({ params }: { params: Promise<{ id: s
               className="text-lg font-semibold border-none shadow-none focus-visible:ring-0 max-w-md"
               placeholder="Untitled Document"
             />
-            {document && getStatusBadge(document.status)}
           </div>
           <div className="flex items-center gap-4">
             {lastSaved && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Clock className="w-4 h-4" />
-                {saving ? "Saving..." : `Saved ${formatDistanceToNow(lastSaved, { addSuffix: true })}`}
+                {saving ? "Saving..." : lastSaved ? `Saved ${formatDistanceToNow(lastSaved, { addSuffix: true })}` : "Not saved yet"}
               </div>
             )}
             <Button variant="outline" onClick={() => saveDocument(true)} disabled={saving}>

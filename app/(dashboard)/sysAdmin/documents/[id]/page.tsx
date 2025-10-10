@@ -24,7 +24,7 @@ import {
 export default function DocumentReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
-  const { user } = useAuth()
+  const { user, token } = useAuth()
   const [document, setDocument] = useState<Document | null>(null)
   const [loading, setLoading] = useState(true)
   const [reviewNotes, setReviewNotes] = useState("")
@@ -37,8 +37,7 @@ export default function DocumentReviewPage({ params }: { params: Promise<{ id: s
 
   const fetchDocument = async () => {
     try {
-      const token = localStorage.getItem("Etoken")
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/documents/${id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/docs/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -62,16 +61,15 @@ export default function DocumentReviewPage({ params }: { params: Promise<{ id: s
 
   const approveDocument = async () => {
     try {
-      const token = localStorage.getItem("Etoken")
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/documents/${id}/approve`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/docs/change-status/${id}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+          status: "approved",
           reviewNotes,
-          reviewedBy: user?.id,
         }),
       })
 
@@ -94,16 +92,15 @@ export default function DocumentReviewPage({ params }: { params: Promise<{ id: s
     }
 
     try {
-      const token = localStorage.getItem("Etoken")
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/documents/${id}/reject`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/docs/change-status/${id}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+          status: "rejected",
           reviewNotes,
-          reviewedBy: user?.id,
         }),
       })
 
@@ -168,18 +165,20 @@ export default function DocumentReviewPage({ params }: { params: Promise<{ id: s
             </div>
           </div>
         </div>
-        {document.status === "submitted" && (
           <div className="flex gap-2">
+          {document.status !== "rejected" && (
             <Button variant="outline" onClick={() => setRejectDialogOpen(true)}>
               <X className="w-4 h-4 mr-2" />
               Reject
             </Button>
+          )}
+          {document.status !== "approved" && (
             <Button onClick={() => setApproveDialogOpen(true)}>
               <Check className="w-4 h-4 mr-2" />
               Approve
             </Button>
+          )}
           </div>
-        )}
       </div>
 
       {/* Content */}
@@ -206,7 +205,7 @@ export default function DocumentReviewPage({ params }: { params: Promise<{ id: s
                 onChange={(e) => setReviewNotes(e.target.value)}
                 placeholder="Add your review notes here..."
                 className="min-h-[200px]"
-                disabled={document.status !== "submitted"}
+                disabled={document.status === "rejected"}
               />
             </CardContent>
           </Card>
