@@ -1,5 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
+import type React from "react"
+
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
 import { useDocuments } from "@/hooks/use-documents"
@@ -42,7 +44,7 @@ export default function DocumentsPage() {
   useEffect(() => {
     fetchDocuments()
   }, [])
-  
+
   const files = documents.filter((doc) => doc.fileUrl)
 
   const createNewDocument = async () => {
@@ -100,6 +102,7 @@ export default function DocumentsPage() {
         setUploadModalOpen(false)
         setSelectedFile(null)
         toast.success("Document uploaded successfully")
+        await fetchDocuments(true)
       } else {
         const errorData = await response.json().catch(() => ({ message: "Failed to upload document" }))
         toast.error(errorData.message || "Failed to upload document")
@@ -113,12 +116,11 @@ export default function DocumentsPage() {
   }
 
   const handleCardClick = (docu: Document) => {
-    const isDocWithFile = files.some(doc => doc.id === docu.id);
+    const isDocWithFile = files.some((doc) => doc.id === docu.id)
 
     if (!isDocWithFile) {
       router.push(`/instructor/documents/${docu.id}`)
-    }
-    else {
+    } else {
       setPreviewFile(docu)
     }
   }
@@ -274,17 +276,18 @@ export default function DocumentsPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      {doc.status === "draft" || doc.status === "rejected" && (
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            submitDocument(doc.id)
-                          }}
-                        >
-                          <Send className="w-4 h-4 mr-2" />
-                          Submit for Review
-                        </DropdownMenuItem>
-                      )}
+                      {doc.status === "draft" ||
+                        (doc.status === "rejected" && (
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              submitDocument(doc.id)
+                            }}
+                          >
+                            <Send className="w-4 h-4 mr-2" />
+                            Submit for Review
+                          </DropdownMenuItem>
+                        ))}
                       <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation()
@@ -350,17 +353,18 @@ export default function DocumentsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        {doc.status === "draft" || doc.status === "rejected" && (
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              submitDocument(doc.id)
-                            }}
-                          >
-                            <Send className="w-4 h-4 mr-2" />
-                            Submit for Review
-                          </DropdownMenuItem>
-                        )}
+                        {doc.status === "draft" ||
+                          (doc.status === "rejected" && (
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                submitDocument(doc.id)
+                              }}
+                            >
+                              <Send className="w-4 h-4 mr-2" />
+                              Submit for Review
+                            </DropdownMenuItem>
+                          ))}
                         <DropdownMenuItem
                           onClick={(e) => {
                             e.stopPropagation()
@@ -391,12 +395,7 @@ export default function DocumentsPage() {
               <FileText className="w-5 h-5" />
               <h2 className="text-xl font-semibold">{previewFile.title}</h2>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setPreviewFile(null)}
-              className="h-8 w-8 p-0"
-            >
+            <Button variant="ghost" size="sm" onClick={() => setPreviewFile(null)} className="h-8 w-8 p-0">
               <X className="w-4 h-4" />
             </Button>
           </div>
@@ -429,7 +428,7 @@ export default function DocumentsPage() {
                 <X className="w-4 h-4" />
               </Button>
             </div>
-            
+
             <div className="space-y-4">
               <div>
                 <Label htmlFor="file">Select File</Label>
@@ -440,11 +439,9 @@ export default function DocumentsPage() {
                   className="mt-1"
                   accept=".pdf,.doc,.docx,.txt,.md"
                 />
-                <p className="text-sm text-muted-foreground mt-1">
-                  Supported formats: PDF, DOC, DOCX, TXT, MD
-                </p>
+                <p className="text-sm text-muted-foreground mt-1">Supported formats: PDF, DOC, DOCX, TXT, MD</p>
               </div>
-              
+
               {selectedFile && (
                 <div className="p-3 border rounded-md bg-muted/50">
                   <div className="flex items-center gap-2">
@@ -456,7 +453,7 @@ export default function DocumentsPage() {
                   </p>
                 </div>
               )}
-              
+
               <div className="flex justify-end gap-2 pt-4">
                 <Button
                   variant="outline"
@@ -467,10 +464,7 @@ export default function DocumentsPage() {
                 >
                   Cancel
                 </Button>
-                <Button
-                  onClick={handleFileUpload}
-                  disabled={!selectedFile || uploadLoading}
-                >
+                <Button onClick={handleFileUpload} disabled={!selectedFile || uploadLoading}>
                   {uploadLoading ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
