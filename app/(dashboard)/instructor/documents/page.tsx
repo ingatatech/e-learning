@@ -261,7 +261,7 @@ export default function DocumentsPage() {
               onClick={() => handleCardClick(doc)}
             >
               <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between bg-transparent overflow-hidden">
                   <div className="flex-1 min-w-0">
                     <CardTitle className="text-lg truncate">{doc.title}</CardTitle>
                     <CardDescription className="flex items-center gap-2 mt-1">
@@ -276,8 +276,7 @@ export default function DocumentsPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      {doc.status === "draft" ||
-                        (doc.status === "rejected" && (
+                      {(doc.status === "draft" || doc.status === "rejected") && (
                           <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation()
@@ -287,7 +286,7 @@ export default function DocumentsPage() {
                             <Send className="w-4 h-4 mr-2" />
                             Submit for Review
                           </DropdownMenuItem>
-                        ))}
+                        )}
                       <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation()
