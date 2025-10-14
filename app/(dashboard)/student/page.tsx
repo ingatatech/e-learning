@@ -401,6 +401,15 @@ export default function StudentDashboard() {
                               src={enrollment.course.thumbnail} 
                               alt={enrollment.course.title}
                               className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.onerror = null; // prevent infinite loop
+                                e.currentTarget.style.display = "none"; // hide broken image
+                                // optionally, you can show a placeholder element
+                                e.currentTarget.insertAdjacentHTML(
+                                  "afterend",
+                                  `<BookOpen className="w-6 h-6 text-white" />`
+                                );
+                              }}
                             />
                           ) : (
                             <BookOpen className="w-6 h-6 text-white" />

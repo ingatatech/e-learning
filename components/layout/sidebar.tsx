@@ -160,6 +160,23 @@ export function Sidebar({ userRole, className }: SidebarProps) {
 
   const items = navigationItems[userRole] || []
 
+  useEffect(() => {
+  const mq = window.matchMedia("(max-width: 768px)"); // adjust breakpoint
+  const handleResize = (e: MediaQueryListEvent | MediaQueryList) => {
+    setIsCollapsed(e.matches);
+  };
+
+  // initial check
+  setIsCollapsed(mq.matches);
+
+  // listen for changes
+  mq.addEventListener ? mq.addEventListener("change", handleResize) : mq.addListener(handleResize);
+
+  return () => {
+    mq.removeEventListener ? mq.removeEventListener("change", handleResize) : mq.removeListener(handleResize);
+  };
+}, []);
+
   // Function to get the most specific matching item for a given path
   const getMostSpecificMatch = (
     items: NavigationItem[],
