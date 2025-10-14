@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
+import { set } from "date-fns";
 
 declare global {
   interface Window {
@@ -11,16 +12,25 @@ declare global {
 
 interface GoogleLoginButtonProps {
   onError?: (msg: string) => void;
+  isLoading?: boolean
+  setIsLoading?: any
 }
 
-export function GoogleLoginButton({ onError }: GoogleLoginButtonProps) {
+export function GoogleLoginButton({ onError, isLoading, setIsLoading }: GoogleLoginButtonProps) {
   const router = useRouter();
   const { setUser } = useAuth();
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (loading) {
+      setIsLoading(loading);
+    }
+  }, [loading]);
+
+  useEffect(() => {
     const handleCredentialResponse = async (response: any) => {
       setLoading(true);
+      setIsLoading(true)
       const token = response.credential;
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/google`, {
@@ -46,6 +56,7 @@ export function GoogleLoginButton({ onError }: GoogleLoginButtonProps) {
         if (onError) onError(err.message || "Something went wrong");
       } finally {
         setLoading(false);
+        setIsLoading(false)
       }
     };
 

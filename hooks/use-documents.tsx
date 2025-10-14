@@ -14,6 +14,8 @@ interface DocumentsContextType {
   updateDocumentInCache: (id: string, updates: Partial<Document>) => void
   addDocumentToCache: (document: Document) => void
   removeDocumentFromCache: (id: string) => void
+  hasFetched: boolean
+  setHasFetched: (hasFetched: boolean) => void
 }
 
 const DocumentsContext = createContext<DocumentsContextType | undefined>(undefined)
@@ -24,9 +26,12 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
   const [hasFetched, setHasFetched] = useState(false)
   const { user, token } = useAuth()
+  const [fetchedUserId, setFetchedUserId] = useState<string | null>(null);
+
 
   const fetchDocuments = async (forceRefresh = false) => {
-    if (hasFetched && documents.length > 0 && !forceRefresh) {
+    console.log('hasFetched', hasFetched, documents, forceRefresh)
+    if (fetchedUserId === user?.id && hasFetched && documents.length > 0 && !forceRefresh) {
       return
     }
 
@@ -59,6 +64,7 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
         const data = await response.json()
         setDocuments(data)
         setHasFetched(true)
+        setFetchedUserId(user.id)
       } else {
         throw new Error("Failed to fetch documents")
       }
@@ -77,6 +83,7 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
   const invalidateCache = () => {
     setDocuments([])
     setHasFetched(false)
+    setFetchedUserId(user!.id)
   }
 
   const updateDocumentInCache = (id: string, updates: Partial<Document>) => {
@@ -103,6 +110,8 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
         updateDocumentInCache,
         addDocumentToCache,
         removeDocumentFromCache,
+        hasFetched,
+        setHasFetched,
       }}
     >
       {children}

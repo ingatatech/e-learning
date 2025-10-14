@@ -124,8 +124,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, { method: "POST", credentials: "include" })
       setUser(null)
-      localStorage.removeItem("Euser")
       localStorage.removeItem("Etoken")
+      localStorage.removeItem("Euser")
       router.push("/login")
     } catch (error) {
       console.error("Logout error:", error)

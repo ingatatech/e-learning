@@ -98,7 +98,7 @@ export function LoginForm() {
           </Link>
         </div>
 
-        <Button type="submit" className="w-full cursor-pointer" disabled={isLoading}>
+        <Button type="submit" className="w-full cursor-pointer" disabled={isLoading || isGoogleLoading}>
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Sign In
         </Button>
@@ -115,7 +115,7 @@ export function LoginForm() {
       </div>
 
       {/* Google Login Button */}
-      <GoogleLoginButton onError={(msg) => setError(msg)}  />
+      <GoogleLoginButton onError={(msg) => setError(msg)} isLoading={isGoogleLoading} setIsLoading={setIsGoogleLoading}  />
 
     </div>
   )

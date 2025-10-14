@@ -47,6 +47,60 @@ export default function DocumentsPage() {
 
   const files = documents.filter((doc) => doc.fileUrl)
 
+  // Function to get file icon based on extension
+  const getFileIcon = (fileName?: string, fileType?: string) => {
+    if (!fileName && !fileType) {
+      return <FileText className="w-8 h-8 text-muted-foreground" />
+    }
+
+    // Use fileType first, then fall back to fileName extension
+    const type = fileType?.toLowerCase() || fileName?.toLowerCase() || ""
+    
+    if (type.includes('pdf') || fileName?.toLowerCase().endsWith('.pdf')) {
+      return (
+        <div className="w-8 h-8 flex items-center justify-center bg-red-50 rounded-md">
+          <FileText className="w-5 h-5 text-red-600" />
+        </div>
+      )
+    }
+    
+    if (type.includes('powerpoint') || type.includes('ppt') || fileName?.toLowerCase().match(/\.pptx?$/)) {
+      return (
+        <div className="w-8 h-8 flex items-center justify-center bg-orange-50 rounded-md">
+          <FileText className="w-5 h-5 text-orange-600" />
+        </div>
+      )
+    }
+    
+    if (type.includes('word') || type.includes('document') || fileName?.toLowerCase().match(/\.docx?$/)) {
+      return (
+        <div className="w-8 h-8 flex items-center justify-center bg-blue-50 rounded-md">
+          <FileText className="w-5 h-5 text-blue-600" />
+        </div>
+      )
+    }
+    
+    // Default file icon
+    return (
+      <div className="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-md">
+        <FileText className="w-5 h-5 text-gray-600" />
+      </div>
+    )
+  }
+
+  // Function to get file type for display
+  const getFileType = (fileName?: string, fileType?: string) => {
+    if (!fileName && !fileType) return "Text"
+    
+    const type = fileType?.toLowerCase() || fileName?.toLowerCase() || ""
+    
+    if (type.includes('pdf') || fileName?.toLowerCase().endsWith('.pdf')) return "PDF"
+    if (type.includes('powerpoint') || type.includes('ppt') || fileName?.toLowerCase().match(/\.pptx?$/)) return "PowerPoint"
+    if (type.includes('word') || type.includes('document') || fileName?.toLowerCase().match(/\.docx?$/)) return "Word"
+    
+    return "File"
+  }
+
   const createNewDocument = async () => {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/docs`, {
@@ -305,7 +359,7 @@ export default function DocumentsPage() {
               <CardContent>
                 <div className="flex items-center justify-between">
                   {getStatusBadge(doc.status)}
-                  <FileText className="w-8 h-8 text-muted-foreground" />
+                  {getFileIcon(doc.fileUrl || doc.title, doc.fileType)}
                 </div>
                 {doc.status === "rejected" && doc.reviewNotes && (
                   <p className="text-sm text-destructive mt-2">{doc.reviewNotes}</p>
@@ -335,12 +389,12 @@ export default function DocumentsPage() {
                 >
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-muted-foreground" />
+                      {getFileIcon(doc.fileUrl || doc.title, doc.fileType)}
                       {doc.title}
                     </div>
                   </TableCell>
                   <TableCell>{getStatusBadge(doc.status)}</TableCell>
-                  <TableCell>{doc.fileUrl ? "File" : "Text"}</TableCell>
+                  <TableCell>{getFileType(doc.fileUrl || doc.title, doc.fileType)}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {formatDistanceToNow(new Date(doc.lastEditedAt), { addSuffix: true })}
                   </TableCell>
@@ -391,7 +445,7 @@ export default function DocumentsPage() {
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b">
             <div className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
+              {getFileIcon(previewFile.fileUrl || previewFile.title, previewFile.fileType)}
               <h2 className="text-xl font-semibold">{previewFile.title}</h2>
             </div>
             <Button variant="ghost" size="sm" onClick={() => setPreviewFile(null)} className="h-8 w-8 p-0">
@@ -436,15 +490,15 @@ export default function DocumentsPage() {
                   type="file"
                   onChange={handleFileChange}
                   className="mt-1"
-                  accept=".pdf,.doc,.docx,.txt,.md"
+                  accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.md"
                 />
-                <p className="text-sm text-muted-foreground mt-1">Supported formats: PDF, DOC, DOCX, TXT, MD</p>
+                <p className="text-sm text-muted-foreground mt-1">Supported formats: PDF, DOC, DOCX, PPT, PPTX, TXT, MD</p>
               </div>
 
               {selectedFile && (
                 <div className="p-3 border rounded-md bg-muted/50">
                   <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4" />
+                    {getFileIcon(selectedFile.name)}
                     <span className="text-sm font-medium">{selectedFile.name}</span>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">

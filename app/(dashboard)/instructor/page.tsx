@@ -10,16 +10,18 @@ import { useAuth } from "@/hooks/use-auth"
 import { Course, User } from "@/types"
 
 interface Student {
-  id: number
-  email: string
-  firstName: string
-  lastName: string
-  totalPoints: number
-  level: number
-  streakDays: number
-  profilePicUrl: string | null
-  createdAt: string
-  updatedAt: string
+  student: {
+    id: number
+    email: string
+    firstName: string
+    lastName: string
+    totalPoints: number
+    level: number
+    streakDays: number
+    profilePicUrl: string | null
+    createdAt: string
+    updatedAt: string
+  }
 }
 
 interface StudentsResponse {
@@ -86,7 +88,7 @@ export default function InstructorDashboard() {
           // Calculate total revenue from published courses
           const totalRevenue = coursesData.courses
             .filter((course: Course) => course.isPublished)
-            .reduce((sum: number, course: Course) => sum + parseFloat(course.price || "0"), 0)
+            .reduce((sum: number, course: Course) => sum + parseFloat(course.price.toString() || "0"), 0)
 
           // Calculate average rating from courses with ratings
           const coursesWithRatings = coursesData.courses.filter((course: Course) => course.rating > 0)
@@ -226,7 +228,7 @@ export default function InstructorDashboard() {
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <span>{course.enrollmentCount} students</span>
-                      <span>${parseFloat(course.price || "0").toLocaleString()}</span>
+                      <span>${parseFloat(course.price.toString() || "0").toLocaleString()}</span>
                       {course.rating > 0 && <span>⭐ {course.rating}</span>}
                       <Badge variant={course.isPublished ? "default" : "secondary"}>
                         {course.isPublished ? "Published" : "Draft"}
@@ -278,13 +280,13 @@ export default function InstructorDashboard() {
               </div>
             ) : recentStudents.length > 0 ? (
               recentStudents.map((student) => (
-                <div key={student.id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div key={student.student.id} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                      {student.profilePicUrl ? (
+                      {student.student.profilePicUrl ? (
                         <img 
-                          src={student.profilePicUrl} 
-                          alt={`${student.firstName} ${student.lastName}`}
+                          src={student.student.profilePicUrl} 
+                          alt={`${student.student.firstName} ${student.student.lastName}`}
                           className="w-10 h-10 rounded-full"
                         />
                       ) : (
@@ -293,18 +295,18 @@ export default function InstructorDashboard() {
                     </div>
                     <div>
                       <p className="text-sm font-medium">
-                        {student.firstName} {student.lastName}
+                        {student.student.firstName} {student.student.lastName}
                       </p>
-                      <p className="text-xs text-muted-foreground">{student.email}</p>
+                      <p className="text-xs text-muted-foreground">{student.student.email}</p>
                       <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className="text-xs">Level {student.level}</Badge>
-                        <Badge variant="outline" className="text-xs">{student.totalPoints} pts</Badge>
+                        <Badge variant="outline" className="text-xs">Level {student.student.level}</Badge>
+                        <Badge variant="outline" className="text-xs">{student.student.totalPoints} pts</Badge>
                       </div>
                     </div>
                   </div>
                   <Badge variant="secondary" className="flex items-center gap-1">
                     <Calendar className="w-3 h-3" />
-                    {formatRelativeTime(student.createdAt)}
+                    {formatRelativeTime(student.student.createdAt)}
                   </Badge>
                 </div>
               ))
