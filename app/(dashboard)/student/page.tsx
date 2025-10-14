@@ -70,6 +70,7 @@ export default function StudentDashboard() {
   })
   const [currentDate, setCurrentDate] = useState(new Date())
   const { token, user } = useAuth()
+  const [imgError, setImgError] = useState(false);
 
   // Function to generate learning steps
   const generateLearningSteps = (course: any) => {
@@ -371,11 +372,6 @@ export default function StudentDashboard() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl">My Courses</CardTitle>
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" className="text-primary">All</Button>
-                    <Button variant="ghost" size="sm">Ongoing</Button>
-                    <Button variant="ghost" size="sm">Complete</Button>
-                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -396,20 +392,12 @@ export default function StudentDashboard() {
                     enrollments.slice(0, 4).map((enrollment) => (
                       <div key={enrollment.id} className="flex items-center gap-4 p-4 border rounded-lg hover:shadow-md transition-shadow">
                         <div className="w-12 h-12 rounded-lg overflow-hidden bg-gradient-to-br from-orange-400 to-red-400 flex items-center justify-center">
-                          {enrollment.course.thumbnail ? (
+                          {enrollment.course.thumbnail && !imgError ? (
                             <img 
                               src={enrollment.course.thumbnail} 
                               alt={enrollment.course.title}
                               className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.onerror = null; // prevent infinite loop
-                                e.currentTarget.style.display = "none"; // hide broken image
-                                // optionally, you can show a placeholder element
-                                e.currentTarget.insertAdjacentHTML(
-                                  "afterend",
-                                  `<BookOpen className="w-6 h-6 text-white" />`
-                                );
-                              }}
+                              onError={() => setImgError(true)}
                             />
                           ) : (
                             <BookOpen className="w-6 h-6 text-white" />
