@@ -275,6 +275,7 @@ export interface Certificate {
   course?: Course
   certificateUrl: string
   issuedAt: Date
+  verificationCode?: string
 }
 
 export interface Document {

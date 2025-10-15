@@ -88,7 +88,8 @@
     "vaul": "^0.9.9",
     "vue": "latest",
     "vue-router": "latest",
-    "zod": "3.25.67"
+    "zod": "3.25.67",
+    "html2canvas": "1.4.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.9",

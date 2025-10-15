@@ -40,12 +40,11 @@ import {
   AlertTriangle,
   Play,
   ChevronRight,
-  X,
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
-import type { Answer } from "@/types"
 import { toast } from "@/components/ui/use-toast"
 import { Pssnt } from "../weblack/pssnt"
+import { set } from "date-fns"
 
 interface Question {
   id: string
@@ -87,7 +86,7 @@ interface AssessmentScreenProps {
   isPending?: boolean
   isFailed?: boolean
   refetch?: () => void
-  }
+}
 
 export function AssessmentScreen({
   assessment,
@@ -103,7 +102,7 @@ export function AssessmentScreen({
   refetch,
 }: AssessmentScreenProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
-  const [answers, setAnswers] = useState<Answer[]>([])
+  const [answers, setAnswers] = useState<Record<string, string | string[]>>({})
   const [timeRemaining, setTimeRemaining] = useState(assessment.timeLimit * 60)
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [score, setScore] = useState(0)
@@ -115,6 +114,7 @@ export function AssessmentScreen({
   const [loadingSavedAnswers, setLoadingSavedAnswers] = useState(false)
   const [passed, setPassed] = useState(false)
   const [loadingRetake, setLoadingRetake] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   const { token, user } = useAuth()
 
@@ -126,7 +126,7 @@ export function AssessmentScreen({
     })
 
     setCurrentQuestionIndex(0)
-    setAnswers([])
+    setAnswers({})
     setTimeRemaining(assessment.timeLimit * 60)
     setIsSubmitted(false)
     setScore(0)
@@ -157,7 +157,12 @@ export function AssessmentScreen({
       if (response.ok) {
         const data = await response.json()
         setSavedAnswers(data.answers || [])
-        setAnswers(data.answers || [])
+
+        const answersMap: Record<string, string | string[]> = {}
+        data.answers?.forEach((answer: SavedAnswer) => {
+          answersMap[answer.question.id] = answer.answer
+        })
+        setAnswers(answersMap)
       }
     } catch (error) {
       console.error("Failed to fetch saved answers:", error)
@@ -166,61 +171,11 @@ export function AssessmentScreen({
     }
   }
 
-  const saveAnswer = async (questionId: string, answer: string | string[]) => {
-    if (!token || !user) return
-
-    try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/answers/submit`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          assessmentId: assessment.id,
-          questionId,
-          answer: Array.isArray(answer) ? answer.join(",") : answer,
-        }),
-      })
-    } catch (error) {
-      console.error("Failed to save answer:", error)
-    }
-  }
-
   const handleAnswerChange = (questionId: string, answer: string | string[]) => {
-    setAnswers((prev) => {
-      // Find if answer already exists for this question
-      const existingAnswerIndex = prev.findIndex((a) => a.question.id === questionId)
-
-      if (existingAnswerIndex >= 0) {
-        // Update existing answer
-        const updatedAnswers = [...prev]
-        updatedAnswers[existingAnswerIndex] = {
-          ...updatedAnswers[existingAnswerIndex],
-          answer: answer,
-        }
-        return updatedAnswers
-      } else {
-        // Add new answer - create a minimal question object
-        const question = assessment.questions.find((q) => q.id === questionId)
-        if (!question) return prev
-
-        const newAnswer: Answer = {
-          id: "", 
-          answer: answer,
-          isCorrect: false, 
-          pointsEarned: 0,
-          createdAt: new Date().toISOString(),
-          question: question,
-        }
-        return [...prev, newAnswer]
-      }
-    })
-
-    if (!isCompleted) {
-      saveAnswer(questionId, answer)
-    }
+    setAnswers((prev) => ({
+      ...prev,
+      [questionId]: answer,
+    }))
   }
 
   useEffect(() => {
@@ -257,7 +212,9 @@ export function AssessmentScreen({
     }
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (!token || !user) return
+
     let totalPoints = 0
     let earnedPoints = 0
     const correctAnswersMap: Record<string, string | string[]> = {}
@@ -266,8 +223,7 @@ export function AssessmentScreen({
 
     assessment.questions.forEach((question) => {
       totalPoints += question.points
-      const userAnswerObj = answers.find((a) => a.question.id === question.id)
-      const userAnswer = userAnswerObj ? userAnswerObj.answer : ""
+      const userAnswer = answers[question.id] || ""
       correctAnswersMap[question.id] = question.correctAnswer
 
       if (question.type === "true_false") {
@@ -275,9 +231,7 @@ export function AssessmentScreen({
           earnedPoints += question.points
         }
       } else if (question.type === "multiple_choice") {
-        // Check if correctAnswer is an array (multiple correct answers)
         if (Array.isArray(question.correctAnswer)) {
-          // User must select all correct answers
           const userAnswers = Array.isArray(userAnswer) ? userAnswer : [userAnswer]
           const correctAnswers = question.correctAnswer
 
@@ -290,13 +244,45 @@ export function AssessmentScreen({
             earnedPoints += question.points
           }
         } else {
-          // Single correct answer
           if (userAnswer === question.correctAnswer) {
             earnedPoints += question.points
           }
         }
       }
     })
+
+    try {
+      setLoading(true)
+      const answersToSubmit = assessment.questions.map((question) => ({
+        questionId: question.id,
+        answer: Array.isArray(answers[question.id])
+          ? (answers[question.id] as string[]).join(",")
+          : answers[question.id] || "",
+      }))
+
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/answers/submit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          assessmentId: assessment.id,
+          answers: answersToSubmit,
+        }),
+      })
+    } catch (error) {
+      console.error("Failed to save answers:", error)
+      toast({
+        title: "Error",
+        description: "Failed to submit answers. Please try again.",
+        variant: "destructive",
+      })
+      return
+    } finally {
+      setLoading(false)
+    }
 
     if (requiresManualGrading) {
       onPending()
@@ -317,7 +303,7 @@ export function AssessmentScreen({
 
   const handleRetake = async () => {
     setCurrentQuestionIndex(0)
-    setAnswers([])
+    setAnswers({})
     setTimeRemaining(assessment.timeLimit * 60)
     setIsSubmitted(false)
     setScore(0)
@@ -355,16 +341,13 @@ export function AssessmentScreen({
     return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
   }
 
-  // Get current question and answer
   const currentQuestion = assessment.questions[currentQuestionIndex]
-  const currentAnswer = answers.find((a) => a.question.id === currentQuestion?.id)
-  const currentAnswerValue = currentAnswer ? currentAnswer.answer : ""
-
+  const currentAnswerValue = answers[currentQuestion?.id] || ""
 
   if (showStartModal && !isSubmitted && !isCompleted && !isPending && !isFailed) {
     return (
       <div className="max-w-4xl mx-auto p-6">
-        <Pssnt onComplete={(score, passed) => onComplete(score, passed)}/>
+        <Pssnt onComplete={(score, passed) => onComplete(score, passed)} />
         <Dialog open={showStartModal} onOpenChange={() => {}}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
@@ -479,19 +462,22 @@ export function AssessmentScreen({
               <h3 className="text-lg font-semibold mb-4">Your Submitted Answers</h3>
               <div className="space-y-4">
                 {assessment.questions.map((question: any, index) => {
-                  const userAnswerObj = answers.find((a) => a.question.id === question.id)
-                  const userAnswer = userAnswerObj ? userAnswerObj.answer : "Not answered"
+                  const userAnswer = answers[question.id] || "Not answered"
                   const correctAnswer = question.correctAnswer
-                  const isCorrect = answers.find((a) => a.question.id === question.id)?.isCorrect
-                  const pointsEarned = answers.find((a) => a.question.id === question.id)?.pointsEarned
+                  const savedAnswer = savedAnswers.find((a) => a.question.id === question.id)
+                  const isCorrect = savedAnswer?.isCorrect
+                  const pointsEarned = savedAnswer?.pointsEarned
 
                   return (
                     <div key={question.id} className="p-4 border rounded-lg">
                       <div className="flex items-start gap-3">
                         <div
                           className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
-                              question.type === "essay" || question.type === "short_answer" ?
-                              "bg-gray-100 text-gray-700" : isCorrect ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                            question.type === "essay" || question.type === "short_answer"
+                              ? "bg-gray-100 text-gray-700"
+                              : isCorrect
+                                ? "bg-green-100 text-green-700"
+                                : "bg-red-100 text-red-700"
                           }`}
                         >
                           {index + 1}
@@ -508,9 +494,16 @@ export function AssessmentScreen({
                                 <span className="font-medium">Correct answer:</span>{" "}
                                 {Array.isArray(correctAnswer) ? correctAnswer.join(", ") : correctAnswer}
                               </p>
-                              )}
-                            <p className={`font-medium ${question.type === "essay" || question.type === "short_answer" ? "text-gray-600" : isCorrect ? "text-green-600" : "text-red-600"}`}>
-                              {question.type === "essay" || question.type === "short_answer" ? "Graded" : isCorrect ? "✓ Correct" : "✗ Incorrect"} ({pointsEarned} / {question.points} points)
+                            )}
+                            <p
+                              className={`font-medium ${question.type === "essay" || question.type === "short_answer" ? "text-gray-600" : isCorrect ? "text-green-600" : "text-red-600"}`}
+                            >
+                              {question.type === "essay" || question.type === "short_answer"
+                                ? "Graded"
+                                : isCorrect
+                                  ? "✓ Correct"
+                                  : "✗ Incorrect"}{" "}
+                              ({pointsEarned} / {question.points} points)
                             </p>
                           </div>
                         </div>
@@ -528,63 +521,58 @@ export function AssessmentScreen({
 
   if (isPending) {
     return (
-        <div className="max-w-4xl mx-auto p-6">
-          <Pssnt
-          onComplete={(score, passed) => onComplete(score, passed)}
-        />
-          <Card>
-            <CardHeader className="text-center">
-              <div className="flex justify-center mb-4">
-                <Clock className="w-16 h-16 text-blue-500" />
-              </div>
-              <CardTitle className="text-2xl">Assessment Submitted</CardTitle>
-              <p className="text-muted-foreground">{assessment.title}</p>
-            </CardHeader>
-            <CardContent className="text-center space-y-6">
-              <div className="p-6 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
-                <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                  Pending Instructor Review
-                </h3>
-                <p className="text-blue-700 dark:text-blue-300">
-                  Your assessment has been submitted successfully and is awaiting manual grading by your instructor.
-                  You'll be notified once your assessment has been graded.
-                </p>
-              </div>
+      <div className="max-w-4xl mx-auto p-6">
+        <Pssnt onComplete={(score, passed) => onComplete(score, passed)} />
+        <Card>
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <Clock className="w-16 h-16 text-blue-500" />
+            </div>
+            <CardTitle className="text-2xl">Assessment Submitted</CardTitle>
+            <p className="text-muted-foreground">{assessment.title}</p>
+          </CardHeader>
+          <CardContent className="text-center space-y-6">
+            <div className="p-6 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+              <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">Pending Instructor Review</h3>
+              <p className="text-blue-700 dark:text-blue-300">
+                Your assessment has been submitted successfully and is awaiting manual grading by your instructor.
+                You'll be notified once your assessment has been graded.
+              </p>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 border rounded-lg">
-                  <div className="text-2xl font-bold text-primary">{assessment.questions.length}</div>
-                  <div className="text-sm text-muted-foreground">Questions Answered</div>
-                </div>
-                <div className="p-4 border rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">{new Date().toLocaleDateString()}</div>
-                  <div className="text-sm text-muted-foreground">Submitted On</div>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 border rounded-lg">
+                <div className="text-2xl font-bold text-primary">{assessment.questions.length}</div>
+                <div className="text-sm text-muted-foreground">Questions Answered</div>
               </div>
+              <div className="p-4 border rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">{new Date().toLocaleDateString()}</div>
+                <div className="text-sm text-muted-foreground">Submitted On</div>
+              </div>
+            </div>
 
-              <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
-                  <div className="text-left">
-                    <p className="font-medium text-amber-800 dark:text-amber-200 mb-1">What happens next?</p>
-                    <ul className="text-sm text-amber-700 dark:text-amber-300 space-y-1">
-                      <li>• Your instructor will review your answers</li>
-                      <li>• Once graded, you can proceed to the next lesson</li>
-                    </ul>
-                  </div>
+            <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
+                <div className="text-left">
+                  <p className="font-medium text-amber-800 dark:text-amber-200 mb-1">What happens next?</p>
+                  <ul className="text-sm text-amber-700 dark:text-amber-300 space-y-1">
+                    <li>• Your instructor will review your answers</li>
+                    <li>• Once graded, you can proceed to the next lesson</li>
+                  </ul>
                 </div>
               </div>
-
-            </CardContent>
-          </Card>
-        </div>
-      )
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   if (isFailed) {
     return (
       <div className="max-w-4xl mx-auto p-6">
-        <Pssnt onComplete={(score, passed) => onComplete(score, passed)}/>
+        <Pssnt onComplete={(score, passed) => onComplete(score, passed)} />
         <Card>
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
@@ -609,36 +597,35 @@ export function AssessmentScreen({
               </div>
             </div>
 
-              <div className="space-y-4">
-                <div className="p-4 bg-red-50 dark:bg-red-950/20 rounded-lg">
-                  <p className="text-red-700 dark:text-red-300 font-medium">
-                    You need {assessment.passingScore}% to pass. You can review your answers and retake this assessment.
-                  </p>
-                </div>
-
-                <div className="flex gap-3 justify-center">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowReview(!showReview)}
-                    className="flex items-center gap-2"
-                  >
-                    <Eye className="w-4 h-4" />
-                    {showReview ? "Hide Review" : "Review Answers"}
-                  </Button>
-                  <Button onClick={handleRetake} className="flex items-center gap-2" disabled={loadingRetake}>
-                    <RotateCcw className="w-4 h-4" />
-                    {loadingRetake ? "Retaking..." : "Retake Assessment"}
-                  </Button>
-                </div>
+            <div className="space-y-4">
+              <div className="p-4 bg-red-50 dark:bg-red-950/20 rounded-lg">
+                <p className="text-red-700 dark:text-red-300 font-medium">
+                  You need {assessment.passingScore}% to pass. You can review your answers and retake this assessment.
+                </p>
               </div>
+
+              <div className="flex gap-3 justify-center">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowReview(!showReview)}
+                  className="flex items-center gap-2"
+                >
+                  <Eye className="w-4 h-4" />
+                  {showReview ? "Hide Review" : "Review Answers"}
+                </Button>
+                <Button onClick={handleRetake} className="flex items-center gap-2" disabled={loadingRetake}>
+                  <RotateCcw className="w-4 h-4" />
+                  {loadingRetake ? "Retaking..." : "Retake Assessment"}
+                </Button>
+              </div>
+            </div>
 
             {showReview && (
               <div className="mt-6 text-left">
                 <h3 className="text-lg font-semibold mb-4">Review Your Answers</h3>
                 <div className="space-y-4">
                   {assessment.questions.map((question, index) => {
-                    const userAnswerObj = answers.find((a) => a.question.id === question.id)
-                    const userAnswer = userAnswerObj ? userAnswerObj.answer : "Not answered"
+                    const userAnswer = answers[question.id] || "Not answered"
                     const correctAnswer = correctAnswers[question.id]
                     const isCorrect = Array.isArray(correctAnswer)
                       ? Array.isArray(userAnswer) &&
@@ -651,8 +638,11 @@ export function AssessmentScreen({
                         <div className="flex items-start gap-3">
                           <div
                             className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
-                                question.type === "essay" || question.type === "short_answer" ?
-                                "bg-gray-100 text-gray-700" : isCorrect ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                              question.type === "essay" || question.type === "short_answer"
+                                ? "bg-gray-100 text-gray-700"
+                                : isCorrect
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-red-100 text-red-700"
                             }`}
                           >
                             {index + 1}
@@ -661,17 +651,25 @@ export function AssessmentScreen({
                             <p className="font-medium mb-2">{question.question}</p>
                             <div className="text-sm space-y-1">
                               <p>
-                                <span className="font-medium">Your answer:</span> {(Array.isArray(userAnswer) ? userAnswer.join(", ") : userAnswer) || "Not answered"}
+                                <span className="font-medium">Your answer:</span>{" "}
+                                {(Array.isArray(userAnswer) ? userAnswer.join(", ") : userAnswer) || "Not answered"}
                               </p>
 
-                            {(correctAnswer !== null && correctAnswer !== undefined && correctAnswer !== "") && (
-                              <p>
-                                <span className="font-medium">Correct answer:</span>{" "}
-                                {Array.isArray(correctAnswer) ? correctAnswer.join(", ") : correctAnswer}
-                              </p>
+                              {correctAnswer !== null && correctAnswer !== undefined && correctAnswer !== "" && (
+                                <p>
+                                  <span className="font-medium">Correct answer:</span>{" "}
+                                  {Array.isArray(correctAnswer) ? correctAnswer.join(", ") : correctAnswer}
+                                </p>
                               )}
-                              <p className={`font-medium ${question.type === "essay" || question.type === "short_answer" ? "text-gray-600" : isCorrect ? "text-green-600" : "text-red-600"}`}>
-                                {question.type === "essay" || question.type === "short_answer" ? "Graded" : isCorrect ? "✓ Correct" : "✗ Incorrect"} ({question.points} points)
+                              <p
+                                className={`font-medium ${question.type === "essay" || question.type === "short_answer" ? "text-gray-600" : isCorrect ? "text-green-600" : "text-red-600"}`}
+                              >
+                                {question.type === "essay" || question.type === "short_answer"
+                                  ? "Graded"
+                                  : isCorrect
+                                    ? "✓ Correct"
+                                    : "✗ Incorrect"}{" "}
+                                ({question.points} points)
                               </p>
                             </div>
                           </div>
@@ -697,9 +695,7 @@ export function AssessmentScreen({
     if (requiresManualGrading) {
       return (
         <div className="max-w-4xl mx-auto p-6">
-          <Pssnt
-          onComplete={(score, passed) => onComplete(score, passed)}
-        />
+          <Pssnt onComplete={(score, passed) => onComplete(score, passed)} />
           <Card>
             <CardHeader className="text-center">
               <div className="flex justify-center mb-4">
@@ -742,7 +738,6 @@ export function AssessmentScreen({
                   </div>
                 </div>
               </div>
-
             </CardContent>
           </Card>
         </div>
@@ -751,7 +746,7 @@ export function AssessmentScreen({
 
     return (
       <div className="max-w-4xl mx-auto p-6">
-        <Pssnt onComplete={(score, passed) => onComplete(score, passed)}/>
+        <Pssnt onComplete={(score, passed) => onComplete(score, passed)} />
         <Card>
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
@@ -825,23 +820,27 @@ export function AssessmentScreen({
                 <h3 className="text-lg font-semibold mb-4">Review Your Answers</h3>
                 <div className="space-y-4">
                   {assessment.questions.map((question, index) => {
-                    const userAnswerObj = answers.find((a) => a.question.id === question.id)
-                    const userAnswer = userAnswerObj ? userAnswerObj.answer : "Not answered"
+                    const userAnswer = answers[question.id] || "Not answered"
                     const correctAnswer = correctAnswers[question.id]
                     const isCorrect = Array.isArray(correctAnswer)
                       ? Array.isArray(userAnswer) &&
                         correctAnswer.every((answer) => userAnswer.includes(answer)) &&
                         userAnswer.every((answer) => correctAnswer.includes(answer))
                       : userAnswer === correctAnswer
-                      const pointsEarned = answers.find((a) => a.question.id === question.id)?.pointsEarned
+                    const pointsEarned = answers.find((a) => a.question.id === question.id)
+                      ? (savedAnswers.find((sa) => sa.question.id === question.id)?.pointsEarned ?? 0)
+                      : 0
 
                     return (
                       <div key={question.id} className="p-4 border rounded-lg">
                         <div className="flex items-start gap-3">
                           <div
                             className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
-                                question.type === "essay" || question.type === "short_answer" ?
-                                "bg-gray-100 text-gray-700" : isCorrect ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                              question.type === "essay" || question.type === "short_answer"
+                                ? "bg-gray-100 text-gray-700"
+                                : isCorrect
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-red-100 text-red-700"
                             }`}
                           >
                             {index + 1}
@@ -850,17 +849,25 @@ export function AssessmentScreen({
                             <p className="font-medium mb-2">{question.question}</p>
                             <div className="text-sm space-y-1">
                               <p>
-                                <span className="font-medium">Your answer:</span> {(Array.isArray(userAnswer) ? userAnswer.join(", ") : userAnswer) || "Not answered"}
+                                <span className="font-medium">Your answer:</span>{" "}
+                                {(Array.isArray(userAnswer) ? userAnswer.join(", ") : userAnswer) || "Not answered"}
                               </p>
                               {(question.type === "multiple_choice" || question.type === "true_false") && (
-                              <p>
-                                <span className="font-medium">Correct answer:</span>{" "}
-                                {Array.isArray(correctAnswer) ? correctAnswer.join(", ") : correctAnswer}
-                              </p>
+                                <p>
+                                  <span className="font-medium">Correct answer:</span>{" "}
+                                  {Array.isArray(correctAnswer) ? correctAnswer.join(", ") : correctAnswer}
+                                </p>
                               )}
-                              <p className={`font-medium ${question.type === "essay" || question.type === "short_answer" ? "text-gray-600" : isCorrect ? "text-green-600" : "text-red-600"}`}>
-                              {question.type === "essay" || question.type === "short_answer" ? "Graded" : isCorrect ? "✓ Correct" : "✗ Incorrect"} ({pointsEarned} / {question.points} points)
-                            </p>
+                              <p
+                                className={`font-medium ${question.type === "essay" || question.type === "short_answer" ? "text-gray-600" : isCorrect ? "text-green-600" : "text-red-600"}`}
+                              >
+                                {question.type === "essay" || question.type === "short_answer"
+                                  ? "Graded"
+                                  : isCorrect
+                                    ? "✓ Correct"
+                                    : "✗ Incorrect"}{" "}
+                                ({pointsEarned} / {question.points} points)
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -879,7 +886,7 @@ export function AssessmentScreen({
   if (!assessment.questions.length) {
     return (
       <div className="max-w-4xl mx-auto p-6">
-        <Pssnt onComplete={(score, passed) => onComplete(score, passed)}/>
+        <Pssnt onComplete={(score, passed) => onComplete(score, passed)} />
         <Card>
           <CardContent className="text-center py-12">
             <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -895,7 +902,7 @@ export function AssessmentScreen({
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <Pssnt onComplete={(score, passed) => onComplete(score, passed)}/>
+      <Pssnt onComplete={(score, passed) => onComplete(score, passed)} />
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -937,7 +944,6 @@ export function AssessmentScreen({
             {currentQuestion.type === "multiple_choice" && (
               <>
                 {currentQuestion.type == "multiple_choice" ? (
-                  // Multiple correct answers - use checkboxes
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground mb-3">Select all that apply</p>
                     {currentQuestion.options.map((option, index) => {
@@ -969,7 +975,6 @@ export function AssessmentScreen({
                     })}
                   </div>
                 ) : (
-                  // Single correct answer - use radio buttons
                   <RadioGroup
                     value={currentAnswerValue as string}
                     onValueChange={(value) => handleAnswerChange(currentQuestion.id, value)}
@@ -1029,7 +1034,7 @@ export function AssessmentScreen({
             {currentQuestionIndex === totalQuestions - 1 ? (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button>Submit Assessment</Button>
+                  <Button disabled={loading}>{loading ? "Submitting..." : "Submit Assessment"}</Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
