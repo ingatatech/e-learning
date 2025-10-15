@@ -79,7 +79,7 @@ export function CourseCompletion({
           instructorName: course.instructor?.name || "Course Instructor",
           institutionName: course.organization?.name || "Learning Management System",
           completionDate: data.issuedAt || new Date().toISOString(),
-          verificationCode: data.verificationCode,
+          verificationCode: data.code,
         })
       }
     } catch (error) {
