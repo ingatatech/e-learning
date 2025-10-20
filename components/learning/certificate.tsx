@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Download, Share2 } from "lucide-react"
+import { Download, Share2, Linkedin } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 interface CertificateProps {
   studentName: string
@@ -87,21 +88,33 @@ export function Certificate({
     }
   }
 
+  const handleShareLinkedIn = () => {
+    const verificationUrl = `${window.location.origin}/verify-certificate/${verificationCode}`
+    const linkedInUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(verificationUrl)}`
+    window.open(linkedInUrl, "width=600,height=600")
+
+    toast({
+      title: "Opening LinkedIn",
+      description: "Share your certificate on LinkedIn!",
+    })
+  }
+
   const handleShare = () => {
     const verificationUrl = `${window.location.origin}/verify-certificate/${verificationCode}`
+    const shareText = `I've completed ${courseName} with a score of ${score}%!`
 
     if (navigator.share) {
       navigator.share({
         title: "My Course Certificate",
-        text: `I've completed ${courseName} with a score of ${score}%!`,
+        text: shareText,
         url: verificationUrl,
       })
     } else {
       // Fallback: copy to clipboard
-      navigator.clipboard.writeText(verificationUrl)
+      navigator.clipboard.writeText(`${shareText}\n${verificationUrl}`)
       toast({
         title: "Link Copied",
-        description: "Verification link copied to clipboard!",
+        description: "Certificate details copied to clipboard!",
       })
     }
   }
@@ -269,14 +282,25 @@ export function Certificate({
           <Download className="w-4 h-4" />
           Download Certificate
         </Button>
-        <Button onClick={handleShare} variant="outline" className="flex items-center gap-2 bg-transparent">
-          <Share2 className="w-4 h-4" />
-          Share
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="flex items-center gap-2 bg-transparent">
+              <Share2 className="w-4 h-4" />
+              Share
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handleShareLinkedIn} className="cursor-pointer">
+              <Linkedin className="w-4 h-4 mr-2" />
+              Share on LinkedIn
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleShare} className="cursor-pointer">
+              <Share2 className="w-4 h-4 mr-2" />
+              Share Link
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   )
 }
-
-
-

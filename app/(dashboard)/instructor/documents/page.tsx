@@ -47,42 +47,53 @@ export default function DocumentsPage() {
 
   const files = documents.filter((doc) => doc.fileUrl)
 
+  const getCardColor = (fileType?: string) => {
+    if (!fileType) return "bg-background"
+
+    const type = fileType?.toLowerCase() || ""
+
+    if (type.includes("pdf")) return "bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800/20"
+    if (type.includes("presentation") || type.includes("ppt")) return "bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800/20"
+    if (type.includes("word") || type.includes("document")) return "bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800/20"
+
+    return "bg-gray-50 border-gray-200"
+  }
+
   // Function to get file icon based on extension
   const getFileIcon = (fileType?: string) => {
-    
     if (!fileType) {
       return <FileText className="w-8 h-8 text-muted-foreground" />
     }
 
     const type = fileType?.toLowerCase() || ""
-    
-    if (type.includes('pdf')) {
+
+    if (type.includes("pdf")) {
       return (
-        <div className="w-8 h-8 flex items-center justify-center bg-red-50 rounded-md">
+        <div className="w-8 h-8 flex items-center justify-center bg-red-100 rounded-md">
           <FileText className="w-5 h-5 text-red-600" />
         </div>
       )
     }
-    
-    if (type.includes('presentation') || type.includes('ppt')) {
+
+    if (type.includes("presentation") || type.includes("ppt")) {
       return (
-        <div className="w-8 h-8 flex items-center justify-center bg-orange-50 rounded-md">
+        <div className="w-8 h-8 flex items-center justify-center bg-orange-100 rounded-md">
           <FileText className="w-5 h-5 text-orange-600" />
         </div>
       )
     }
-    
-    if (type.includes('word') || type.includes('document')) {
+
+    if (type.includes("word") || type.includes("document")) {
       return (
-        <div className="w-8 h-8 flex items-center justify-center bg-blue-50 rounded-md">
+        <div className="w-8 h-8 flex items-center justify-center bg-blue-100 rounded-md">
           <FileText className="w-5 h-5 text-blue-600" />
         </div>
       )
     }
-    
+
     // Default file icon
     return (
-      <div className="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-md">
+      <div className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-md">
         <FileText className="w-5 h-5 text-gray-600" />
       </div>
     )
@@ -91,13 +102,14 @@ export default function DocumentsPage() {
   // Function to get file type for display
   const getFileType = (fileName?: string, fileType?: string) => {
     if (!fileName && !fileType) return "Text"
-    
+
     const type = fileType?.toLowerCase() || fileName?.toLowerCase() || ""
-    
-    if (type.includes('pdf') || fileName?.toLowerCase().endsWith('.pdf')) return "PDF"
-    if (type.includes('presentation') || type.includes('ppt') || fileName?.toLowerCase().match(/\.pptx?$/)) return "PowerPoint"
-    if (type.includes('word') || type.includes('document') || fileName?.toLowerCase().match(/\.docx?$/)) return "Word"
-    
+
+    if (type.includes("pdf") || fileName?.toLowerCase().endsWith(".pdf")) return "PDF"
+    if (type.includes("presentation") || type.includes("ppt") || fileName?.toLowerCase().match(/\.pptx?$/))
+      return "PowerPoint"
+    if (type.includes("word") || type.includes("document") || fileName?.toLowerCase().match(/\.docx?$/)) return "Word"
+
     return "File"
   }
 
@@ -232,7 +244,7 @@ export default function DocumentsPage() {
       case "draft":
         return <Badge variant="secondary">Draft</Badge>
       case "submitted":
-        return <Badge variant="default">Submitted</Badge>
+        return <Badge className="bg-blue-600">Submitted</Badge>
       case "approved":
         return <Badge className="bg-green-600">Approved</Badge>
       case "rejected":
@@ -311,7 +323,7 @@ export default function DocumentsPage() {
           {documents.map((doc) => (
             <Card
               key={doc.id}
-              className="hover:shadow-lg transition-shadow cursor-pointer"
+              className={`hover:shadow-lg transition-shadow cursor-pointer ${getCardColor(doc.fileType)}`}
               onClick={() => handleCardClick(doc)}
             >
               <CardHeader className="pb-3">
@@ -331,16 +343,16 @@ export default function DocumentsPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       {(doc.status === "draft" || doc.status === "rejected") && (
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              submitDocument(doc.id)
-                            }}
-                          >
-                            <Send className="w-4 h-4 mr-2" />
-                            Submit for Review
-                          </DropdownMenuItem>
-                        )}
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            submitDocument(doc.id)
+                          }}
+                        >
+                          <Send className="w-4 h-4 mr-2" />
+                          Submit for Review
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation()

@@ -21,18 +21,70 @@ export default function SysAdminDocumentsPage() {
     fetchDocuments()
   }, [])
 
+  const getCardColor = (fileType?: string) => {
+    if (!fileType) return "bg-background"
+
+    const type = fileType?.toLowerCase() || ""
+
+    if (type.includes("pdf")) return "bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800/20"
+    if (type.includes("presentation") || type.includes("ppt")) return "bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800/20"
+    if (type.includes("word") || type.includes("document")) return "bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800/20"
+
+    return "bg-gray-50 border-gray-200"
+  }
+
   const getStatusBadge = (status: Document["status"]) => {
     switch (status) {
       case "draft":
-        return <Badge variant="secondary">Draft</Badge>
+        return <Badge variant="secondary" className="h-fit mt-1">Draft</Badge>
       case "submitted":
-        return <Badge variant="default">Submitted</Badge>
+        return <Badge className="bg-blue-600 h-fit mt-1">Submitted</Badge>
       case "approved":
-        return <Badge className="bg-green-600">Approved</Badge>
+        return <Badge className="bg-green-600 h-fit mt-1">Approved</Badge>
       case "rejected":
-        return <Badge variant="destructive">Rejected</Badge>
+        return <Badge variant="destructive" className="h-fit mt-1">Rejected</Badge>
     }
   }
+
+  const getFileIcon = (fileType?: string) => {
+      if (!fileType) {
+        return <FileText className="w-4 h-4 text-muted-foreground" />
+      }
+  
+      const type = fileType?.toLowerCase() || ""
+  
+      if (type.includes("pdf")) {
+        return (
+          <div className="w-4 h-4 flex items-center justify-center bg-red-100 rounded-md">
+            <FileText className="w-5 h-5 text-red-600" />
+          </div>
+        )
+      }
+  
+      if (type.includes("presentation") || type.includes("ppt")) {
+        return (
+          <div className="w-4 h-4 flex items-center justify-center bg-orange-100 rounded-md">
+            <FileText className="w-5 h-5 text-orange-600" />
+          </div>
+        )
+      }
+  
+      if (type.includes("word") || type.includes("document")) {
+        return (
+          <div className="w-4 h-4 flex items-center justify-center bg-blue-100 rounded-md">
+            <FileText className="w-5 h-5 text-blue-600" />
+          </div>
+        )
+      }
+  
+      // Default file icon
+      return (
+        <div className="w-4 h-4 flex items-center justify-center bg-gray-100 rounded-md">
+          <FileText className="w-5 h-5 text-gray-600" />
+        </div>
+      )
+    }
+  
 
   const filteredDocuments = documents.filter((doc) => {
     if (activeTab === "submitted") return true
@@ -98,11 +150,11 @@ export default function SysAdminDocumentsPage() {
               {filteredDocuments.map((doc) => (
                 <Card
                   key={doc.id}
-                  className="hover:shadow-lg transition-shadow cursor-pointer"
+                  className={`hover:shadow-lg transition-shadow cursor-pointer ${getCardColor(doc.fileType)}`}
                   onClick={() => router.push(`/sysAdmin/documents/${doc.id}`)}
                 >
                   <CardContent>
-                    <div className="flex items-center justify-between">
+                    <div className="flex  justify-between">
                       <div className="flex-1 min-w-0">
                         <div className="text-lg truncate">{doc.title}</div>
                         <div className="flex items-center gap-2 mt-1">
@@ -140,7 +192,7 @@ export default function SysAdminDocumentsPage() {
                     >
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
-                          <FileText className="w-4 h-4 text-muted-foreground" />
+                          {getFileIcon(doc.fileType)}
                           {doc.title}
                         </div>
                       </TableCell>

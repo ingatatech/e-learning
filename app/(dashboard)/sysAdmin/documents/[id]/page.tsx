@@ -142,7 +142,7 @@ export default function DocumentReviewPage({ params }: { params: Promise<{ id: s
       case "draft":
         return <Badge variant="secondary">Draft</Badge>
       case "submitted":
-        return <Badge variant="default">Submitted</Badge>
+        return <Badge className="bg-blue-600">Submitted</Badge>
       case "approved":
         return <Badge className="bg-green-600">Approved</Badge>
       case "rejected":
