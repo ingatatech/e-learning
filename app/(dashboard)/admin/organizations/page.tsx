@@ -18,10 +18,11 @@ import {
 import { Search, Building, MoreHorizontal, Edit, Trash2, Users, BookOpen } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/hooks/use-auth"
+import { Organization } from "@/types"
 
 export default function OrganizationsManagement() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [organizations, setOrganizations] = useState([])
+  const [organizations, setOrganizations] = useState<Organization[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const { token } = useAuth()
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
@@ -153,7 +154,7 @@ const confirmDelete = async () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {organizations.reduce((sum, org) => sum + (org.courseCount || 0), 0)}
+              {organizations.reduce((sum, org) => sum + (org.courses?.length || 0), 0)}
             </div>
           </CardContent>
         </Card>
@@ -216,19 +217,19 @@ const confirmDelete = async () => {
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
-                        <div>{org.phoneNumber}</div>
-                        <div className="text-muted-foreground">{org.website}</div>
+                        <div>{org.phoneNumber || "No phone number"}</div>
+                        <div className="text-muted-foreground">{org.website || "No website"}</div>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        {(org.address)}
+                        {(org.address || "No address")}
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <BookOpen className="w-4 h-4 text-muted-foreground" />
-                        {org.courseCount || 0}
+                        {org.courses?.length || 0}
                       </div>
                     </TableCell>
                     <TableCell>{org.createdAt ? new Date(org.createdAt).toLocaleDateString() : "N/A"}</TableCell>
@@ -254,7 +255,7 @@ const confirmDelete = async () => {
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteClick(org.id)}>
+                          <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteClick(Number(org.id))}>
                             <Trash2 className="mr-2 h-4 w-4" />
                             Delete Organization
                           </DropdownMenuItem>

@@ -62,6 +62,9 @@ export interface Organization {
   courses?: Course[]
   createdAt: Date
   updatedAt: Date
+  website?: string
+  phoneNumber?: string
+  description?: string
 }
 
 export interface Course {
