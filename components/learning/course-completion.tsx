@@ -3,19 +3,11 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Trophy, Award, Download, Star, Target, Clock, BookOpen, Loader2, Eye } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { toast } from "@/components/ui/use-toast"
 import { Certificate } from "./certificate"
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet"
 
 interface CourseCompletionProps {
   courseId: string
@@ -83,8 +75,9 @@ export function CourseCompletion({
           studentName: `${user?.firstName} ${user?.lastName}`,
           courseName: courseTitle,
           score: data.score || stats.percentage,
-          instructorName: course.instructor?.name || "Course Instructor",
+          instructorName: course.instructor?.firstName + course.instructor?.lastName  || "Course Instructor",
           institutionName: course.organization?.name || "Learning Management System",
+          directorName: course.organization?.director || "Institution Director",
           completionDate: data.issuedAt || new Date().toISOString(),
           verificationCode: data.code,
         })
@@ -185,6 +178,7 @@ export function CourseCompletion({
           score: stats.percentage,
           instructorName: course.instructor?.name || "Course Instructor",
           institutionName: course.organization?.name || "Learning Management System",
+          directorName: course.organization?.director || "Institution Director",
           completionDate: new Date().toISOString(),
           verificationCode: data.verificationCode,
         })
@@ -285,35 +279,35 @@ export function CourseCompletion({
                     : "Congratulations! You've earned a certificate for completing this course."}
                 </p>
                 <div className="flex w-full justify-center">
-                {checkingCertificate ? (
-                  <Button disabled className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Checking...
-                  </Button>
-                ) : existingCertificate ? (
-                  <Button onClick={handleViewCertificate} className="flex items-center gap-2">
-                    <Eye className="w-4 h-4" />
-                    View Certificate
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={handleGenerateCertificate}
-                    className="flex items-center gap-2"
-                    disabled={loadingCertificate}
-                  >
-                    {loadingCertificate ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <Download className="w-4 h-4" />
-                        Get Your Certificate
-                      </>
-                    )}
-                  </Button>
-                )}
+                  {checkingCertificate ? (
+                    <Button disabled className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Checking...
+                    </Button>
+                  ) : existingCertificate ? (
+                    <Button onClick={handleViewCertificate} className="flex items-center gap-2">
+                      <Eye className="w-4 h-4" />
+                      View Certificate
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handleGenerateCertificate}
+                      className="flex items-center gap-2"
+                      disabled={loadingCertificate}
+                    >
+                      {loadingCertificate ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4" />
+                          Get Your Certificate
+                        </>
+                      )}
+                    </Button>
+                  )}
                 </div>
               </div>
             )}
@@ -334,34 +328,30 @@ export function CourseCompletion({
       </div>
 
       {showCertificate && (
-      <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-        <div className="relative w-full max-w-4xl max-h-[95vh] bg-white rounded-lg flex flex-col">
-          {/* Close button only */}
-          <div className="absolute right-4 top-4 z-10">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setShowCertificate(false)}
-              className="h-8 w-8 p-0 rounded-full bg-gray-400 backdrop-blur-sm"
-            >
-              ✕
-            </Button>
-          </div>
-
-          {/* Certificate takes full space */}
-          <div className="flex-1 overflow-auto p-4">
-            <div className="text-center mb-4">
-              <h2 className="text-xl font-bold text-gray-900">
-                Certificate of Completion
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                {courseTitle}
-              </p>
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <div className="relative w-full max-w-4xl max-h-[95vh] bg-white rounded-lg flex flex-col">
+            {/* Close button only */}
+            <div className="absolute right-4 top-4 z-10">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowCertificate(false)}
+                className="h-8 w-8 p-0 rounded-full bg-gray-400 backdrop-blur-sm"
+              >
+                ✕
+              </Button>
             </div>
-            <Certificate {...certificateData} />
+
+            {/* Certificate takes full space */}
+            <div className="flex-1 overflow-auto p-4">
+              <div className="text-center mb-4">
+                <h2 className="text-xl font-bold text-gray-900">Certificate of Completion</h2>
+                <p className="text-sm text-muted-foreground">{courseTitle}</p>
+              </div>
+              <Certificate {...certificateData} />
+            </div>
           </div>
         </div>
-      </div>
       )}
     </>
   )

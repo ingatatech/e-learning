@@ -3,10 +3,12 @@
 import { useState, useEffect, createContext, useContext, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import type { User } from "@/types"
+import { set } from "date-fns"
 
 interface AuthContextType {
   user: User | null
   setUser: (user: User | null) => void
+  setToken: (token: string | null) => void
   token: string | null
   isLoading: boolean
   login: (email: string, password: string) => Promise<{ success: boolean; message?: any } | undefined>
@@ -87,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, message: data.message || "verification failed" }
       }
       setUser(data.user)
+      setToken(data.token)
       localStorage.setItem("Euser", JSON.stringify(data.user))
       localStorage.setItem("Etoken", JSON.stringify(data.token))
       if (data.user.firstLogin) {
@@ -160,6 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         setUser,
+        setToken,
         token,
         isLoading,
         login,

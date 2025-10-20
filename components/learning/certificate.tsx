@@ -12,6 +12,7 @@ interface CertificateProps {
   score: number
   instructorName: string
   institutionName: string
+  directorName?: string
   completionDate: string
   verificationCode: string
 }
@@ -22,6 +23,7 @@ export function Certificate({
   score,
   instructorName,
   institutionName,
+  directorName = "Institution Director",
   completionDate,
   verificationCode,
 }: CertificateProps) {
@@ -91,7 +93,7 @@ export function Certificate({
   const handleShareLinkedIn = () => {
     const verificationUrl = `${window.location.origin}/verify-certificate/${verificationCode}`
     const linkedInUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(verificationUrl)}`
-    window.open(linkedInUrl, "width=600,height=600")
+    window.open(linkedInUrl, "_blank", "width=600,height=600")
 
     toast({
       title: "Opening LinkedIn",
@@ -226,7 +228,7 @@ export function Certificate({
                 Director
               </div>
               <div className="font-semibold text-base" style={{ color: "#1f2937", backgroundColor: "transparent" }}>
-                Institution Director
+                {directorName}
               </div>
             </div>
           </div>

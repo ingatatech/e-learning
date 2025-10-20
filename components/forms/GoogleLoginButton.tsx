@@ -18,7 +18,7 @@ interface GoogleLoginButtonProps {
 
 export function GoogleLoginButton({ onError, isLoading, setIsLoading }: GoogleLoginButtonProps) {
   const router = useRouter();
-  const { setUser } = useAuth();
+  const { setUser, setToken } = useAuth();
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -45,6 +45,7 @@ export function GoogleLoginButton({ onError, isLoading, setIsLoading }: GoogleLo
           return;
         }
         setUser(data.user);
+        setToken(data.accessToken);
         localStorage.setItem("Euser", JSON.stringify(data.user))
         localStorage.setItem("Etoken", JSON.stringify(data.accessToken))
         if (data.user.firstLogin) {

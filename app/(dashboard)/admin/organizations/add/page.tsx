@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -27,6 +29,7 @@ export default function OrganizationFormPage() {
     country: "",
     phoneNumber: "",
     website: "",
+    director: "",
   })
   const [editMode, setEditMode] = useState(false)
   const [isFetching, setIsFetching] = useState(false)
@@ -44,13 +47,14 @@ export default function OrganizationFormPage() {
         if (!res.ok) throw new Error("Failed to fetch organization")
         const data = await res.json()
         setFormData({
-          name: data.name || "",
-          description: data.description || "",
-          address: data.address || "",
-          city: data.city || "",
-          country: data.country || "",
-          phoneNumber: data.phoneNumber || "",
-          website: data.website || "",
+          name: data.organization.name || "",
+          description: data.organization.description || "",
+          address: data.organization.address || "",
+          city: data.organization.city || "",
+          country: data.organization.country || "",
+          phoneNumber: data.organization.phoneNumber || "",
+          website: data.organization.website || "",
+          director: data.organization.director || "",
         })
       } catch (err: any) {
         toast.error(err.message)
@@ -60,6 +64,8 @@ export default function OrganizationFormPage() {
     }
     fetchOrg()
   }, [orgId, token])
+
+  console.log(formData)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -118,96 +124,112 @@ export default function OrganizationFormPage() {
           <CardDescription>Fill in the details</CardDescription>
         </CardHeader>
         <CardContent>
-            {isFetching ? (
-  <div className="flex justify-center items-center py-20">
-    <Loader2 className="w-8 h-8 animate-spin text-primary" />
-  </div>
-) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Organization Name</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => handleInputChange("name", e.target.value)}
-                placeholder="Example Organization"
-                required
-              />
+          {isFetching ? (
+            <div className="flex justify-center items-center py-20">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => handleInputChange("description", e.target.value)}
-                placeholder="A corporate organization that provides services."
-                rows={3}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
-              <Input
-                id="address"
-                value={formData.address}
-                onChange={(e) => handleInputChange("address", e.target.value)}
-                placeholder="KN 231 st"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
+                <Label htmlFor="name">Organization Name</Label>
                 <Input
-                  id="city"
-                  value={formData.city}
-                  onChange={(e) => handleInputChange("city", e.target.value)}
-                  placeholder="Kigali"
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange("name", e.target.value)}
+                  placeholder="Example Organization"
+                  required
                 />
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="country">Country</Label>
-                <Input
-                  id="country"
-                  value={formData.country}
-                  onChange={(e) => handleInputChange("country", e.target.value)}
-                  placeholder="Rwanda"
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => handleInputChange("description", e.target.value)}
+                  placeholder="A corporate organization that provides services."
+                  rows={3}
                 />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="phoneNumber">Phone Number</Label>
-              <Input
-                id="phoneNumber"
-                value={formData.phoneNumber}
-                onChange={(e) => handleInputChange("phoneNumber", e.target.value)}
-                placeholder="+250 789 000 000 "
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="director">Director Name</Label>
+                <Input
+                  id="director"
+                  value={formData.director}
+                  onChange={(e) => handleInputChange("director", e.target.value)}
+                  placeholder="John Doe"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="website">Website</Label>
-              <Input
-                id="website"
-                type="url"
-                value={formData.website}
-                onChange={(e) => handleInputChange("website", e.target.value)}
-                placeholder="https://something.com"
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="address">Address</Label>
+                <Input
+                  id="address"
+                  value={formData.address}
+                  onChange={(e) => handleInputChange("address", e.target.value)}
+                  placeholder="KN 231 st"
+                />
+              </div>
 
-            <div className="flex gap-4 pt-4">
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? (editMode ? "Updating..." : "Creating...") : editMode ? "Update Organization" : "Create Organization"}
-              </Button>
-              <Button type="button" variant="outline" onClick={() => router.back()}>
-                Cancel
-              </Button>
-            </div>
-          </form>
-        )}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    value={formData.city}
+                    onChange={(e) => handleInputChange("city", e.target.value)}
+                    placeholder="Kigali"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="country">Country</Label>
+                  <Input
+                    id="country"
+                    value={formData.country}
+                    onChange={(e) => handleInputChange("country", e.target.value)}
+                    placeholder="Rwanda"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phoneNumber">Phone Number</Label>
+                <Input
+                  id="phoneNumber"
+                  value={formData.phoneNumber}
+                  onChange={(e) => handleInputChange("phoneNumber", e.target.value)}
+                  placeholder="+250 789 000 000 "
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="website">Website</Label>
+                <Input
+                  id="website"
+                  type="url"
+                  value={formData.website}
+                  onChange={(e) => handleInputChange("website", e.target.value)}
+                  placeholder="https://something.com"
+                />
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading
+                    ? editMode
+                      ? "Updating..."
+                      : "Creating..."
+                    : editMode
+                      ? "Update Organization"
+                      : "Create Organization"}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => router.back()}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          )}
         </CardContent>
       </Card>
     </div>

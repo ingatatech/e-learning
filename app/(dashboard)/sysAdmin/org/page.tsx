@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Building, Edit, Save, Loader2, MapPin, Phone, Globe, FileText } from "lucide-react"
+import { Building, Edit, Save, Loader2, MapPin, Phone, Globe, FileText, User } from "lucide-react"
 import { toast } from "sonner"
 
 interface Organization {
@@ -19,6 +19,7 @@ interface Organization {
   country: string
   phoneNumber: string
   website: string
+  director: string
   createdAt: string
   updatedAt: string
 }
@@ -37,6 +38,7 @@ export default function OrgManagement() {
     country: "",
     phoneNumber: "",
     website: "",
+    director: "",
   })
 
   useEffect(() => {
@@ -61,6 +63,7 @@ export default function OrgManagement() {
             country: data.organization.country || "",
             phoneNumber: data.organization.phoneNumber || "",
             website: data.organization.website || "",
+            director: data.organization.director || "",
           })
         }
       } catch (error) {
@@ -80,6 +83,8 @@ export default function OrgManagement() {
 
   const handleSave = async () => {
     if (!organization) return
+    console.log(token)
+
 
     setIsSaving(true)
     try {
@@ -118,6 +123,7 @@ export default function OrgManagement() {
         country: organization.country || "",
         phoneNumber: organization.phoneNumber || "",
         website: organization.website || "",
+        director: organization.director || "",
       })
     }
     setIsEditing(false)
@@ -196,6 +202,16 @@ export default function OrgManagement() {
                   onChange={(e) => handleInputChange("description", e.target.value)}
                   placeholder="Brief description of your organization"
                   rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="director">Director Name</Label>
+                <Input
+                  id="director"
+                  value={formData.director}
+                  onChange={(e) => handleInputChange("director", e.target.value)}
+                  placeholder="John Doe"
                 />
               </div>
 
@@ -279,6 +295,14 @@ export default function OrgManagement() {
                       <span>Description</span>
                     </div>
                     <p className="text-base">{organization.description || "No description provided"}</p>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                      <User className="w-4 h-4" />
+                      <span>Director</span>
+                    </div>
+                    <p className="text-base">{organization.director || "No director assigned"}</p>
                   </div>
 
                   <div>
