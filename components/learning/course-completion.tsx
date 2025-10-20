@@ -75,7 +75,7 @@ export function CourseCompletion({
           studentName: `${user?.firstName} ${user?.lastName}`,
           courseName: courseTitle,
           score: data.score || stats.percentage,
-          instructorName: course.instructor?.firstName + course.instructor?.lastName  || "Course Instructor",
+          instructorName: course.instructor?.firstName + ' ' + course.instructor?.lastName  || "Course Instructor",
           institutionName: course.organization?.name || "Learning Management System",
           directorName: course.organization?.director || "Institution Director",
           completionDate: data.issuedAt || new Date().toISOString(),
