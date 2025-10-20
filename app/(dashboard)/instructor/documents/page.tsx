@@ -459,6 +459,7 @@ export default function DocumentsPage() {
               fileUrl={previewFile.fileUrl!}
               fileType={previewFile.fileType!}
               fileName={previewFile.title!}
+              fileId={previewFile.id}
             />
           </div>
         </div>

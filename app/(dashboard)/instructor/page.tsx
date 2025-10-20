@@ -320,34 +320,6 @@ export default function InstructorDashboard() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Button variant="outline" className="h-20 flex-col gap-2 bg-transparent" asChild>
-          <Link href="/instructor/courses/new">
-            <Plus className="w-6 h-6" />
-            Create Course
-          </Link>
-        </Button>
-        <Button variant="outline" className="h-20 flex-col gap-2 bg-transparent" asChild>
-          <Link href="/instructor/students">
-            <Users className="w-6 h-6" />
-            My Students
-          </Link>
-        </Button>
-        <Button variant="outline" className="h-20 flex-col gap-2 bg-transparent" asChild>
-          <Link href="/instructor/analytics">
-            <BarChart3 className="w-6 h-6" />
-            Analytics
-          </Link>
-        </Button>
-        <Button variant="outline" className="h-20 flex-col gap-2 bg-transparent" asChild>
-          <Link href="/instructor/earnings">
-            <DollarSign className="w-6 h-6" />
-            Earnings
-          </Link>
-        </Button>
-      </div>
     </div>
   )
 }

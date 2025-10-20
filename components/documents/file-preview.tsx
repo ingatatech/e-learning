@@ -1,21 +1,104 @@
 "use client"
 import { Download, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useAuth } from "@/hooks/use-auth"
 
 interface FilePreviewProps {
   fileUrl: string
   fileType: string
   fileName?: string
+  fileId?: string
 }
 
-export function FilePreview({ fileUrl, fileType, fileName }: FilePreviewProps) {
+export function FilePreview({ fileUrl, fileType, fileName, fileId }: FilePreviewProps) {
   const [previewError, setPreviewError] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const { token } = useAuth()
+
+  useEffect(() => {
+    generatePreviewUrl({ path: fileUrl, mimeType: fileType, id: fileId })
+  }, [fileUrl, fileType])
+  
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl && previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(previewUrl)
+      }
+    }
+  }, [previewUrl])
 
   const isPDF = fileType === "application/pdf"
   const isWord =
     fileType === "application/msword" ||
     fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  
+  const getGoogleDocsViewerUrl = (file: any) => {
+    // Use Cloudinary URL if available
+    const fileUrl = file.path 
+      ? encodeURIComponent(file.path)
+      : encodeURIComponent(`${window.location.origin}/api/files/${file.id}/download`)
+    
+    return `https://docs.google.com/gview?url=${fileUrl}&embedded=true`
+  }
+
+  
+  const generatePreviewUrl = async (fileData: any) => {
+    try {
+      setPreviewError(false);
+
+      // Skip preview generation for XLSX files
+      if (fileData.mimeType.includes('spreadsheet') || fileData.mimeType.includes('excel')) {
+        setPreviewError(true);
+        return;
+      }
+
+      if (fileData.mimeType?.startsWith("image/")) {
+        setPreviewUrl(fileData.path || `/api/files/${fileData.id}/download`);
+      } else if (isPDF) {
+        // For PDFs, create a blob URL to display in iframe
+        const blob = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/docs/download-doc/${fileData.id}`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        )
+        const resu = await blob.blob()
+        const blobUrl = URL.createObjectURL(resu);
+        setPreviewUrl(blobUrl);
+      } else if (
+        fileData.mimeType?.includes("text/") ||
+        fileData.mimeType?.includes("application/json") ||
+        fileData.mimeType?.includes("application/xml")
+      ) {
+        const blob = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/docs/download-doc/${fileData.id}`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        )
+        const resu = await blob.blob()
+        const text = await resu.text();
+
+        setPreviewUrl(`data:text/plain;charset=utf-8,${encodeURIComponent(text)}`);
+      } else if (isWord) {
+        setPreviewUrl(getGoogleDocsViewerUrl(fileData));
+      } else {
+        setPreviewError(true);
+      }
+    } catch (error) {
+      console.error("Error generating preview:", error);
+      setPreviewError(true);
+    } finally {
+    }
+  };
 
   const handleDownload = () => {
     const link = document.createElement("a")
@@ -47,18 +130,11 @@ export function FilePreview({ fileUrl, fileType, fileName }: FilePreviewProps) {
 
       {/* Preview Content */}
       <div className="flex-1 border rounded-lg overflow-hidden bg-muted/30">
-        {isPDF && !previewError ? (
+        {!previewError ? (
           <iframe
-            src={`${fileUrl}#toolbar=0&navpanes=0&scrollbar=1`}
+            src={`${previewUrl}`}
             className="w-full h-full border-0"
             title="PDF Preview"
-            onError={() => setPreviewError(true)}
-          />
-        ) : isWord && !previewError ? (
-          <iframe
-            src={`https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}&embedded=true`}
-            className="w-full h-full border-0"
-            title="Word Document Preview"
             onError={() => setPreviewError(true)}
           />
         ) : (
