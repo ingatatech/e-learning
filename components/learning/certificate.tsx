@@ -128,7 +128,7 @@ export function Certificate({
               className="text-sm font-semibold tracking-[3px] uppercase mb-2.5"
               style={{ color: "#00a63e", backgroundColor: "transparent" }}
             >
-              Learning Management System
+              Ingata - E-Learning
             </div>
             <div
               className="font-serif text-5xl font-bold mb-2.5 uppercase tracking-[2px]"

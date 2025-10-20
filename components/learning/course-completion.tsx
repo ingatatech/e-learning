@@ -9,6 +9,13 @@ import { Trophy, Award, Download, Star, Target, Clock, BookOpen, Loader2, Eye } 
 import { useAuth } from "@/hooks/use-auth"
 import { toast } from "@/components/ui/use-toast"
 import { Certificate } from "./certificate"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet"
 
 interface CourseCompletionProps {
   courseId: string
@@ -326,30 +333,35 @@ export function CourseCompletion({
         </Card>
       </div>
 
-      {showCertificate && certificateData && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-start justify-center overflow-y-auto">
-          <div className="relative w-full max-w-6xl my-8 mx-4">
-            <div className="bg-white rounded-lg p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold" style={{ color: "#1f2937" }}>
-                  Your Certificate of Completion
-                </h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowCertificate(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  ✕ Close
-                </Button>
-              </div>
-              <p className="text-muted-foreground mb-6">
-                Congratulations on completing {courseTitle}! Download or share your certificate below.
+      {showCertificate && (
+      <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+        <div className="relative w-full max-w-4xl max-h-[95vh] bg-white rounded-lg flex flex-col">
+          {/* Close button only */}
+          <div className="absolute right-4 top-4 z-10">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowCertificate(false)}
+              className="h-8 w-8 p-0 rounded-full bg-gray-400 backdrop-blur-sm"
+            >
+              ✕
+            </Button>
+          </div>
+
+          {/* Certificate takes full space */}
+          <div className="flex-1 overflow-auto p-4">
+            <div className="text-center mb-4">
+              <h2 className="text-xl font-bold text-gray-900">
+                Certificate of Completion
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {courseTitle}
               </p>
-              <Certificate {...certificateData} />
             </div>
+            <Certificate {...certificateData} />
           </div>
         </div>
+      </div>
       )}
     </>
   )
