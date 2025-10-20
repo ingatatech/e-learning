@@ -64,14 +64,17 @@
     "clsx": "^2.1.1",
     "cmdk": "1.0.4",
     "date-fns": "4.1.0",
+    "docx-preview": "^0.3.7",
     "embla-carousel-react": "8.5.1",
     "framer-motion": "^12.23.12",
     "geist": "latest",
+    "html2canvas": "1.4.1",
     "input-otp": "1.4.1",
     "jose": "^6.1.0",
     "jsonwebtoken": "latest",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.454.0",
+    "mammoth": "^1.11.0",
     "next": "15.2.4",
     "next-themes": "latest",
     "react": "^19",
@@ -88,8 +91,7 @@
     "vaul": "^0.9.9",
     "vue": "latest",
     "vue-router": "latest",
-    "zod": "3.25.67",
-    "html2canvas": "1.4.1"
+    "zod": "3.25.67"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.9",

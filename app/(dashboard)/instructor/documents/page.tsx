@@ -48,15 +48,15 @@ export default function DocumentsPage() {
   const files = documents.filter((doc) => doc.fileUrl)
 
   // Function to get file icon based on extension
-  const getFileIcon = (fileName?: string, fileType?: string) => {
-    if (!fileName && !fileType) {
+  const getFileIcon = (fileType?: string) => {
+    
+    if (!fileType) {
       return <FileText className="w-8 h-8 text-muted-foreground" />
     }
 
-    // Use fileType first, then fall back to fileName extension
-    const type = fileType?.toLowerCase() || fileName?.toLowerCase() || ""
+    const type = fileType?.toLowerCase() || ""
     
-    if (type.includes('pdf') || fileName?.toLowerCase().endsWith('.pdf')) {
+    if (type.includes('pdf')) {
       return (
         <div className="w-8 h-8 flex items-center justify-center bg-red-50 rounded-md">
           <FileText className="w-5 h-5 text-red-600" />
@@ -64,7 +64,7 @@ export default function DocumentsPage() {
       )
     }
     
-    if (type.includes('powerpoint') || type.includes('ppt') || fileName?.toLowerCase().match(/\.pptx?$/)) {
+    if (type.includes('presentation') || type.includes('ppt')) {
       return (
         <div className="w-8 h-8 flex items-center justify-center bg-orange-50 rounded-md">
           <FileText className="w-5 h-5 text-orange-600" />
@@ -72,7 +72,7 @@ export default function DocumentsPage() {
       )
     }
     
-    if (type.includes('word') || type.includes('document') || fileName?.toLowerCase().match(/\.docx?$/)) {
+    if (type.includes('word') || type.includes('document')) {
       return (
         <div className="w-8 h-8 flex items-center justify-center bg-blue-50 rounded-md">
           <FileText className="w-5 h-5 text-blue-600" />
@@ -95,7 +95,7 @@ export default function DocumentsPage() {
     const type = fileType?.toLowerCase() || fileName?.toLowerCase() || ""
     
     if (type.includes('pdf') || fileName?.toLowerCase().endsWith('.pdf')) return "PDF"
-    if (type.includes('powerpoint') || type.includes('ppt') || fileName?.toLowerCase().match(/\.pptx?$/)) return "PowerPoint"
+    if (type.includes('presentation') || type.includes('ppt') || fileName?.toLowerCase().match(/\.pptx?$/)) return "PowerPoint"
     if (type.includes('word') || type.includes('document') || fileName?.toLowerCase().match(/\.docx?$/)) return "Word"
     
     return "File"
@@ -359,7 +359,7 @@ export default function DocumentsPage() {
               <CardContent>
                 <div className="flex items-center justify-between">
                   {getStatusBadge(doc.status)}
-                  {getFileIcon(doc.fileUrl || doc.title, doc.fileType)}
+                  {getFileIcon(doc.fileType)}
                 </div>
                 {doc.status === "rejected" && doc.reviewNotes && (
                   <p className="text-sm text-destructive mt-2">{doc.reviewNotes}</p>
@@ -389,7 +389,7 @@ export default function DocumentsPage() {
                 >
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
-                      {getFileIcon(doc.fileUrl || doc.title, doc.fileType)}
+                      {getFileIcon(doc.fileType)}
                       {doc.title}
                     </div>
                   </TableCell>
@@ -445,7 +445,7 @@ export default function DocumentsPage() {
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b">
             <div className="flex items-center gap-2">
-              {getFileIcon(previewFile.fileUrl || previewFile.title, previewFile.fileType)}
+              {getFileIcon(previewFile.fileType)}
               <h2 className="text-xl font-semibold">{previewFile.title}</h2>
             </div>
             <Button variant="ghost" size="sm" onClick={() => setPreviewFile(null)} className="h-8 w-8 p-0">
@@ -491,15 +491,15 @@ export default function DocumentsPage() {
                   type="file"
                   onChange={handleFileChange}
                   className="mt-1"
-                  accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.md"
+                  accept=".pdf,.doc,.docx,.txt,.md"
                 />
-                <p className="text-sm text-muted-foreground mt-1">Supported formats: PDF, DOC, DOCX, PPT, PPTX, TXT, MD</p>
+                <p className="text-sm text-muted-foreground mt-1">Supported formats: PDF, DOC, DOCX</p>
               </div>
 
               {selectedFile && (
                 <div className="p-3 border rounded-md bg-muted/50">
                   <div className="flex items-center gap-2">
-                    {getFileIcon(selectedFile.name)}
+                    {getFileIcon(selectedFile.fileType)}
                     <span className="text-sm font-medium">{selectedFile.name}</span>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">
