@@ -103,15 +103,6 @@ const navigationItems: Record<string, NavigationItem[]> = {
         { name: "All Organizations", href: "/admin/organizations", icon: Building },
       ],
     },
-    {
-      name: "Analytics",
-      icon: BarChart2,
-      children: [
-        { name: "Overview", href: "/admin/analytics", icon: PieChart },
-        { name: "Revenue", href: "/admin/analytics/revenue", icon: DollarSign },
-        { name: "User Analytics", href: "/admin/analytics/users", icon: Users },
-      ],
-    },
     { name: "Payments", href: "/admin/payments", icon: Wallet },
     { name: "Settings", href: "/settings", icon: Cog },
   ],
