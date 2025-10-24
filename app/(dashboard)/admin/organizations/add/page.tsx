@@ -13,6 +13,7 @@ import { ArrowLeft, Building, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 import { useAuth } from "@/hooks/use-auth"
+import rwandaData from "@/data/rwandaLocation.json"
 
 export default function OrganizationFormPage() {
   const router = useRouter()
@@ -24,21 +25,130 @@ export default function OrganizationFormPage() {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    address: "",
     city: "",
     country: "",
     phoneNumber: "",
     website: "",
     director: "",
+    address: {
+      province: "",
+      district: "",
+      sector: "",
+      cell: "",
+      village: "",
+    },
   })
   const [editMode, setEditMode] = useState(false)
   const [isFetching, setIsFetching] = useState(false)
+  const [isInitialLoad, setIsInitialLoad] = useState(false)
+  const [provinces, setProvinces] = useState<string[]>([])
+  const [districts, setDistricts] = useState<string[]>([])
+  const [sectors, setSectors] = useState<string[]>([])
+  const [cells, setCells] = useState<string[]>([])
+  const [villages, setVillages] = useState<string[]>([])
 
-  // Fetch org if editing
+  useEffect(() => {
+    const provinceList = Object.keys(rwandaData)
+    setProvinces(provinceList)
+  }, [])
+
+  useEffect(() => {
+    if (formData.address.province) {
+      const provinceData = rwandaData[formData.address.province as keyof typeof rwandaData]
+      const districtList = Object.keys(provinceData)
+      setDistricts(districtList)
+
+      if (!isInitialLoad) {
+        setFormData((prev) => ({
+          ...prev,
+          address: {
+            ...prev.address,
+            district: "",
+            sector: "",
+            cell: "",
+            village: "",
+          },
+        }))
+        setSectors([])
+        setCells([])
+        setVillages([])
+      }
+    }
+  }, [formData.address.province, isInitialLoad])
+
+  useEffect(() => {
+    if (formData.address.province && formData.address.district) {
+      const provinceData = rwandaData[formData.address.province as keyof typeof rwandaData]
+      const districtData = provinceData[formData.address.district as keyof typeof provinceData]
+      const sectorList = Object.keys(districtData)
+      setSectors(sectorList)
+
+      if (!isInitialLoad) {
+        setFormData((prev) => ({
+          ...prev,
+          address: {
+            ...prev.address,
+            sector: "",
+            cell: "",
+            village: "",
+          },
+        }))
+        setCells([])
+        setVillages([])
+      }
+    }
+  }, [formData.address.district, isInitialLoad])
+
+  useEffect(() => {
+    if (formData.address.province && formData.address.district && formData.address.sector) {
+      const provinceData = rwandaData[formData.address.province as keyof typeof rwandaData]
+      const districtData = provinceData[formData.address.district as keyof typeof provinceData]
+      const sectorData = districtData[formData.address.sector as keyof typeof districtData]
+      const cellList = Object.keys(sectorData)
+      setCells(cellList)
+
+      if (!isInitialLoad) {
+        setFormData((prev) => ({
+          ...prev,
+          address: {
+            ...prev.address,
+            cell: "",
+            village: "",
+          },
+        }))
+        setVillages([])
+      }
+    }
+  }, [formData.address.sector, isInitialLoad])
+
+  useEffect(() => {
+    if (formData.address.province && formData.address.district && formData.address.sector && formData.address.cell) {
+      const provinceData = rwandaData[formData.address.province as keyof typeof rwandaData]
+      const districtData = provinceData[formData.address.district as keyof typeof provinceData]
+      const sectorData = districtData[formData.address.sector as keyof typeof districtData]
+      const cellData = sectorData[formData.address.cell as keyof typeof sectorData]
+
+      if (Array.isArray(cellData)) {
+        setVillages(cellData)
+
+        if (!isInitialLoad) {
+          setFormData((prev) => ({
+            ...prev,
+            address: {
+              ...prev.address,
+              village: "",
+            },
+          }))
+        }
+      }
+    }
+  }, [formData.address.cell, isInitialLoad])
+
   useEffect(() => {
     if (!orgId) return
     setEditMode(true)
     setIsFetching(true)
+    setIsInitialLoad(true)
     const fetchOrg = async () => {
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/organizations/${orgId}`, {
@@ -46,26 +156,43 @@ export default function OrganizationFormPage() {
         })
         if (!res.ok) throw new Error("Failed to fetch organization")
         const data = await res.json()
+
+        let parsedAddress = {
+          province: "",
+          district: "",
+          sector: "",
+          cell: "",
+          village: "",
+        }
+
+        try {
+          if (data.organization.address) {
+            parsedAddress = JSON.parse(data.organization.address)
+          }
+        } catch {
+          console.error("Invalid address format in organization data")
+        }
         setFormData({
           name: data.organization.name || "",
           description: data.organization.description || "",
-          address: data.organization.address || "",
+          address: parsedAddress,
           city: data.organization.city || "",
           country: data.organization.country || "",
           phoneNumber: data.organization.phoneNumber || "",
           website: data.organization.website || "",
           director: data.organization.director || "",
         })
+
+        setTimeout(() => setIsInitialLoad(false), 100)
       } catch (err: any) {
         toast.error(err.message)
+        setIsInitialLoad(false)
       } finally {
         setIsFetching(false)
       }
     }
     fetchOrg()
   }, [orgId, token])
-
-  console.log(formData)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -162,26 +289,7 @@ export default function OrganizationFormPage() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
-                <Input
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => handleInputChange("address", e.target.value)}
-                  placeholder="KN 231 st"
-                />
-              </div>
-
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
-                    value={formData.city}
-                    onChange={(e) => handleInputChange("city", e.target.value)}
-                    placeholder="Kigali"
-                  />
-                </div>
                 <div className="space-y-2">
                   <Label htmlFor="country">Country</Label>
                   <Input
@@ -190,6 +298,119 @@ export default function OrganizationFormPage() {
                     onChange={(e) => handleInputChange("country", e.target.value)}
                     placeholder="Rwanda"
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Province</Label>
+                  <select
+                    value={formData.address.province}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        address: { ...prev.address, province: e.target.value },
+                      }))
+                    }
+                    className="w-full border rounded-md p-2"
+                  >
+                    <option value="">Select Province</option>
+                    {provinces.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>District</Label>
+                  <select
+                    value={formData.address.district}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        address: { ...prev.address, district: e.target.value },
+                      }))
+                    }
+                    className="w-full border rounded-md p-2"
+                    disabled={!districts.length}
+                  >
+                    <option value="">Select District</option>
+                    {districts.map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Sector</Label>
+                  <select
+                    value={formData.address.sector}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        address: { ...prev.address, sector: e.target.value },
+                      }))
+                    }
+                    className="w-full border rounded-md p-2"
+                    disabled={!sectors.length}
+                  >
+                    <option value="">Select Sector</option>
+                    {sectors.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Cell</Label>
+                  <select
+                    value={formData.address.cell}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        address: { ...prev.address, cell: e.target.value },
+                      }))
+                    }
+                    className="w-full border rounded-md p-2"
+                    disabled={!cells.length}
+                  >
+                    <option value="">Select Cell</option>
+                    {cells.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Village</Label>
+                  <select
+                    value={formData.address.village}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        address: { ...prev.address, village: e.target.value },
+                      }))
+                    }
+                    className="w-full border rounded-md p-2"
+                    disabled={!villages.length}
+                  >
+                    <option value="">Select Village</option>
+                    {villages.map((v) => (
+                      <option key={v} value={v}>
+                        {v}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

@@ -50,6 +50,8 @@ export interface User {
   updatedAt: Date
   rating: number
   bio?: string
+  firstLogin?: boolean
+  twostepv?: boolean
 }
 
 export interface Organization {

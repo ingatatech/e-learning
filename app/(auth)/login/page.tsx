@@ -3,7 +3,6 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { LoginForm } from "@/components/forms/login-form"
-import Link from "next/link"
 import { BookOpen } from "lucide-react"
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"

@@ -75,7 +75,7 @@ export function CourseCompletion({
           studentName: `${user?.firstName} ${user?.lastName}`,
           courseName: courseTitle,
           score: data.score || stats.percentage,
-          instructorName: course.instructor?.firstName + ' ' + course.instructor?.lastName  || "Course Instructor",
+          instructorName: course.instructor?.firstName + " " + course.instructor?.lastName || "Course Instructor",
           institutionName: course.organization?.name || "Learning Management System",
           directorName: course.organization?.director || "Institution Director",
           completionDate: data.issuedAt || new Date().toISOString(),
@@ -327,27 +327,22 @@ export function CourseCompletion({
         </Card>
       </div>
 
-      {showCertificate && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="relative w-full max-w-4xl max-h-[95vh] bg-white rounded-lg flex flex-col">
-            {/* Close button only */}
-            <div className="absolute right-4 top-4 z-10">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setShowCertificate(false)}
-                className="h-8 w-8 p-0 rounded-full bg-gray-400 backdrop-blur-sm"
-              >
-                ✕
-              </Button>
-            </div>
-
-            {/* Certificate takes full space */}
-            <div className="flex-1 overflow-auto p-4">
-              <div className="text-center mb-4">
-                <h2 className="text-xl font-bold text-gray-900">Certificate of Completion</h2>
-                <p className="text-sm text-muted-foreground">{courseTitle}</p>
+      {showCertificate && certificateData && (
+        <div className="fixed inset-0 z-50 bg-background overflow-auto">
+          <div className="min-h-screen p-8">
+            <div className="max-w-6xl mx-auto">
+              {/* Header with close button */}
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold">Certificate of Completion</h2>
+                  <p className="text-muted-foreground">{courseTitle}</p>
+                </div>
+                <Button variant="outline" onClick={() => setShowCertificate(false)}>
+                  Close
+                </Button>
               </div>
+
+              {/* Certificate component */}
               <Certificate {...certificateData} />
             </div>
           </div>

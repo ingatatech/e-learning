@@ -84,6 +84,7 @@
     "react-quill": "^2.0.0",
     "react-resizable-panels": "^2.1.7",
     "recharts": "latest",
+    "resend": "^6.2.2",
     "sonner": "^1.7.4",
     "svelte": "latest",
     "tailwind-merge": "^2.5.5",
@@ -91,7 +92,9 @@
     "vaul": "^0.9.9",
     "vue": "latest",
     "vue-router": "latest",
-    "zod": "3.25.67"
+    "zod": "3.25.67",
+    "jspdf": "3.0.3",
+    "html2pdf.js": "0.12.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.9",

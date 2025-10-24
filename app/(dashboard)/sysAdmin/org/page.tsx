@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Building, Edit, Save, Loader2, MapPin, Phone, Globe, FileText, User } from "lucide-react"
 import { toast } from "sonner"
+import rwandaData from "@/data/rwandaLocation.json"
 
 interface Organization {
   id: number
@@ -30,10 +31,17 @@ export default function OrgManagement() {
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isInitialLoad, setIsInitialLoad] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    address: "",
+    address: {
+      province: "",
+      district: "",
+      sector: "",
+      cell: "",
+      village: "",
+    },
     city: "",
     country: "",
     phoneNumber: "",
@@ -41,10 +49,114 @@ export default function OrgManagement() {
     director: "",
   })
 
+  const [provinces, setProvinces] = useState<string[]>([])
+  const [districts, setDistricts] = useState<string[]>([])
+  const [sectors, setSectors] = useState<string[]>([])
+  const [cells, setCells] = useState<string[]>([])
+  const [villages, setVillages] = useState<string[]>([])
+
+  useEffect(() => {
+    const provinceList = Object.keys(rwandaData)
+    setProvinces(provinceList)
+  }, [])
+
+  useEffect(() => {
+    if (formData.address.province) {
+      const provinceData = rwandaData[formData.address.province as keyof typeof rwandaData]
+      const districtList = Object.keys(provinceData)
+      setDistricts(districtList)
+
+      if (!isInitialLoad && !isEditing) {
+        setFormData((prev) => ({
+          ...prev,
+          address: {
+            ...prev.address,
+            district: "",
+            sector: "",
+            cell: "",
+            village: "",
+          },
+        }))
+        setSectors([])
+        setCells([])
+        setVillages([])
+      }
+    }
+  }, [formData.address.province, isInitialLoad, isEditing])
+
+  useEffect(() => {
+    if (formData.address.province && formData.address.district) {
+      const provinceData = rwandaData[formData.address.province as keyof typeof rwandaData]
+      const districtData = provinceData[formData.address.district as keyof typeof provinceData]
+      const sectorList = Object.keys(districtData)
+      setSectors(sectorList)
+
+      if (!isInitialLoad && !isEditing) {
+        setFormData((prev) => ({
+          ...prev,
+          address: {
+            ...prev.address,
+            sector: "",
+            cell: "",
+            village: "",
+          },
+        }))
+        setCells([])
+        setVillages([])
+      }
+    }
+  }, [formData.address.district, isInitialLoad, isEditing])
+
+  useEffect(() => {
+    if (formData.address.province && formData.address.district && formData.address.sector) {
+      const provinceData = rwandaData[formData.address.province as keyof typeof rwandaData]
+      const districtData = provinceData[formData.address.district as keyof typeof provinceData]
+      const sectorData = districtData[formData.address.sector as keyof typeof districtData]
+      const cellList = Object.keys(sectorData)
+      setCells(cellList)
+
+      if (!isInitialLoad && !isEditing) {
+        setFormData((prev) => ({
+          ...prev,
+          address: {
+            ...prev.address,
+            cell: "",
+            village: "",
+          },
+        }))
+        setVillages([])
+      }
+    }
+  }, [formData.address.sector, isInitialLoad, isEditing])
+
+  useEffect(() => {
+    if (formData.address.province && formData.address.district && formData.address.sector && formData.address.cell) {
+      const provinceData = rwandaData[formData.address.province as keyof typeof rwandaData]
+      const districtData = provinceData[formData.address.district as keyof typeof provinceData]
+      const sectorData = districtData[formData.address.sector as keyof typeof districtData]
+      const cellData = sectorData[formData.address.cell as keyof typeof sectorData]
+
+      if (Array.isArray(cellData)) {
+        setVillages(cellData)
+
+        if (!isInitialLoad && !isEditing) {
+          setFormData((prev) => ({
+            ...prev,
+            address: {
+              ...prev.address,
+              village: "",
+            },
+          }))
+        }
+      }
+    }
+  }, [formData.address.cell, isInitialLoad, isEditing])
+
   useEffect(() => {
     if (!token || !user) return
 
     const fetchOrg = async () => {
+      setIsInitialLoad(true)
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/organizations/${user.organization?.id}`, {
           headers: {
@@ -55,20 +167,40 @@ export default function OrgManagement() {
         if (res.ok) {
           const data = await res.json()
           setOrganization(data.organization)
+
+          let parsedAddress = {
+            province: "",
+            district: "",
+            sector: "",
+            cell: "",
+            village: "",
+          }
+
+          try {
+            if (data.organization.address) {
+              parsedAddress = JSON.parse(data.organization.address)
+            }
+          } catch {
+            console.error("Invalid address format in organization data")
+          }
+
           setFormData({
             name: data.organization.name || "",
             description: data.organization.description || "",
-            address: data.organization.address || "",
+            address: parsedAddress,
             city: data.organization.city || "",
             country: data.organization.country || "",
             phoneNumber: data.organization.phoneNumber || "",
             website: data.organization.website || "",
             director: data.organization.director || "",
           })
+
+          setTimeout(() => setIsInitialLoad(false), 100)
         }
       } catch (error) {
         console.error("Failed to fetch organization:", error)
         toast.error("Failed to load organization details")
+        setIsInitialLoad(false)
       } finally {
         setLoading(false)
       }
@@ -83,8 +215,6 @@ export default function OrgManagement() {
 
   const handleSave = async () => {
     if (!organization) return
-    console.log(token)
-
 
     setIsSaving(true)
     try {
@@ -115,16 +245,34 @@ export default function OrgManagement() {
 
   const handleCancel = () => {
     if (organization) {
+      let parsedAddress = {
+        province: "",
+        district: "",
+        sector: "",
+        cell: "",
+        village: "",
+      }
+
+      try {
+        if (organization.address) {
+          parsedAddress = JSON.parse(organization.address)
+        }
+      } catch {
+        console.error("Invalid address format")
+      }
+
+      setIsInitialLoad(true)
       setFormData({
         name: organization.name || "",
         description: organization.description || "",
-        address: organization.address || "",
+        address: parsedAddress,
         city: organization.city || "",
         country: organization.country || "",
         phoneNumber: organization.phoneNumber || "",
         website: organization.website || "",
         director: organization.director || "",
       })
+      setTimeout(() => setIsInitialLoad(false), 100)
     }
     setIsEditing(false)
   }
@@ -149,7 +297,6 @@ export default function OrgManagement() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Organization Details</h1>
@@ -163,7 +310,6 @@ export default function OrgManagement() {
         )}
       </div>
 
-      {/* Organization Info Card */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -215,34 +361,135 @@ export default function OrgManagement() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
-                <Input
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => handleInputChange("address", e.target.value)}
-                  placeholder="Street address"
-                />
-              </div>
+              <div className="space-y-4 border-t pt-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <MapPin className="w-5 h-5" />
+                  Address Information
+                </h3>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
-                    value={formData.city}
-                    onChange={(e) => handleInputChange("city", e.target.value)}
-                    placeholder="City"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="country">Country</Label>
+                    <Input
+                      id="country"
+                      value={formData.country}
+                      onChange={(e) => handleInputChange("country", e.target.value)}
+                      placeholder="Rwanda"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Province</Label>
+                    <select
+                      value={formData.address.province}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          address: { ...prev.address, province: e.target.value },
+                        }))
+                      }
+                      className="w-full border rounded-md p-2 bg-background"
+                    >
+                      <option value="">Select Province</option>
+                      {provinces.map((p) => (
+                        <option key={p} value={p}>
+                          {p}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="country">Country</Label>
-                  <Input
-                    id="country"
-                    value={formData.country}
-                    onChange={(e) => handleInputChange("country", e.target.value)}
-                    placeholder="Country"
-                  />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>District</Label>
+                    <select
+                      value={formData.address.district}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          address: { ...prev.address, district: e.target.value },
+                        }))
+                      }
+                      className="w-full border rounded-md p-2 bg-background"
+                      disabled={!districts.length}
+                    >
+                      <option value="">Select District</option>
+                      {districts.map((d) => (
+                        <option key={d} value={d}>
+                          {d}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Sector</Label>
+                    <select
+                      value={formData.address.sector}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          address: { ...prev.address, sector: e.target.value },
+                        }))
+                      }
+                      className="w-full border rounded-md p-2 bg-background"
+                      disabled={!sectors.length}
+                    >
+                      <option value="">Select Sector</option>
+                      {sectors.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Cell</Label>
+                    <select
+                      value={formData.address.cell}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          address: { ...prev.address, cell: e.target.value },
+                        }))
+                      }
+                      className="w-full border rounded-md p-2 bg-background"
+                      disabled={!cells.length}
+                    >
+                      <option value="">Select Cell</option>
+                      {cells.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Village</Label>
+                    <select
+                      value={formData.address.village}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          address: { ...prev.address, village: e.target.value },
+                        }))
+                      }
+                      className="w-full border rounded-md p-2 bg-background"
+                      disabled={!villages.length}
+                    >
+                      <option value="">Select Village</option>
+                      {villages.map((v) => (
+                        <option key={v} value={v}>
+                          {v}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -306,15 +553,68 @@ export default function OrgManagement() {
                   </div>
 
                   <div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                       <MapPin className="w-4 h-4" />
                       <span>Address</span>
                     </div>
-                    <p className="text-base">
-                      {organization.address || "No address"}
-                      {organization.city && `, ${organization.city}`}
-                      {organization.country && `, ${organization.country}`}
-                    </p>
+                    {(() => {
+                      let addressObj: any = {}
+                      try {
+                        addressObj = JSON.parse(organization.address || "{}")
+                      } catch {
+                        addressObj = {}
+                      }
+
+                      const hasAddress =
+                        addressObj.province ||
+                        addressObj.district ||
+                        addressObj.sector ||
+                        addressObj.cell ||
+                        addressObj.village
+
+                      return hasAddress ? (
+                        <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                          {organization.country && (
+                            <div className="flex items-start gap-2">
+                              <span className="text-sm font-medium text-muted-foreground min-w-[80px]">Country:</span>
+                              <span className="text-sm">{organization.country}</span>
+                            </div>
+                          )}
+                          {addressObj.province && (
+                            <div className="flex items-start gap-2">
+                              <span className="text-sm font-medium text-muted-foreground min-w-[80px]">Province:</span>
+                              <span className="text-sm">{addressObj.province}</span>
+                            </div>
+                          )}
+                          {addressObj.district && (
+                            <div className="flex items-start gap-2">
+                              <span className="text-sm font-medium text-muted-foreground min-w-[80px]">District:</span>
+                              <span className="text-sm">{addressObj.district}</span>
+                            </div>
+                          )}
+                          {addressObj.sector && (
+                            <div className="flex items-start gap-2">
+                              <span className="text-sm font-medium text-muted-foreground min-w-[80px]">Sector:</span>
+                              <span className="text-sm">{addressObj.sector}</span>
+                            </div>
+                          )}
+                          {addressObj.cell && (
+                            <div className="flex items-start gap-2">
+                              <span className="text-sm font-medium text-muted-foreground min-w-[80px]">Cell:</span>
+                              <span className="text-sm">{addressObj.cell}</span>
+                            </div>
+                          )}
+                          {addressObj.village && (
+                            <div className="flex items-start gap-2">
+                              <span className="text-sm font-medium text-muted-foreground min-w-[80px]">Village:</span>
+                              <span className="text-sm">{addressObj.village}</span>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-base text-muted-foreground">No address provided</p>
+                      )
+                    })()}
                   </div>
                 </div>
 

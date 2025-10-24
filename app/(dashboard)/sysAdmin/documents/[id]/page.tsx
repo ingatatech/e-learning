@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Check, X, User, Clock } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+import { ArrowLeft, Check, X, User, Clock, Eye } from "lucide-react"
 import { toast } from "sonner"
 import { formatDistanceToNow } from "date-fns"
 import {
@@ -21,6 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { FilePreview } from "@/components/documents/file-preview"
 
 export default function DocumentReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -34,6 +36,7 @@ export default function DocumentReviewPage({ params }: { params: Promise<{ id: s
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false)
   const [isApproving, setIsApproving] = useState(false)
   const [isRejecting, setIsRejecting] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
 
   useEffect(() => {
     fetchDocument()
@@ -43,7 +46,6 @@ export default function DocumentReviewPage({ params }: { params: Promise<{ id: s
     try {
       const cachedDoc = getDocument(id)
       if (cachedDoc) {
-        console.log("[v0] Using cached document")
         setDocument(cachedDoc)
         setReviewNotes(cachedDoc.reviewNotes || "")
         setLoading(false)
@@ -152,10 +154,50 @@ export default function DocumentReviewPage({ params }: { params: Promise<{ id: s
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading document...</p>
+      <div className="space-y-6">
+        {/* Header Skeleton */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4 flex-1">
+            <Skeleton className="h-9 w-9" />
+            <div className="space-y-2 flex-1">
+              <Skeleton className="h-8 w-96" />
+              <div className="flex items-center gap-4">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-6 w-20" />
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-10 w-32" />
+            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-28" />
+          </div>
+        </div>
+
+        {/* Content Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-6 w-48" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-[600px] w-full" />
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-6 w-32" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-[200px] w-full" />
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     )
@@ -187,6 +229,12 @@ export default function DocumentReviewPage({ params }: { params: Promise<{ id: s
           </div>
         </div>
         <div className="flex gap-2">
+          {document.fileUrl && (
+            <Button variant="outline" onClick={() => setShowPreview(true)}>
+              <Eye className="w-4 h-4 mr-2" />
+              Preview File
+            </Button>
+          )}
           {document.status !== "rejected" && (
             <Button variant="outline" onClick={() => setRejectDialogOpen(true)} disabled={isRejecting || isApproving}>
               {isRejecting ? (
@@ -228,7 +276,18 @@ export default function DocumentReviewPage({ params }: { params: Promise<{ id: s
               <CardTitle>Document Content</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: document.content }} />
+              {document.fileUrl ? (
+                <div className="h-[600px]">
+                  <FilePreview
+                    fileUrl={document.fileUrl}
+                    fileType={document.fileType!}
+                    fileName={document.title}
+                    fileId={document.id}
+                  />
+                </div>
+              ) : (
+                <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: document.content }} />
+              )}
             </CardContent>
           </Card>
         </div>
@@ -261,6 +320,25 @@ export default function DocumentReviewPage({ params }: { params: Promise<{ id: s
           )}
         </div>
       </div>
+
+      {showPreview && document.fileUrl && (
+        <div className="fixed inset-0 bg-background z-50 flex flex-col">
+          <div className="flex items-center justify-between p-4 border-b">
+            <h2 className="text-xl font-semibold">{document.title}</h2>
+            <Button variant="ghost" size="sm" onClick={() => setShowPreview(false)} className="h-8 w-8 p-0">
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+          <div className="flex-1 p-4">
+            <FilePreview
+              fileUrl={document.fileUrl}
+              fileType={document.fileType!}
+              fileName={document.title}
+              fileId={document.id}
+            />
+          </div>
+        </div>
+      )}
 
       <AlertDialog open={approveDialogOpen} onOpenChange={setApproveDialogOpen}>
         <AlertDialogContent>

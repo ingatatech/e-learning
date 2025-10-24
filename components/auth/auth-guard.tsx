@@ -7,8 +7,8 @@ import { usePathname, useRouter } from "next/navigation"
 import { getUserFromToken } from "@/lib/auth-guard"
 import { Loader2 } from "lucide-react"
 
-const protectedRoutes = ["/admin", "/instructor", "/student", "/sysAdmin", "/profile", "/settings"]
-const authRoutes = ["/login", "/verify-otp", "/forgot-password", "/reset-password", "/change-password"]
+const protectedRoutes = ["/admin", "/instructor", "/student", "/sysAdmin", "/profile", "/settings", "/change-password"]
+const authRoutes = ["/login", "/verify-otp", "/forgot-password", "/reset-password"]
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -34,7 +34,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
       if (isProtectedRoute && user) {
         // Allow access to profile and settings for all authenticated users
-        if (pathname.startsWith("/profile") || pathname.startsWith("/settings")) {
+        if (pathname.startsWith("/profile") || pathname.startsWith("/settings") || pathname.startsWith("/change-password")) {
           setIsChecking(false)
           return
         }

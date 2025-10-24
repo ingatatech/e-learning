@@ -9,6 +9,7 @@ import type { Document } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { FileText, Plus, MoreVertical, Trash2, Send, Clock, Grid3x3, ListIcon, Upload, X } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
@@ -27,6 +28,26 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { FilePreview } from "@/components/documents/file-preview"
+
+const SkeletonDocumentCard = () => (
+  <Card>
+    <CardHeader className="pb-3">
+      <div className="flex items-start justify-between">
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-5 w-3/4" />
+          <Skeleton className="h-4 w-1/2" />
+        </div>
+        <Skeleton className="h-8 w-8" />
+      </div>
+    </CardHeader>
+    <CardContent>
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-6 w-20" />
+        <Skeleton className="h-8 w-8" />
+      </div>
+    </CardContent>
+  </Card>
+)
 
 export default function DocumentsPage() {
   const router = useRouter()
@@ -53,8 +74,10 @@ export default function DocumentsPage() {
     const type = fileType?.toLowerCase() || ""
 
     if (type.includes("pdf")) return "bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800/20"
-    if (type.includes("presentation") || type.includes("ppt")) return "bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800/20"
-    if (type.includes("word") || type.includes("document")) return "bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800/20"
+    if (type.includes("presentation") || type.includes("ppt"))
+      return "bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800/20"
+    if (type.includes("word") || type.includes("document"))
+      return "bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800/20"
 
     return "bg-gray-50 border-gray-200"
   }
@@ -254,10 +277,23 @@ export default function DocumentsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-200px)]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading documents...</p>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <Skeleton className="h-9 w-64 mb-2" />
+            <Skeleton className="h-5 w-96" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-32" />
+            <Skeleton className="h-10 w-40" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <SkeletonDocumentCard key={index} />
+          ))}
         </div>
       </div>
     )

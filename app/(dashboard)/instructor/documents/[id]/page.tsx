@@ -75,7 +75,6 @@ export default function DocumentEditorPage({ params }: { params: Promise<{ id: s
     try {
       const cachedDoc = getDocument(id)
       if (cachedDoc) {
-        console.log("[v0] Using cached document")
         setDocument(cachedDoc)
         setTitle(cachedDoc.title)
         setContent(cachedDoc.content)

@@ -3,66 +3,43 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Users, BookOpen, Building2, UserPlus, Plus, GraduationCap, DollarSign } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/hooks/use-auth"
+import { DashboardSkeleton } from "@/components/skeletons/dashboard-skeleton"
 
 export default function SystemAdminDashboard() {
-  // const [stats, setStats] = useState({
-  //   totalUsers: 0,
-  //   totalCourses: 0,
-  //   totalStudents: 0,
-  //   totalInstructors: 0,
-  //   totalRevenue: 0,
-  //   totalEnrollments: 0,
-  // })
   const { user, token } = useAuth()
-
-    const [stats, setStats] = useState<any>(null)
-
-    
-    useEffect(() => {
-      if (!user) return
-  
-      const fetchStats = async () => {
-        try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stats/sysadmin/${user.organization!.id}`, {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          })
-          if (response.ok) {
-            const data = await response.json()
-            setStats(data)
-          }
-        } catch (error) {
-          console.error("Failed to fetch stats:", error)
-        }
-      }
-      
-      if (token) { // Only fetch if token exists
-        fetchStats()
-      }
-    }, [token]) // Add token as dependency
+  const [stats, setStats] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Fetch organization-specific stats
+    if (!user) return
+
     const fetchStats = async () => {
       try {
-        const response = await fetch("/api/system-admin/stats")
+        setLoading(true)
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stats/sysadmin/${user.organization!.id}`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        })
         if (response.ok) {
           const data = await response.json()
           setStats(data)
         }
       } catch (error) {
         console.error("Failed to fetch stats:", error)
+      } finally {
+        setLoading(false)
       }
     }
 
-    fetchStats()
-  }, [])
+    if (token) {
+      fetchStats()
+    }
+  }, [token, user])
 
   const quickActions = [
     {
@@ -87,6 +64,10 @@ export default function SystemAdminDashboard() {
       color: "bg-purple-500",
     },
   ]
+
+  if (loading) {
+    return <DashboardSkeleton />
+  }
 
   return (
     <div className="space-y-6">

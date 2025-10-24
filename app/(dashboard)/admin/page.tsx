@@ -3,11 +3,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Users, BookOpen, DollarSign, UserPlus, Building, Settings, BarChart3 } from "lucide-react"
+import { Users, BookOpen, DollarSign, Building, BarChart3 } from "lucide-react"
 import Link from "next/link"
 import { useEffect } from "react"
 import React from "react"
 import { useAuth } from "@/hooks/use-auth"
+import { DashboardSkeleton } from "@/components/skeletons/dashboard-skeleton"
 
 // Define the types for the API response
 interface ActivityUser {
@@ -48,7 +49,7 @@ export default function AdminDashboard() {
   const [activities, setActivities] = React.useState<ActivitiesResponse | null>(null)
   const { user, token } = useAuth()
   const [stats, setStats] = React.useState<any>(null)
-
+  const [loading, setLoading] = React.useState(true)
 
   useEffect(() => {
     const fetchActivities = async () => {
@@ -70,6 +71,7 @@ export default function AdminDashboard() {
 
     const fetchStats = async () => {
       try {
+        setLoading(true)
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stats`, {
           headers: {
             "Content-Type": "application/json",
@@ -82,10 +84,13 @@ export default function AdminDashboard() {
         }
       } catch (error) {
         console.error("Failed to fetch stats:", error)
+      } finally {
+        setLoading(false)
       }
     }
-    
-    if (token) { // Only fetch if token exists
+
+    if (token) {
+      // Only fetch if token exists
       fetchActivities()
       fetchStats()
     }
@@ -96,7 +101,7 @@ export default function AdminDashboard() {
     const date = new Date(dateString)
     const now = new Date()
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
-    
+
     if (diffInSeconds < 60) return "Just now"
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`
     if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`
@@ -107,6 +112,10 @@ export default function AdminDashboard() {
   // Function to get user display name
   const getUserDisplayName = (user: ActivityUser) => {
     return `${user.firstName} ${user.lastName}`
+  }
+
+  if (loading) {
+    return <DashboardSkeleton />
   }
 
   return (
@@ -142,7 +151,7 @@ export default function AdminDashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{stats ? stats.totalCourses : "..."}</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">{stats && "+" + stats.coursesPublishedThisMonth + " this month"}</span> 
+              <span className="text-green-600">{stats && "+" + stats.coursesPublishedThisMonth + " this month"}</span>
             </p>
           </CardContent>
         </Card>
@@ -153,9 +162,11 @@ export default function AdminDashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold truncate">{stats ? "$" + stats.totalRevenue.toLocaleString() : "..."}</div>
+            <div className="text-2xl font-bold truncate">
+              {stats ? "$" + stats.totalRevenue.toLocaleString() : "..."}
+            </div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">{stats && stats.revenueThisMonth + " from last month"}</span> 
+              <span className="text-green-600">{stats && stats.revenueThisMonth + " from last month"}</span>
             </p>
           </CardContent>
         </Card>
@@ -168,7 +179,7 @@ export default function AdminDashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{stats ? stats.totalOrganizations : "..."}</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">{stats && "+" + stats.organizationsThisMonth + " this month"}</span> 
+              <span className="text-green-600">{stats && "+" + stats.organizationsThisMonth + " this month"}</span>
             </p>
           </CardContent>
         </Card>
@@ -228,9 +239,7 @@ export default function AdminDashboard() {
                 ))
               ) : (
                 // Loading state or empty state
-                <div className="text-center text-muted-foreground">
-                  Loading activities...
-                </div>
+                <div className="text-center text-muted-foreground">Loading activities...</div>
               )}
             </div>
           </CardContent>
@@ -265,4 +274,4 @@ export default function AdminDashboard() {
       </div>
     </div>
   )
-} 
+}

@@ -3,7 +3,6 @@
 import { useState, useEffect, createContext, useContext, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import type { User } from "@/types"
-import { set } from "date-fns"
 
 interface AuthContextType {
   user: User | null
@@ -62,8 +61,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!response.ok) {
         return { success: false, message: data.message || "Login failed" }
       }
-      setUser(data.user)
-      router.push(`/verify-otp?email=${email}`)
+
+      if (data.token) {
+        setUser(data.user)
+        setToken(data.token)
+        localStorage.setItem("Euser", JSON.stringify(data.user))
+        localStorage.setItem("Etoken", JSON.stringify(data.token))
+        if (data.user.firstLogin) {
+          router.push("/change-password")
+        } else {
+          router.push(`/${data.user.role}`)
+        }
+      }
+      else {
+        router.push(`/verify-otp?email=${email}`)
+      }
     } catch (error) {
       return { success: false, message: "Something went wrong. Try again." }
     } finally {

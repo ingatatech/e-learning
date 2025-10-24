@@ -75,11 +75,11 @@ const navigationItems: Record<string, NavigationItem[]> = {
       name: "My Courses",
       icon: BookMarked,
       children: [
-        { name: "Add Course", href: "/instructor/courses/create", icon: BookPlus },
-        { name: "All Courses", href: "/instructor/courses", icon: BookOpen },
+        { name: "Create Course", href: "/instructor/courses/create", icon: BookPlus },
+        { name: "Manage Courses", href: "/instructor/courses", icon: BookOpen },
+        { name: "Prepare Document", href: "/instructor/documents", icon: FileText },
       ],
     },
-    { name: "Documents", href: "/instructor/documents", icon: FileText },
     { name: "Submissions", href: "/instructor/assessments", icon: FileCog },
 
     { name: "Students", href: "/instructor/students", icon: Users },
@@ -121,11 +121,11 @@ const navigationItems: Record<string, NavigationItem[]> = {
       icon: BookMarked,
       children: [
         { name: "Add Course", href: "/sysAdmin/courses/create", icon: BookPlus },
-        { name: "All Courses", href: "/sysAdmin/courses", icon: BookOpen },
-        { name: "Draft Courses", href: "/sysAdmin/courses/draft", icon: BookOpen },
+        { name: "Manage Courses", href: "/sysAdmin/courses", icon: BookOpen },
+        { name: "Review Courses", href: "/sysAdmin/courses/draft", icon: BookOpen },
+        { name: "Review Documents", href: "/sysAdmin/documents", icon: FileText },
       ],
     },
-    { name: "Documents", href: "/sysAdmin/documents", icon: FileText },
     {
       name: "Manage Organization",
       icon: Building,

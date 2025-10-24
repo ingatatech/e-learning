@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useTheme } from "next-themes"
 import { useAuth } from "@/hooks/use-auth"
+import { Organization } from "@/types"
 
 interface HeaderProps {
   user?: {
@@ -25,6 +26,7 @@ interface HeaderProps {
     totalPoints: number
     level: number
     profilePicture?: any
+    organization?: Organization
   }
 }
 
@@ -48,9 +50,11 @@ export function Header({ user }: HeaderProps) {
             </div> */}
             <div className="flex flex-col">
               <h1 className="text-xl font-bold text-foreground capitalize">
-                {user && user.role == "sysAdmin" ? "System Admin Portal" : user &&user.role + "'s Portal"}
+                {user && user.role === "admin" ? "Welcome Back" : user?.organization?.name}
               </h1>
-              <p className="text-xs text-muted-foreground hidden sm:block">Learn From Home</p>
+              <p className="text-xs text-muted-foreground hidden sm:block capitalize">
+                {user && user.role == "sysAdmin" ? "System Admin's Portal" : user &&user.role + "'s Portal"}
+              </p>
             </div>
           </Link>
 

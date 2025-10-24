@@ -5,11 +5,27 @@ import { useDocuments } from "@/hooks/use-documents"
 import type { Document } from "@/types"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { FileText, Clock, User, Grid3x3, ListIcon } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+
+const SkeletonDocumentCard = () => (
+  <Card>
+    <CardContent className="pt-6">
+      <div className="flex justify-between">
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-5 w-3/4" />
+          <Skeleton className="h-4 w-1/2" />
+          <Skeleton className="h-4 w-2/3" />
+        </div>
+        <Skeleton className="h-6 w-20" />
+      </div>
+    </CardContent>
+  </Card>
+)
 
 export default function SysAdminDocumentsPage() {
   const router = useRouter()
@@ -27,8 +43,10 @@ export default function SysAdminDocumentsPage() {
     const type = fileType?.toLowerCase() || ""
 
     if (type.includes("pdf")) return "bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800/20"
-    if (type.includes("presentation") || type.includes("ppt")) return "bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800/20"
-    if (type.includes("word") || type.includes("document")) return "bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800/20"
+    if (type.includes("presentation") || type.includes("ppt"))
+      return "bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800/20"
+    if (type.includes("word") || type.includes("document"))
+      return "bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800/20"
 
     return "bg-gray-50 border-gray-200"
   }
@@ -36,55 +54,62 @@ export default function SysAdminDocumentsPage() {
   const getStatusBadge = (status: Document["status"]) => {
     switch (status) {
       case "draft":
-        return <Badge variant="secondary" className="h-fit mt-1">Draft</Badge>
+        return (
+          <Badge variant="secondary" className="h-fit mt-1">
+            Draft
+          </Badge>
+        )
       case "submitted":
         return <Badge className="bg-blue-600 h-fit mt-1">Submitted</Badge>
       case "approved":
         return <Badge className="bg-green-600 h-fit mt-1">Approved</Badge>
       case "rejected":
-        return <Badge variant="destructive" className="h-fit mt-1">Rejected</Badge>
+        return (
+          <Badge variant="destructive" className="h-fit mt-1">
+            Rejected
+          </Badge>
+        )
     }
   }
 
   const getFileIcon = (fileType?: string) => {
-      if (!fileType) {
-        return <FileText className="w-4 h-4 text-muted-foreground" />
-      }
-  
-      const type = fileType?.toLowerCase() || ""
-  
-      if (type.includes("pdf")) {
-        return (
-          <div className="w-4 h-4 flex items-center justify-center bg-red-100 rounded-md">
-            <FileText className="w-5 h-5 text-red-600" />
-          </div>
-        )
-      }
-  
-      if (type.includes("presentation") || type.includes("ppt")) {
-        return (
-          <div className="w-4 h-4 flex items-center justify-center bg-orange-100 rounded-md">
-            <FileText className="w-5 h-5 text-orange-600" />
-          </div>
-        )
-      }
-  
-      if (type.includes("word") || type.includes("document")) {
-        return (
-          <div className="w-4 h-4 flex items-center justify-center bg-blue-100 rounded-md">
-            <FileText className="w-5 h-5 text-blue-600" />
-          </div>
-        )
-      }
-  
-      // Default file icon
+    if (!fileType) {
+      return <FileText className="w-4 h-4 text-muted-foreground" />
+    }
+
+    const type = fileType?.toLowerCase() || ""
+
+    if (type.includes("pdf")) {
       return (
-        <div className="w-4 h-4 flex items-center justify-center bg-gray-100 rounded-md">
-          <FileText className="w-5 h-5 text-gray-600" />
+        <div className="w-4 h-4 flex items-center justify-center bg-red-100 rounded-md">
+          <FileText className="w-5 h-5 text-red-600" />
         </div>
       )
     }
-  
+
+    if (type.includes("presentation") || type.includes("ppt")) {
+      return (
+        <div className="w-4 h-4 flex items-center justify-center bg-orange-100 rounded-md">
+          <FileText className="w-5 h-5 text-orange-600" />
+        </div>
+      )
+    }
+
+    if (type.includes("word") || type.includes("document")) {
+      return (
+        <div className="w-4 h-4 flex items-center justify-center bg-blue-100 rounded-md">
+          <FileText className="w-5 h-5 text-blue-600" />
+        </div>
+      )
+    }
+
+    // Default file icon
+    return (
+      <div className="w-4 h-4 flex items-center justify-center bg-gray-100 rounded-md">
+        <FileText className="w-5 h-5 text-gray-600" />
+      </div>
+    )
+  }
 
   const filteredDocuments = documents.filter((doc) => {
     if (activeTab === "submitted") return true
@@ -93,10 +118,22 @@ export default function SysAdminDocumentsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-200px)]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading documents...</p>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <Skeleton className="h-9 w-64 mb-2" />
+            <Skeleton className="h-5 w-96" />
+          </div>
+          <Skeleton className="h-10 w-32" />
+        </div>
+
+        <div className="space-y-4">
+          <Skeleton className="h-10 w-96" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <SkeletonDocumentCard key={index} />
+            ))}
+          </div>
         </div>
       </div>
     )

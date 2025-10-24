@@ -3,11 +3,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { BookOpen, Users, DollarSign, TrendingUp, Plus, Eye, Edit, BarChart3, Calendar } from "lucide-react"
+import { BookOpen, Users, DollarSign, TrendingUp, Eye, Edit, Calendar } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { useAuth } from "@/hooks/use-auth"
-import { Course, User } from "@/types"
+import type { Course } from "@/types"
+import { DashboardSkeleton } from "@/components/skeletons/dashboard-skeleton"
 
 interface Student {
   student: {
@@ -49,7 +50,7 @@ export default function InstructorDashboard() {
     const fetchData = async () => {
       try {
         setLoading(true)
-        
+
         // Fetch courses
         const coursesResponse = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/courses/instructor/${user?.id}/courses`,
@@ -58,7 +59,7 @@ export default function InstructorDashboard() {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
-          }
+          },
         )
 
         // Fetch students
@@ -69,7 +70,7 @@ export default function InstructorDashboard() {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
-          }
+          },
         )
 
         if (coursesResponse.ok && studentsResponse.ok) {
@@ -84,23 +85,25 @@ export default function InstructorDashboard() {
           const coursesPublished = coursesData.courses.filter((course: Course) => course.isPublished).length
           const coursesDraft = totalCourses - coursesPublished
           const totalStudents = studentsData.studentCount
-          
+
           // Calculate total revenue from published courses
           const totalRevenue = coursesData.courses
             .filter((course: Course) => course.isPublished)
-            .reduce((sum: number, course: Course) => sum + parseFloat(course.price.toString() || "0"), 0)
+            .reduce((sum: number, course: Course) => sum + Number.parseFloat(course.price.toString() || "0"), 0)
 
           // Calculate average rating from courses with ratings
           const coursesWithRatings = coursesData.courses.filter((course: Course) => course.rating > 0)
-          const avgRating = coursesWithRatings.length > 0 
-            ? coursesWithRatings.reduce((sum: number, course: Course) => sum + course.rating, 0) / coursesWithRatings.length
-            : 0
+          const avgRating =
+            coursesWithRatings.length > 0
+              ? coursesWithRatings.reduce((sum: number, course: Course) => sum + course.rating, 0) /
+                coursesWithRatings.length
+              : 0
 
           setInstructorStats({
             totalCourses,
             totalStudents,
             totalRevenue,
-            avgRating: parseFloat(avgRating.toFixed(1)),
+            avgRating: Number.parseFloat(avgRating.toFixed(1)),
             coursesPublished,
             coursesDraft,
           })
@@ -122,17 +125,21 @@ export default function InstructorDashboard() {
     const date = new Date(dateString)
     const now = new Date()
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
-    
+
     if (diffInSeconds < 60) return "Just now"
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`
     if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`
     if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days ago`
-    
+
     return date.toLocaleDateString()
   }
 
   // Get recent students (last 4)
   const recentStudents = students.slice(0, 3)
+
+  if (loading) {
+    return <DashboardSkeleton />
+  }
 
   return (
     <div className="space-y-6">
@@ -166,9 +173,7 @@ export default function InstructorDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{loading ? "..." : instructorStats.totalStudents.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              Across all your published courses
-            </p>
+            <p className="text-xs text-muted-foreground">Across all your published courses</p>
           </CardContent>
         </Card>
 
@@ -178,10 +183,10 @@ export default function InstructorDashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{loading ? "..." : "$" + instructorStats.totalRevenue.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              From published courses
-            </p>
+            <div className="text-2xl font-bold">
+              {loading ? "..." : "$" + instructorStats.totalRevenue.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground">From published courses</p>
           </CardContent>
         </Card>
 
@@ -193,7 +198,7 @@ export default function InstructorDashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{loading ? "..." : instructorStats.avgRating}</div>
             <p className="text-xs text-muted-foreground">
-              {instructorStats.avgRating > 0 ? 'Based on course ratings' : 'No ratings yet'}
+              {instructorStats.avgRating > 0 ? "Based on course ratings" : "No ratings yet"}
             </p>
           </CardContent>
         </Card>
@@ -228,7 +233,7 @@ export default function InstructorDashboard() {
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <span>{course.enrollmentCount} students</span>
-                      <span>${parseFloat(course.price.toString() || "0").toLocaleString()}</span>
+                      <span>${Number.parseFloat(course.price.toString() || "0").toLocaleString()}</span>
                       {course.rating > 0 && <span>⭐ {course.rating}</span>}
                       <Badge variant={course.isPublished ? "default" : "secondary"}>
                         {course.isPublished ? "Published" : "Draft"}
@@ -284,8 +289,8 @@ export default function InstructorDashboard() {
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
                       {student.student.profilePicUrl ? (
-                        <img 
-                          src={student.student.profilePicUrl} 
+                        <img
+                          src={student.student.profilePicUrl || "/placeholder.svg"}
                           alt={`${student.student.firstName} ${student.student.lastName}`}
                           className="w-10 h-10 rounded-full"
                         />
@@ -299,8 +304,12 @@ export default function InstructorDashboard() {
                       </p>
                       <p className="text-xs text-muted-foreground">{student.student.email}</p>
                       <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className="text-xs">Level {student.student.level}</Badge>
-                        <Badge variant="outline" className="text-xs">{student.student.totalPoints} pts</Badge>
+                        <Badge variant="outline" className="text-xs">
+                          Level {student.student.level}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {student.student.totalPoints} pts
+                        </Badge>
                       </div>
                     </div>
                   </div>

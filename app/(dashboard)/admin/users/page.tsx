@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   DropdownMenu,
@@ -14,16 +15,61 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Search, UserPlus, MoreHorizontal, Edit, Trash2, Mail, Shield } from "lucide-react"
+import { Search, UserPlus, MoreHorizontal, Edit, Trash2, Mail, ChevronLeft, ChevronRight } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/hooks/use-auth"
+import type { User } from "@/types"
+
+const SkeletonCard = () => (
+  <Card>
+    <CardHeader className="pb-2">
+      <Skeleton className="h-4 w-24" />
+    </CardHeader>
+    <CardContent>
+      <Skeleton className="h-8 w-16" />
+    </CardContent>
+  </Card>
+)
+
+const SkeletonTableRow = () => (
+  <TableRow>
+    <TableCell>
+      <Skeleton className="h-4 w-32" />
+    </TableCell>
+    <TableCell>
+      <Skeleton className="h-4 w-48" />
+    </TableCell>
+    <TableCell>
+      <Skeleton className="h-6 w-20" />
+    </TableCell>
+    <TableCell>
+      <Skeleton className="h-6 w-16" />
+    </TableCell>
+    <TableCell>
+      <Skeleton className="h-6 w-16" />
+    </TableCell>
+    <TableCell>
+      <Skeleton className="h-6 w-16" />
+    </TableCell>
+    <TableCell>
+      <Skeleton className="h-4 w-24" />
+    </TableCell>
+    <TableCell className="text-right">
+      <Skeleton className="h-8 w-8 ml-auto" />
+    </TableCell>
+  </TableRow>
+)
 
 export default function UsersManagement() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [users, setUsers] = useState([])
+  const [users, setUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const { token } = useAuth()
-  
+
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
+  const itemsPerPageOptions = [5, 10, 25, 50, 100]
+
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -54,6 +100,15 @@ export default function UsersManagement() {
       user.email?.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentUsers = filteredUsers.slice(startIndex, endIndex)
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, itemsPerPage])
+
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case "admin":
@@ -72,19 +127,53 @@ export default function UsersManagement() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">User Management</h1>
-            <p className="text-muted-foreground">Manage platform users and their permissions</p>
+            <Skeleton className="h-9 w-64 mb-2" />
+            <Skeleton className="h-5 w-96" />
           </div>
-          <Button asChild>
-            <Link href="/admin/users/add">
-              <UserPlus className="w-4 h-4 mr-2" />
-              Add User
-            </Link>
-          </Button>
+          <Skeleton className="h-10 w-32" />
         </div>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-muted-foreground">Loading users...</div>
+
+        {/* Skeleton Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
         </div>
+
+        {/* Skeleton Table */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <Skeleton className="h-6 w-32 mb-2" />
+                <Skeleton className="h-4 w-48" />
+              </div>
+              <Skeleton className="h-9 w-64" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Points</TableHead>
+                  <TableHead>Level</TableHead>
+                  <TableHead>Joined</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <SkeletonTableRow key={index} />
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -147,7 +236,9 @@ export default function UsersManagement() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Users</CardTitle>
-              <CardDescription>A list of all users in the system</CardDescription>
+              <CardDescription>
+                Showing {startIndex + 1}-{Math.min(endIndex, filteredUsers.length)} of {filteredUsers.length} users
+              </CardDescription>
             </div>
             <div className="flex items-center gap-2">
               <div className="relative">
@@ -174,73 +265,126 @@ export default function UsersManagement() {
               </Button>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Points</TableHead>
-                  <TableHead>Level</TableHead>
-                  <TableHead>Joined</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">
-                      {user.firstName} {user.lastName}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {user.email}
-                        {!user.isEmailVerified && <Mail className="w-4 h-4 text-yellow-500" />}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getRoleBadgeColor(user.role)}>
-                        {user.role?.charAt(0).toUpperCase() + user.role?.slice(1) || "N/A"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={user.isActive ? "default" : "secondary"}>
-                        {user.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{user.totalPoints?.toLocaleString() || 0}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">Level {user.level || 1}</Badge>
-                    </TableCell>
-                    <TableCell>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}</TableCell>
-                    <TableCell className="text-right">
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Points</TableHead>
+                    <TableHead>Level</TableHead>
+                    <TableHead>Joined</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {currentUsers.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">
+                        {user.firstName} {user.lastName}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {user.email}
+                          {!user.isEmailVerified && <Mail className="w-4 h-4 text-yellow-500" />}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getRoleBadgeColor(user.role)}>
+                          {user.role?.charAt(0).toUpperCase() + user.role?.slice(1) || "N/A"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={user.isActive ? "default" : "secondary"}>
+                          {user.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{user.totalPoints?.toLocaleString() || 0}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">Level {user.level || 1}</Badge>
+                      </TableCell>
+                      <TableCell>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}</TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem asChild>
+                              <Link href={`/admin/users/add?id=${user.id}`}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit User
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-red-600">
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete User
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-4">
+                  <div className="flex items-center gap-4">
+                    <div className="text-sm text-muted-foreground">
+                      Page {currentPage} of {totalPages}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">Show:</span>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
+                          <Button variant="outline" size="sm">
+                            {itemsPerPage} per page
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem asChild>
-                            <Link href={`/admin/users/add?id=${user.id}`}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit User
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete User
-                          </DropdownMenuItem>
+                        <DropdownMenuContent>
+                          {itemsPerPageOptions.map((option) => (
+                            <DropdownMenuItem
+                              key={option}
+                              onClick={() => setItemsPerPage(option)}
+                              className={itemsPerPage === option ? "bg-accent" : ""}
+                            >
+                              {option} per page
+                            </DropdownMenuItem>
+                          ))}
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

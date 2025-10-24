@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useRef, useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Download, Share2, Linkedin } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
@@ -37,48 +37,380 @@ export function Certificate({
     setQrCodeUrl(qrUrl)
   }, [verificationCode])
 
-  const handleDownload = async () => {
+  const handleDownload = () => {
     if (!certificateRef.current) return
 
     try {
-      // Use html2canvas to convert the certificate to an image
-      const html2canvas = (await import("html2canvas")).default
-      const canvas = await html2canvas(certificateRef.current, {
-        scale: 2,
-        backgroundColor: "#ffffff",
-        logging: false,
-        useCORS: true,
-        onclone: (clonedDoc) => {
-          const clonedElement = clonedDoc.querySelector(".certificate-container")
-          if (clonedElement) {
-            // Force recompute all styles
-            const allElements = clonedElement.querySelectorAll("*")
-            allElements.forEach((el) => {
-              const htmlEl = el as HTMLElement
-              const computedStyle = window.getComputedStyle(htmlEl)
-              htmlEl.style.color = computedStyle.color
-              htmlEl.style.backgroundColor = computedStyle.backgroundColor
-              htmlEl.style.borderColor = computedStyle.borderColor
-            })
-          }
-        },
-      })
+      // Create a new window with the certificate content
+      const printWindow = window.open("", "_blank")
+      if (!printWindow) {
+        toast({
+          title: "Error",
+          description: "Please allow popups to download the certificate.",
+          variant: "destructive",
+        })
+        return
+      }
 
-      // Convert canvas to blob and download
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const url = URL.createObjectURL(blob)
-          const link = document.createElement("a")
-          link.href = url
-          link.download = `certificate-${courseName.replace(/\s+/g, "-").toLowerCase()}.png`
-          link.click()
-          URL.revokeObjectURL(url)
-        }
-      })
+      // Get the certificate HTML
+      const certificateHTML = certificateRef.current.innerHTML
+      const verificationUrl = `${window.location.origin}/verify-certificate/${verificationCode}`
+
+      // Write the HTML to the new window with proper styling
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Certificate - ${courseName}</title>
+            <style>
+              * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+              }
+              
+              @page {
+                size: A4 landscape;
+                margin: 0;
+              }
+              
+              body {
+                margin: 0;
+                padding: 0;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                background: white;
+              }
+              
+              .certificate-container {
+                width: 297mm;
+                height: 210mm;
+                margin: 0 auto;
+                background-color: #ffffff;
+                position: relative;
+                page-break-after: always;
+              }
+              
+              .certificate {
+                width: 100%;
+                height: 100%;
+                padding: 30px;
+                box-sizing: border-box;
+                position: relative;
+                background-color: #ffffff;
+                border: 15px solid #00a63e;
+                display: flex;
+                flex-direction: column;
+              }
+              
+              .inner-border {
+                position: absolute;
+                top: 20px;
+                left: 20px;
+                right: 20px;
+                bottom: 20px;
+                border: 2px solid #00a63e;
+                pointer-events: none;
+              }
+              
+              .header {
+                text-align: center;
+                margin-bottom: 15px;
+                position: relative;
+                z-index: 10;
+              }
+              
+              .header-subtitle {
+                font-size: 10px;
+                font-weight: 600;
+                letter-spacing: 3px;
+                text-transform: uppercase;
+                margin-bottom: 6px;
+                color: #00a63e;
+              }
+              
+              .header-title {
+                font-family: Georgia, serif;
+                font-size: 42px;
+                font-weight: bold;
+                margin-bottom: 6px;
+                text-transform: uppercase;
+                letter-spacing: 2px;
+                color: #00a63e;
+              }
+              
+              .header-type {
+                font-size: 14px;
+                font-weight: 300;
+                letter-spacing: 1px;
+                color: #4b5563;
+              }
+              
+              .content {
+                text-align: center;
+                margin: 20px 0;
+                position: relative;
+                z-index: 10;
+                flex: 1;
+              }
+              
+              .certify-text {
+                font-size: 13px;
+                margin-bottom: 15px;
+                font-weight: 300;
+                color: #6b7280;
+              }
+              
+              .student-name {
+                font-family: Georgia, serif;
+                font-size: 34px;
+                font-weight: bold;
+                margin: 15px 0;
+                padding: 12px 0;
+                display: inline-block;
+                min-width: 60%;
+                color: #00a63e;
+                border-bottom: 3px solid #00a63e;
+              }
+              
+              .course-text {
+                font-size: 13px;
+                margin: 15px 0;
+                line-height: 1.5;
+                color: #6b7280;
+              }
+              
+              .course-name {
+                font-weight: 600;
+                font-size: 16px;
+                color: #1f2937;
+              }
+              
+              .score-label {
+                font-size: 13px;
+                color: #6b7280;
+                margin-bottom: 8px;
+              }
+              
+              .score-badge {
+                display: inline-block;
+                padding: 6px 22px;
+                border-radius: 25px;
+                font-size: 20px;
+                font-weight: 600;
+                margin: 12px 0;
+                background-color: #00a63e;
+                color: #ffffff;
+              }
+              
+              .institution-text {
+                font-size: 13px;
+                color: #6b7280;
+                margin-top: 12px;
+              }
+              
+              .institution-name {
+                font-weight: bold;
+                color: #1f2937;
+              }
+              
+              .footer {
+                display: flex;
+                justify-content: space-around;
+                align-items: center;
+                margin-top: 25px;
+                padding-top: 20px;
+                position: relative;
+                z-index: 10;
+              }
+              
+              .signature-block {
+                text-align: center;
+                flex: 1;
+                padding: 0 15px;
+              }
+              
+              .signature-line {
+                margin-bottom: 6px;
+                width: 200px;
+                margin-left: auto;
+                margin-right: auto;
+                border-top: 2px solid #00a63e;
+              }
+              
+              .signature-label {
+                font-size: 11px;
+                margin-bottom: 4px;
+                color: #6b7280;
+              }
+              
+              .signature-name {
+                font-weight: 600;
+                font-size: 13px;
+                color: #1f2937;
+              }
+              
+              .seal {
+                width: 90px;
+                height: 90px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: 4px solid #00a63e;
+                background-color: #ffffff;
+              }
+              
+              .seal-text {
+                text-align: center;
+                font-size: 10px;
+                font-weight: 600;
+                color: #00a63e;
+                line-height: 1.3;
+              }
+              
+              .date-text {
+                text-align: center;
+                margin-top: 15px;
+                font-size: 11px;
+                color: #9ca3af;
+                position: relative;
+                z-index: 10;
+              }
+              
+              .verification {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 12px;
+                margin-top: 15px;
+                padding-top: 12px;
+                border-top: 1px solid #e5e7eb;
+                position: relative;
+                z-index: 10;
+              }
+              
+              .qr-code img {
+                width: 60px;
+                height: 60px;
+                padding: 3px;
+                border: 2px solid #00a63e;
+                background-color: #ffffff;
+              }
+              
+              .verification-text {
+                font-size: 9px;
+                max-width: 320px;
+                color: #6b7280;
+                line-height: 1.3;
+              }
+              
+              .verification-link {
+                color: #00a63e;
+                text-decoration: none;
+                word-break: break-all;
+              }
+              
+              @media print {
+                body {
+                  -webkit-print-color-adjust: exact;
+                  print-color-adjust: exact;
+                  color-adjust: exact;
+                }
+                
+                .certificate-container {
+                  width: 297mm;
+                  height: 210mm;
+                  margin: 0;
+                  padding: 0;
+                }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="certificate-container">
+              <div class="certificate">
+                <div class="inner-border"></div>
+                
+                <div class="header">
+                  <div class="header-subtitle">Ingata - E-Learning</div>
+                  <div class="header-title">Certificate</div>
+                  <div class="header-type">of Completion</div>
+                </div>
+                
+                <div class="content">
+                  <div class="certify-text">This is to certify that</div>
+                  
+                  <div class="student-name">${studentName}</div>
+                  
+                  <div class="course-text">
+                    has successfully completed the course<br/>
+                    <span class="course-name">${courseName}</span>
+                  </div>
+                  
+                  <div class="score-label">with a score of</div>
+                  
+                  <div class="score-badge">${score}%</div>
+                  
+                  <div class="institution-text">
+                    at <span class="institution-name">${institutionName}</span>
+                  </div>
+                </div>
+                
+                <div class="footer">
+                  <div class="signature-block">
+                    <div class="signature-line"></div>
+                    <div class="signature-label">Instructor</div>
+                    <div class="signature-name">${instructorName}</div>
+                  </div>
+                  
+                  <div class="seal">
+                    <div class="seal-text">OFFICIAL<br/>SEAL</div>
+                  </div>
+                  
+                  <div class="signature-block">
+                    <div class="signature-line"></div>
+                    <div class="signature-label">Director</div>
+                    <div class="signature-name">${directorName}</div>
+                  </div>
+                </div>
+                
+                <div class="date-text">
+                  Issued on ${new Date(completionDate).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </div>
+                
+                <div class="verification">
+                  <div class="qr-code">
+                    <img src="${qrCodeUrl}" alt="QR Code" crossorigin="anonymous" />
+                  </div>
+                  <div class="verification-text">
+                    You can verify this certificate on: 
+                    <a href="${verificationUrl}" class="verification-link" target="_blank">
+                      ${verificationUrl}
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </body>
+        </html>
+      `)
+
+      printWindow.document.close()
+
+      // Wait for content to load, then trigger print
+      printWindow.onload = () => {
+        setTimeout(() => {
+          printWindow.print()
+        }, 500)
+      }
 
       toast({
         title: "Success",
-        description: "Certificate downloaded successfully!",
+        description: "Opening print dialog. Save as PDF to download.",
       })
     } catch (error) {
       console.error("Failed to download certificate:", error)
@@ -123,7 +455,7 @@ export function Certificate({
 
   return (
     <div className="space-y-6">
-      <div ref={certificateRef} className="certificate-container" style={{ backgroundColor: "#ffffff" }}>
+      <div ref={certificateRef} className="certificate-container bg-white">
         <div
           className="certificate p-[60px] shadow-2xl relative"
           style={{

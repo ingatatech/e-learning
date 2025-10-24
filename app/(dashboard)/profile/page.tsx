@@ -39,12 +39,16 @@ export default function ProfilePage() {
     // Validate file type
     if (!file.type.startsWith("image/")) {
       toast.error("Please select an image file")
+      // Reset input
+      if (fileInputRef.current) fileInputRef.current.value = ""
       return
     }
 
     // Validate file size (5MB limit)
     if (file.size > 5 * 1024 * 1024) {
       toast.error("File size must be less than 5MB")
+      // Reset input
+      if (fileInputRef.current) fileInputRef.current.value = ""
       return
     }
 
@@ -74,6 +78,8 @@ export default function ProfilePage() {
       toast.error("Failed to upload image. Please try again.")
     } finally {
       setIsUploading(false)
+      // Reset file input to allow re-upload
+      if (fileInputRef.current) fileInputRef.current.value = ""
     }
   }
 

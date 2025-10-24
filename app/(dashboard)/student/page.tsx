@@ -1,13 +1,13 @@
 "use client"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { BookOpen, Clock, Award, TrendingUp, Play, Calendar, Target, CheckCircle, PlayCircle, Book, Star, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react"
+import { BookOpen, Star, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { useAuth } from "@/hooks/use-auth"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface EnrolledCourse {
   id: string
@@ -66,11 +66,11 @@ export default function StudentDashboard() {
     inProgressCourses: 0,
     totalHoursSpent: 0,
     averageProgress: 0,
-    certificatesEarned: 0
+    certificatesEarned: 0,
   })
   const [currentDate, setCurrentDate] = useState(new Date())
   const { token, user } = useAuth()
-  const [imgError, setImgError] = useState(false);
+  const [imgError, setImgError] = useState(false)
 
   // Function to generate learning steps
   const generateLearningSteps = (course: any) => {
@@ -132,7 +132,7 @@ export default function StudentDashboard() {
 
       if (progressResponse.ok) {
         const progressData = await progressResponse.json()
-        
+
         // Get the course to generate steps
         const courseResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/get/${courseId}`, {
           headers: {
@@ -140,11 +140,11 @@ export default function StudentDashboard() {
             Authorization: `Bearer ${token}`,
           },
         })
-        
+
         if (courseResponse.ok) {
           const courseData = await courseResponse.json()
           const allSteps = generateLearningSteps(courseData.course)
-          
+
           // Calculate completed steps
           const completedSteps = allSteps.filter((step) => {
             if (step.type === "assessment" && step.assessment) {
@@ -164,7 +164,7 @@ export default function StudentDashboard() {
     } catch (error) {
       console.error("Failed to calculate progress:", error)
     }
-    
+
     return 0
   }
 
@@ -183,51 +183,65 @@ export default function StudentDashboard() {
           }),
           method: "POST",
         })
-        
+
         if (response.ok) {
           const data = await response.json()
-          
+
           const enrollmentsWithProgress = await Promise.all(
             data.enrollments.map(async (enrollment: any) => {
               // Calculate progress for each course
               const progress = await calculateCourseProgress(enrollment.course.id, user.id)
-              
+
               return {
                 ...enrollment,
                 progress,
-                status: progress === 0 ? "not_started" : 
-                       progress === 100 ? "completed" : "in_progress",
-                totalLessons: enrollment.course.modules?.reduce((total: number, module: any) => 
-                  total + (module.lessons?.length || 0), 0) || 0,
-                completedLessons: Math.floor(progress / 100 * (enrollment.course.modules?.reduce((total: number, module: any) => 
-                  total + (module.lessons?.length || 0), 0) || 0))
+                status: progress === 0 ? "not_started" : progress === 100 ? "completed" : "in_progress",
+                totalLessons:
+                  enrollment.course.modules?.reduce(
+                    (total: number, module: any) => total + (module.lessons?.length || 0),
+                    0,
+                  ) || 0,
+                completedLessons: Math.floor(
+                  (progress / 100) *
+                    (enrollment.course.modules?.reduce(
+                      (total: number, module: any) => total + (module.lessons?.length || 0),
+                      0,
+                    ) || 0),
+                ),
               }
-            })
+            }),
           )
-          
+
           setEnrollments(enrollmentsWithProgress)
-          
+
           // Calculate stats
           const totalCourses = enrollmentsWithProgress.length
-          const completedCourses = enrollmentsWithProgress.filter((c: EnrolledCourse) => c.status === "completed").length
-          const inProgressCourses = enrollmentsWithProgress.filter((c: EnrolledCourse) => c.status === "in_progress").length
-          const certificatesEarned = enrollmentsWithProgress.filter((c: EnrolledCourse) => c.course.certificateIncluded).length
-          const averageProgress = totalCourses > 0 
-            ? enrollmentsWithProgress.reduce((sum: number, c: EnrolledCourse) => sum + c.progress, 0) / totalCourses 
-            : 0
-          
+          const completedCourses = enrollmentsWithProgress.filter(
+            (c: EnrolledCourse) => c.status === "completed",
+          ).length
+          const inProgressCourses = enrollmentsWithProgress.filter(
+            (c: EnrolledCourse) => c.status === "in_progress",
+          ).length
+          const certificatesEarned = enrollmentsWithProgress.filter(
+            (c: EnrolledCourse) => c.course.certificateIncluded,
+          ).length
+          const averageProgress =
+            totalCourses > 0
+              ? enrollmentsWithProgress.reduce((sum: number, c: EnrolledCourse) => sum + c.progress, 0) / totalCourses
+              : 0
+
           setStats({
             totalCourses,
             completedCourses,
             inProgressCourses,
             totalHoursSpent: Math.floor(Math.random() * 100) + 50, // Mock data for hours
             averageProgress: Math.round(averageProgress),
-            certificatesEarned
+            certificatesEarned,
           })
         }
       } catch (error) {
         console.error("Failed to fetch enrolled courses:", error)
-        
+
         // Fallback mock data
         setStats({
           totalCourses: 3,
@@ -235,7 +249,7 @@ export default function StudentDashboard() {
           inProgressCourses: 1,
           totalHoursSpent: 67,
           averageProgress: 58,
-          certificatesEarned: 1
+          certificatesEarned: 1,
         })
       } finally {
         setLoading(false)
@@ -256,22 +270,32 @@ export default function StudentDashboard() {
 
   const formatDate = (date: Date) => {
     const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
     ]
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
     return {
       month: months[date.getMonth()],
       day: days[date.getDay()],
       date: date.getDate(),
-      year: date.getFullYear()
+      year: date.getFullYear(),
     }
   }
 
-  const navigateMonth = (direction: 'prev' | 'next') => {
-    setCurrentDate(prev => {
+  const navigateMonth = (direction: "prev" | "next") => {
+    setCurrentDate((prev) => {
       const newDate = new Date(prev)
-      if (direction === 'prev') {
+      if (direction === "prev") {
         newDate.setMonth(prev.getMonth() - 1)
       } else {
         newDate.setMonth(prev.getMonth() + 1)
@@ -284,45 +308,46 @@ export default function StudentDashboard() {
     const daysInMonth = getDaysInMonth(currentDate)
     const firstDay = getFirstDayOfMonth(currentDate)
     const today = new Date()
-    const isCurrentMonth = currentDate.getMonth() === today.getMonth() && currentDate.getFullYear() === today.getFullYear()
-    
+    const isCurrentMonth =
+      currentDate.getMonth() === today.getMonth() && currentDate.getFullYear() === today.getFullYear()
+
     const days = []
-    const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-    
+    const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+
     // Add day labels
-    dayLabels.forEach(day => {
+    dayLabels.forEach((day) => {
       days.push(
         <div key={`label-${day}`} className="text-center text-xs font-medium text-muted-foreground p-2">
           {day}
-        </div>
+        </div>,
       )
     })
-    
+
     // Add empty cells for days before the first day of the month
     for (let i = 0; i < firstDay; i++) {
       days.push(<div key={`empty-${i}`} className="p-2"></div>)
     }
-    
+
     // Add days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       const isToday = isCurrentMonth && day === today.getDate()
       const hasEvent = day === 18 || day === 6 // Mock events
-      
+
       days.push(
         <div
           key={day}
           className={`p-2 text-center text-sm cursor-pointer hover:bg-accent rounded-md relative ${
-            isToday ? 'bg-primary text-primary-foreground font-semibold' : 'text-foreground'
+            isToday ? "bg-primary text-primary-foreground font-semibold" : "text-foreground"
           }`}
         >
           {day}
           {hasEvent && (
             <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-green-500 rounded-full"></div>
           )}
-        </div>
+        </div>,
       )
     }
-    
+
     return days
   }
 
@@ -332,14 +357,14 @@ export default function StudentDashboard() {
       id: 1,
       title: "Discussion Algorithm",
       time: "09:00 AM - 12:00 PM",
-      color: "bg-blue-500"
+      color: "bg-blue-500",
     },
     {
       id: 2,
       title: "Simple Home Page Design",
       time: "09:00 AM - 15:00 PM",
-      color: "bg-green-500"
-    }
+      color: "bg-green-500",
+    },
   ]
 
   const currentDateFormatted = formatDate(new Date())
@@ -353,11 +378,10 @@ export default function StudentDashboard() {
             {/* Welcome Banner */}
             <div className="bg-gradient-to-r from-green-400 to-green-600 dark:from-green-600 dark:to-green-700 rounded-2xl p-8 text-white relative overflow-hidden">
               <div className="relative z-10">
-                <h1 className="text-3xl font-bold mb-2">
-                  Hi {user?.firstName || 'Student'}!
-                </h1>
+                <h1 className="text-3xl font-bold mb-2">Hi {user?.firstName || "Student"}!</h1>
                 <p className="text-lg opacity-90">
-                  You have completed {stats.completedCourses} lesson{stats.completedCourses !== 1 ? 's' : ''} in the last day. Start your learning today.
+                  You have completed {stats.completedCourses} lesson{stats.completedCourses !== 1 ? "s" : ""} in the
+                  last day. Start your learning today.
                 </p>
               </div>
               <div className="absolute right-4 top-4 opacity-20">
@@ -379,22 +403,30 @@ export default function StudentDashboard() {
                   {loading ? (
                     // Loading state
                     Array.from({ length: 3 }).map((_, index) => (
-                      <div key={index} className="flex items-center gap-4 p-4 border rounded-lg animate-pulse">
-                        <div className="w-12 h-12 bg-muted rounded-lg"></div>
+                      <div key={index} className="flex items-center gap-4 p-4 border rounded-lg">
+                        <Skeleton className="w-12 h-12 rounded-lg" />
                         <div className="flex-1 space-y-2">
-                          <div className="h-4 bg-muted rounded w-3/4"></div>
-                          <div className="h-3 bg-muted rounded w-1/2"></div>
+                          <Skeleton className="h-4 w-3/4" />
+                          <Skeleton className="h-3 w-1/2" />
                         </div>
-                        <div className="w-20 h-2 bg-muted rounded"></div>
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="w-8 h-4" />
+                          <Skeleton className="w-16 h-2 rounded-full" />
+                          <Skeleton className="w-8 h-4" />
+                          <Skeleton className="w-24 h-8 rounded" />
+                        </div>
                       </div>
                     ))
                   ) : enrollments.length > 0 ? (
                     enrollments.slice(0, 4).map((enrollment) => (
-                      <div key={enrollment.id} className="flex items-center gap-4 p-4 border rounded-lg hover:shadow-md transition-shadow">
+                      <div
+                        key={enrollment.id}
+                        className="flex items-center gap-4 p-4 border rounded-lg hover:shadow-md transition-shadow"
+                      >
                         <div className="w-12 h-12 rounded-lg overflow-hidden bg-gradient-to-br from-orange-400 to-red-400 flex items-center justify-center">
                           {enrollment.course.thumbnail && !imgError ? (
-                            <img 
-                              src={enrollment.course.thumbnail} 
+                            <img
+                              src={enrollment.course.thumbnail || "/placeholder.svg"}
                               alt={enrollment.course.title}
                               className="w-full h-full object-cover"
                               onError={() => setImgError(true)}
@@ -419,9 +451,7 @@ export default function StudentDashboard() {
                           </div>
                           <span className="text-xs text-muted-foreground w-8">{enrollment.progress}%</span>
                           <Button size="sm" variant="outline" asChild>
-                            <Link href={`/courses/${enrollment.course.id}/learn`}>
-                              View Course
-                            </Link>
+                            <Link href={`/courses/${enrollment.course.id}/learn`}>View Course</Link>
                           </Button>
                         </div>
                       </div>
@@ -448,7 +478,9 @@ export default function StudentDashboard() {
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">Upcoming Task</CardTitle>
-                  <Button variant="ghost" size="sm">See all</Button>
+                  <Button variant="ghost" size="sm">
+                    See all
+                  </Button>
                 </div>
                 <p className="text-sm text-muted-foreground">Sunday 28,jun 2020</p>
               </CardHeader>
@@ -475,22 +507,22 @@ export default function StudentDashboard() {
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-semibold">{currentDateFormatted.month} {currentDate.getDate()} {currentDateFormatted.day}</h3>
+                    <h3 className="font-semibold">
+                      {currentDateFormatted.month} {currentDate.getDate()} {currentDateFormatted.day}
+                    </h3>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => navigateMonth('prev')}>
+                    <Button variant="ghost" size="sm" onClick={() => navigateMonth("prev")}>
                       <ChevronLeft className="w-4 h-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => navigateMonth('next')}>
+                    <Button variant="ghost" size="sm" onClick={() => navigateMonth("next")}>
                       <ChevronRight className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-7 gap-1">
-                  {renderCalendar()}
-                </div>
+                <div className="grid grid-cols-7 gap-1">{renderCalendar()}</div>
               </CardContent>
             </Card>
           </div>

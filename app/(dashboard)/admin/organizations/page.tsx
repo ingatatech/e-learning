@@ -90,12 +90,6 @@ const confirmDelete = async () => {
             <h1 className="text-3xl font-bold">Organizations</h1>
             <p className="text-muted-foreground">Manage organizations and their settings</p>
           </div>
-          <Button asChild>
-            <Link href="/admin/organizations/add">
-              <Building className="w-4 h-4 mr-2" />
-              Add Organization
-            </Link>
-          </Button>
         </div>
         <div className="flex items-center justify-center h-64">
           <div className="text-muted-foreground">Loading organizations...</div>
@@ -112,12 +106,6 @@ const confirmDelete = async () => {
           <h1 className="text-3xl font-bold">Organizations</h1>
           <p className="text-muted-foreground">Manage organizations and their settings</p>
         </div>
-        <Button asChild>
-          <Link href="/admin/organizations/add">
-            <Building className="w-4 h-4 mr-2" />
-            Add Organization
-          </Link>
-        </Button>
       </div>
 
       {/* Stats Cards */}
@@ -200,7 +188,6 @@ const confirmDelete = async () => {
                 <TableRow>
                   <TableHead>Organization</TableHead>
                   <TableHead>Contact</TableHead>
-                  <TableHead>address</TableHead>
                   <TableHead>Courses</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -223,11 +210,6 @@ const confirmDelete = async () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        {(org.address || "No address")}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
                         <BookOpen className="w-4 h-4 text-muted-foreground" />
                         {org.courses?.length || 0}
                       </div>
@@ -242,6 +224,12 @@ const confirmDelete = async () => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/admin/organizations/${org.id}`}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              View Details
+                            </Link>
+                          </DropdownMenuItem>
                           <DropdownMenuItem asChild>
                             <Link href={`/admin/organizations/add?id=${org.id}`}>
                               <Edit className="mr-2 h-4 w-4" />
