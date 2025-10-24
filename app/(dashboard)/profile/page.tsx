@@ -13,15 +13,17 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { useAuth } from "@/hooks/use-auth"
-import { Camera, Save, Loader2 } from "lucide-react"
+import { Camera, Save, Loader2, Upload, X } from "lucide-react"
 import { toast } from "sonner"
 
 export default function ProfilePage() {
   const { user, token, updateUser } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [isUploadingSignature, setIsUploadingSignature] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const signatureInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState({
     firstName: user?.firstName || "",
     lastName: user?.lastName || "",
@@ -30,6 +32,7 @@ export default function ProfilePage() {
     preferredLanguage: user?.preferredLanguage || "en",
     theme: user?.theme || "light",
     profilePicture: user?.profilePicture || "",
+    signature: user?.signUrl || "",
   })
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -83,6 +86,59 @@ export default function ProfilePage() {
     }
   }
 
+  const handleSignatureSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file")
+      if (signatureInputRef.current) signatureInputRef.current.value = ""
+      return
+    }
+
+    // Validate file size (5MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File size must be less than 10MB")
+      if (signatureInputRef.current) signatureInputRef.current.value = ""
+      return
+    }
+
+    setIsUploadingSignature(true)
+
+    try {
+      const uploadFormData = new FormData()
+      uploadFormData.append("file", file)
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/users/${user!.id}/sign-pic`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: uploadFormData,
+      })
+
+      if (!response.ok) {
+        throw new Error("Upload failed")
+      }
+
+      const data = await response.json()
+      setFormData((prev) => ({ ...prev, signature: data.imageUrl }))
+      toast.success("Signature uploaded successfully!")
+    } catch (error) {
+      console.error("Upload error:", error)
+      toast.error("Failed to upload signature. Please try again.")
+    } finally {
+      setIsUploadingSignature(false)
+      if (signatureInputRef.current) signatureInputRef.current.value = ""
+    }
+  }
+
+  const handleRemoveSignature = () => {
+    setFormData((prev) => ({ ...prev, signature: "" }))
+    toast.success("Signature removed")
+  }
+
   const handleSave = async () => {
     setIsSaving(true)
     try {
@@ -98,6 +154,7 @@ export default function ProfilePage() {
           preferredLanguage: formData.preferredLanguage,
           theme: formData.theme,
           profilePicture: formData.profilePicture,
+          signature: formData.signature,
         }),
       })
 
@@ -108,6 +165,7 @@ export default function ProfilePage() {
           preferredLanguage: formData.preferredLanguage,
           theme: formData.theme,
           profilePicture: formData.profilePicture,
+          signature: formData.signature,
         })
         toast.success("Profile updated successfully!")
         setIsEditing(false)
@@ -263,6 +321,62 @@ export default function ProfilePage() {
                   onChange={(e) => handleChange("bio", e.target.value)}
                   disabled={!isEditing}
                   rows={4}
+                />
+              </div>
+
+              {/* Signature Section */}
+              <div className="space-y-2">
+                <Label htmlFor="signature">Digital Signature</Label>
+                <p className="text-sm text-muted-foreground">
+                  Upload an image of your signature for document signing
+                </p>
+                
+                {formData.signature ? (
+                  <div className="relative inline-block">
+                    <div className="border rounded-lg p-4 bg-muted/30">
+                      <img
+                        src={formData.signature}
+                        alt="Signature"
+                        className="max-h-24 max-w-xs object-contain"
+                      />
+                    </div>
+                    {isEditing && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="absolute -top-2 -right-2 rounded-full w-8 h-8 p-0"
+                        onClick={handleRemoveSignature}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={() => signatureInputRef.current?.click()}
+                    disabled={!isEditing || isUploadingSignature}
+                    className="w-full md:w-auto"
+                  >
+                    {isUploadingSignature ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 mr-2" />
+                        Upload Signature
+                      </>
+                    )}
+                  </Button>
+                )}
+                <input
+                  ref={signatureInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleSignatureSelect}
+                  className="hidden"
                 />
               </div>
 

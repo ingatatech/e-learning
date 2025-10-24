@@ -52,6 +52,8 @@ export interface User {
   bio?: string
   firstLogin?: boolean
   twostepv?: boolean
+  signUrl?: string
+  signature?: string
 }
 
 export interface Organization {
