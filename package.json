@@ -69,9 +69,11 @@
     "framer-motion": "^12.23.12",
     "geist": "latest",
     "html2canvas": "1.4.1",
+    "html2pdf.js": "0.12.1",
     "input-otp": "1.4.1",
     "jose": "^6.1.0",
     "jsonwebtoken": "latest",
+    "jspdf": "3.0.3",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.454.0",
     "mammoth": "^1.11.0",
@@ -92,12 +94,11 @@
     "vaul": "^0.9.9",
     "vue": "latest",
     "vue-router": "latest",
-    "zod": "3.25.67",
-    "jspdf": "3.0.3",
-    "html2pdf.js": "0.12.1"
+    "zod": "3.25.67"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.9",
+    "@types/aos": "^3.0.7",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22",
     "@types/react": "^19",
