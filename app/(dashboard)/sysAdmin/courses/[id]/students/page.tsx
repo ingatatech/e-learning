@@ -33,7 +33,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Search, UserPlus, MoreHorizontal, Edit, Trash2, Mail, Shield, Plus, X } from "lucide-react"
+import { Search, UserPlus, MoreHorizontal, Trash2, Mail, Plus, X } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/hooks/use-auth"
 import { User } from "@/types"
@@ -174,19 +174,20 @@ const StudentFormSkeleton = () => {
 }
 
 export default function StudentsManagement({ params }: { params: Promise<{ id: string }> }) {
+  const { token, user } = useAuth()
+
   const [searchTerm, setSearchTerm] = useState("")
   const [students, setStudents] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [newStudents, setNewStudents] = useState<StudentFormData[]>([
-    { firstName: "", lastName: "", email: "", role: "student", organizationId: 1 }
+    { firstName: "", lastName: "", email: "", role: "student", organizationId: Number(user!.organization!.id) }
   ])
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false)
   const [studentToRemove, setStudentToRemove] = useState<{ id: string; name: string } | null>(null)
   const [isRemoving, setIsRemoving] = useState(false)
   
-  const { token } = useAuth()
   const { id } = use(params)
   
   useEffect(() => {
@@ -233,7 +234,7 @@ export default function StudentsManagement({ params }: { params: Promise<{ id: s
   }
 
   const addStudentField = () => {
-    setNewStudents([...newStudents, { firstName: "", lastName: "", email: "", role: "student", organizationId: 1 }])
+    setNewStudents([...newStudents, { firstName: "", lastName: "", email: "", role: "student", organizationId: Number(user!.organization!.id) }])
   }
 
   const removeStudentField = (index: number) => {
@@ -295,7 +296,7 @@ export default function StudentsManagement({ params }: { params: Promise<{ id: s
         }
 
         // Reset form and close dialog
-        setNewStudents([{ firstName: "", lastName: "", email: "", role: "student", organizationId: 1 }])
+        setNewStudents([{ firstName: "", lastName: "", email: "", role: "student", organizationId: Number(user?.organization!.id) }])
         setIsAddDialogOpen(false)
       } else {
         const errorData = await response.json()
@@ -380,257 +381,229 @@ export default function StudentsManagement({ params }: { params: Promise<{ id: s
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Student Management</h1>
-          <p className="text-muted-foreground">Manage students who are enrolled in this course</p>
-        </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+    <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Student Management</h1>
+            <p className="text-muted-foreground">Manage students who are enrolled in this course</p>
+          </div>
           <DialogTrigger asChild>
             <Button>
               <UserPlus className="w-4 h-4 mr-2" />
               Add Students
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Add Students to Course</DialogTitle>
-              <DialogDescription>
-                Add one or more students to this course. Fill in the details for each student below.
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium">Student Details</h3>
-                <Button type="button" variant="outline" onClick={addStudentField} className="flex items-center gap-2">
-                  <Plus className="w-4 h-4" />
-                  Add Another Student
-                </Button>
+        </div>
+
+        {/* Students Table */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Students</CardTitle>
+                <CardDescription>A list of all students enrolled in this course</CardDescription>
               </div>
-              
-              {newStudents.map((student, index) => (
-                <div key={index} className="border rounded-lg p-4 space-y-4 relative">
-                  {newStudents.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute top-2 right-2 h-6 w-6"
-                      onClick={() => removeStudentField(index)}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  )}
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label htmlFor={`firstName-${index}`} className="text-sm font-medium">
-                        First Name *
-                      </label>
-                      <Input
-                        id={`firstName-${index}`}
-                        value={student.firstName}
-                        onChange={(e) => updateStudentField(index, 'firstName', e.target.value)}
-                        placeholder="John"
-                        required
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor={`lastName-${index}`} className="text-sm font-medium">
-                        Last Name *
-                      </label>
-                      <Input
-                        id={`lastName-${index}`}
-                        value={student.lastName}
-                        onChange={(e) => updateStudentField(index, 'lastName', e.target.value)}
-                        placeholder="Doe"
-                        required
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor={`email-${index}`} className="text-sm font-medium">
-                        Email *
-                      </label>
-                      <Input
-                        id={`email-${index}`}
-                        type="email"
-                        value={student.email}
-                        onChange={(e) => updateStudentField(index, 'email', e.target.value)}
-                        placeholder="john.doe@example.com"
-                        required
-                      />
-                    </div>
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search students..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-8 w-64"
+                  />
+                </div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {filteredStudents.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No students found in this course.</p>
+                <DialogTrigger asChild>
+                  <Button className="mt-4">
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Add Students
+                  </Button>
+                </DialogTrigger>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Joined</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredStudents.map((student) => (
+                    <TableRow key={student.id}>
+                      <TableCell className="font-medium">
+                        {student.firstName} {student.lastName}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {student.email}
+                          {!student.isEmailVerified && <Mail className="w-4 h-4 text-yellow-500" />}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getRoleBadgeColor(student.role)}>
+                          {student.role?.charAt(0).toUpperCase() + student.role?.slice(1) || "N/A"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={student.isActive ? "default" : "secondary"}>
+                          {student.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{student.createdAt ? new Date(student.createdAt).toLocaleDateString() : "N/A"}</TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-red-600"
+                              onClick={() => openRemoveDialog(student)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Remove Student
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Dialog Content */}
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add Students to Course</DialogTitle>
+            <DialogDescription>
+              Add one or more students to this course. Fill in the details for each student below.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium">Student Details</h3>
+              <Button type="button" variant="outline" onClick={addStudentField} className="flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                Add Another Student
+              </Button>
+            </div>
+            
+            {newStudents.map((student, index) => (
+              <div key={index} className="border rounded-lg p-4 space-y-4 relative">
+                {newStudents.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 right-2 h-6 w-6"
+                    onClick={() => removeStudentField(index)}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                )}
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor={`firstName-${index}`} className="text-sm font-medium">
+                      First Name *
+                    </label>
+                    <Input
+                      id={`firstName-${index}`}
+                      value={student.firstName}
+                      onChange={(e) => updateStudentField(index, 'firstName', e.target.value)}
+                      placeholder="John"
+                      required
+                    />
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor={`role-${index}`} className="text-sm font-medium">
-                        Role
-                      </label>
-                      <select
-                        id={`role-${index}`}
-                        value={student.role}
-                        onChange={(e) => updateStudentField(index, 'role', e.target.value)}
-                        className="w-full p-2 border rounded-md"
-                      >
-                        <option value="student">Student</option>
-                        <option value="instructor">Instructor</option>
-                        <option value="admin">Admin</option>
-                      </select>
-                    </div>
-                    
-                    <div>
-                      <label htmlFor={`organizationId-${index}`} className="text-sm font-medium">
-                        Organization ID
-                      </label>
-                      <Input
-                        id={`organizationId-${index}`}
-                        type="number"
-                        value={student.organizationId}
-                        onChange={(e) => updateStudentField(index, 'organizationId', e.target.value)}
-                        placeholder="1"
-                        min="1"
-                      />
-                    </div>
+                  <div>
+                    <label htmlFor={`lastName-${index}`} className="text-sm font-medium">
+                      Last Name *
+                    </label>
+                    <Input
+                      id={`lastName-${index}`}
+                      value={student.lastName}
+                      onChange={(e) => updateStudentField(index, 'lastName', e.target.value)}
+                      placeholder="Doe"
+                      required
+                    />
                   </div>
                 </div>
-              ))}
-            </div>
-            
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSubmit} disabled={isSubmitting}>
-                {isSubmitting ? "Adding Students..." : "Add Students"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Students Table */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Students</CardTitle>
-              <CardDescription>A list of all students enrolled in this course</CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search students..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8 w-64"
-                />
+                  
+                <div >
+                  <div>
+                    <label htmlFor={`email-${index}`} className="text-sm font-medium">
+                      Email *
+                    </label>
+                    <Input
+                      id={`email-${index}`}
+                      type="email"
+                      value={student.email}
+                      onChange={(e) => updateStudentField(index, 'email', e.target.value)}
+                      placeholder="john.doe@example.com"
+                      required
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
+            ))}
           </div>
-        </CardHeader>
-        <CardContent>
-          {filteredStudents.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">No students found in this course.</p>
-              <Button asChild className="mt-4">
-                <Link href="/admin/users/add">
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Add Students
-                </Link>
-              </Button>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Joined</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredStudents.map((student) => (
-                  <TableRow key={student.id}>
-                    <TableCell className="font-medium">
-                      {student.firstName} {student.lastName}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {student.email}
-                        {!student.isEmailVerified && <Mail className="w-4 h-4 text-yellow-500" />}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getRoleBadgeColor(student.role)}>
-                        {student.role?.charAt(0).toUpperCase() + student.role?.slice(1) || "N/A"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={student.isActive ? "default" : "secondary"}>
-                        {student.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{student.createdAt ? new Date(student.createdAt).toLocaleDateString() : "N/A"}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            className="text-red-600"
-                            onClick={() => openRemoveDialog(student)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Remove Student
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting ? "Adding Students..." : "Add Students"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
 
-      {/* Remove Student Confirmation Dialog */}
-      <AlertDialog open={removeDialogOpen} onOpenChange={setRemoveDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove Student</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to remove <strong>{studentToRemove?.name}</strong> from this course?
-              This action cannot be undone and the student will lose access to all course materials.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setStudentToRemove(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleRemoveStudent}
-              disabled={isRemoving}
-              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
-            >
-              {isRemoving ? "Removing..." : "Remove Student"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+        {/* Remove Student Confirmation Dialog */}
+        <AlertDialog open={removeDialogOpen} onOpenChange={setRemoveDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remove Student</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to remove <strong>{studentToRemove?.name}</strong> from this course?
+                This action cannot be undone and the student will lose access to all course materials.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setStudentToRemove(null)}>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleRemoveStudent}
+                disabled={isRemoving}
+                className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+              >
+                {isRemoving ? "Removing..." : "Remove Student"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </Dialog>
   )
 }

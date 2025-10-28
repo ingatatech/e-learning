@@ -14,6 +14,9 @@ import { CompletionCelebration } from "@/components/learning/completion-celebrat
 import { CourseCompletion } from "@/components/learning/course-completion"
 import { CourseRating } from "@/components/learning/course-rating"
 import { useRouter } from "next/navigation"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { AlertCircle, Clock } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 interface LearningStep {
   id: string
@@ -36,6 +39,8 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
   const [showRating, setShowRating] = useState(false)
   const [userRating, setUserRating] = useState<{ rating: number; review: string } | null>(null)
   const [courseReviews, setCourseReviews] = useState<any[]>([])
+  const [accessExpired, setAccessExpired] = useState(false)
+  const [daysRemaining, setDaysRemaining] = useState<number | null>(null)
 
   const [allSteps, setAllSteps] = useState<LearningStep[]>([])
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
@@ -44,9 +49,18 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
   const [isStepping, setIsStepping] = useState(false)
   const router = useRouter()
 
-
-  const { progressData, markStepComplete, getCurrentStep, calculateProgress, isStepCompleted, getStepScore, markStepPending, isStepPending, isStepFailed, refetch } =
-    useLearningProgress(id)
+  const {
+    progressData,
+    markStepComplete,
+    getCurrentStep,
+    calculateProgress,
+    isStepCompleted,
+    getStepScore,
+    markStepPending,
+    isStepPending,
+    isStepFailed,
+    refetch,
+  } = useLearningProgress(id)
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -54,7 +68,6 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
       setLoading(true)
 
       try {
-        // Fetch user enrollments
         const enrollmentsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/enrollments/user-enrollments`, {
           headers: {
             "Content-Type": "application/json",
@@ -69,13 +82,28 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
         if (enrollmentsResponse.ok) {
           const enrollmentsData = await enrollmentsResponse.json()
 
-          // Check if current course is in user's enrollments
           const enrolledCourse = enrollmentsData.enrollments.find(
             (enrollment: any) => enrollment.course.id.toString() === id,
           )
-          
+
           if (!enrolledCourse) {
             router.push("/student/courses")
+            return
+          }
+
+          if (enrolledCourse.deadline) {
+            const expiryDate = new Date(enrolledCourse.deadline)
+            const now = new Date()
+
+            if (now > expiryDate) {
+              setAccessExpired(true)
+              setLoading(false)
+              return
+            }
+
+            const timeDiff = expiryDate.getTime() - now.getTime()
+            const daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24))
+            setDaysRemaining(daysLeft)
           }
         }
 
@@ -98,8 +126,6 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
         setLoading(false)
       }
     }
-
-    
 
     fetchCourse()
   }, [token, user, id])
@@ -222,7 +248,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
     setIsStepping(true)
     const currentStep = allSteps[currentStepIndex]
     if (!currentStep) return
-    
+
     const payload: any = {
       courseId: id,
       userId: user?.id,
@@ -231,7 +257,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
     if (currentStep.type === "assessment" && currentStep.assessment) {
       payload.assessmentId = currentStep.assessment.id
       if (score !== undefined) payload.score = score
-      payload.isCompleted = true 
+      payload.isCompleted = true
     } else {
       payload.lessonId = currentStep.lessonId
     }
@@ -240,7 +266,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
     payload.status = isLastStep ? "completed" : "in_progress"
 
     payload.passed = passed
-    payload.isCompleted = true 
+    payload.isCompleted = true
 
     if (currentStep.type !== "assessment" || passed) {
       await markStepComplete(payload)
@@ -264,8 +290,6 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
     setIsStepping(false)
 
     if (currentStep.type !== "assessment" || passed) {
-      // setShowCelebration(true)
-      // setShowCelebration(false)
       if (currentStepIndex < allSteps.length - 1) {
         handleNextStep()
       } else if (isLastStep && isCourseComplete) {
@@ -349,6 +373,33 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
     }
   }
 
+  if (accessExpired) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
+          <Alert variant="destructive" className="border-2">
+            <AlertCircle className="h-6 w-6" />
+            <AlertTitle className="text-xl font-bold mb-2">Course Access Expired</AlertTitle>
+            <AlertDescription className="space-y-4">
+              <p className="text-base">
+                Your access to this course has expired. The course deadline has passed and you can no longer access the
+                course content.
+              </p>
+              <div className="flex gap-3 mt-4">
+                <Button onClick={() => router.push("/student/courses")} className="flex-1">
+                  My Courses
+                </Button>
+                <Button onClick={() => router.push("/courses")} variant="outline" className="flex-1 bg-transparent">
+                  Browse Courses
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        </div>
+      </div>
+    )
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -389,6 +440,8 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
         onPrevious={handlePreviousStep}
       />
 
+      
+
       <div className="flex">
         <LearningSidebar
           modules={course.modules || []}
@@ -423,6 +476,18 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
               </div>
             ) : (
               <>
+              {daysRemaining !== null && daysRemaining <= 7 && (
+        <div className="px-8 pt-4">
+          <Alert className="border-orange-500 bg-orange-50 dark:bg-orange-950">
+            <Clock className="h-4 w-4 text-orange-600" />
+            <AlertTitle className="text-orange-800 dark:text-orange-200">Course Deadline Approaching</AlertTitle>
+            <AlertDescription className="text-orange-700 dark:text-orange-300">
+              You have {daysRemaining} {daysRemaining === 1 ? "day" : "days"} remaining to complete this course before
+              access expires.
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
                 {currentStep.type === "content" && (
                   <ContentScreen
                     lesson={{
@@ -432,7 +497,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
                       duration: currentStep.duration || 0,
                       resources: currentStep.lesson.resources,
                     }}
-                    onComplete={(score, passed) => handleStepComplete(score,passed)}
+                    onComplete={(score, passed) => handleStepComplete(score, passed)}
                     isCompleted={isStepCompleted(currentStep.id)}
                     isStepping={isStepping}
                   />

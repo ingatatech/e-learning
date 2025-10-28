@@ -46,8 +46,8 @@ export default function HomePage() {
               <Button variant="ghost" asChild>
                 <Link href="/login">Sign In</Link>
               </Button>
-              <Button asChild>
-                <Link href="/register">Get Started</Link>
+              <Button className="bg-transparent border-2 border-primary text-text hover:bg-transparent" asChild>
+                <Link href="/register">Start learning</Link>
               </Button>
             </div>
           </div>

@@ -32,11 +32,13 @@ import Link from "next/link"
 import { Header } from "@/components/layout/header"
 import { useAuth } from "@/hooks/use-auth"
 import type { Course } from "@/types"
+import { CoursePaymentDialog } from "@/components/payment/course-payment-dialog"
 
 export default function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const [isEnrolled, setIsEnrolled] = useState(false)
   const [isEnrolling, setIsEnrolling] = useState(false)
   const [currentProgress, setCurrentProgress] = useState(0)
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false)
   const { token, user } = useAuth()
   const { id } = use(params)
   const [course, setCourse] = useState<Course>()
@@ -158,9 +160,10 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
 
   const handleEnroll = async () => {
     if (course!.price > 0) {
-      console.log("Payment required")
+      setShowPaymentDialog(true)
       return
     }
+
     setIsEnrolling(true)
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/enrollments/enroll`, {
       method: "POST",
@@ -181,6 +184,12 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
       console.error("Enrollment failed")
       setIsEnrolling(false)
     }
+  }
+
+  const handlePaymentSuccess = () => {
+    setIsEnrolled(true)
+    setShowPaymentDialog(false)
+    // Optionally refresh the page or show a success message
   }
 
   const getLevelIcon = (level: string) => {
@@ -476,7 +485,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                       ) : (
                         <>
                           <Zap className="w-4 h-4 mr-2" />
-                          Enroll Now
+                          {course!.price > 0 ? `Enroll Now - ${course!.price} RWF` : "Enroll Now - Free"}
                         </>
                       )}
                     </Button>
@@ -863,6 +872,17 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
           </TabsContent>
         </Tabs>
       </div>
+
+      {course && (
+        <CoursePaymentDialog
+          open={showPaymentDialog}
+          onOpenChange={setShowPaymentDialog}
+          course={course}
+          onPaymentSuccess={handlePaymentSuccess}
+          token={token!}
+          userId={user!.id}
+        />
+      )}
     </div>
   )
 }

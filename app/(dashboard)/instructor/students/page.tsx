@@ -22,12 +22,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Search, Users, MoreHorizontal, Mail, Calendar, Award, TrendingUp, ChevronLeft, ChevronRight, User, BookOpen, Clock, BarChart3 } from "lucide-react"
-import Link from "next/link"
 import { useAuth } from "@/hooks/use-auth"
 
 interface Course {
   id: number
   title: string
+  level: string
 }
 
 interface Student {
@@ -157,7 +157,7 @@ const StudentInfoModal = ({ student, isOpen, onClose }: StudentInfoModalProps) =
                   >
                     <div>
                       <p className="font-medium">{course.title}</p>
-                      <p className="text-sm text-muted-foreground">Course ID: {course.id}</p>
+                      <p className="text-sm text-muted-foreground">Course Level: {course.level}</p>
                     </div>
                     <Badge variant="outline">Enrolled</Badge>
                   </div>

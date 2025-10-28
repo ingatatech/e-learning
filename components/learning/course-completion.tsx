@@ -172,15 +172,23 @@ export function CourseCompletion({
 
       if (response.ok) {
         const data = await response.json()
+
+        const instructorSignature = course.instructor?.signature || undefined
+        const directorSignature = user.organization?.director?.signature || undefined
+        const organizationStamp = course.organization?.stampUrl || undefined
+
         setCertificateData({
           studentName: `${user.firstName} ${user.lastName}`,
           courseName: courseTitle,
           score: stats.percentage,
-          instructorName: course.instructor?.name || "Course Instructor",
+          instructorName: course.instructor?.firstName + " " + course.instructor?.lastName || "Course Instructor",
           institutionName: course.organization?.name || "Learning Management System",
           directorName: course.organization?.director || "Institution Director",
           completionDate: new Date().toISOString(),
           verificationCode: data.verificationCode,
+          instructorSignature,
+          directorSignature,
+          organizationStamp,
         })
         setExistingCertificate(data)
         setShowCertificate(true)

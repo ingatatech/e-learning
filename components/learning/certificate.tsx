@@ -15,6 +15,9 @@ interface CertificateProps {
   directorName?: string
   completionDate: string
   verificationCode: string
+  instructorSignature?: string
+  directorSignature?: string
+  organizationStamp?: string
 }
 
 export function Certificate({
@@ -26,6 +29,9 @@ export function Certificate({
   directorName = "Institution Director",
   completionDate,
   verificationCode,
+  instructorSignature,
+  directorSignature,
+  organizationStamp,
 }: CertificateProps) {
   const certificateRef = useRef<HTMLDivElement>(null)
   const [qrCodeUrl, setQrCodeUrl] = useState("")
@@ -260,6 +266,19 @@ export function Certificate({
                 background-color: #ffffff;
               }
               
+              .seal-image {
+                width: 100px;
+                height: 100px;
+                object-fit: contain;
+              }
+              
+              .signature-image {
+                max-width: 150px;
+                max-height: 60px;
+                object-fit: contain;
+                margin-bottom: 8px;
+              }
+              
               .seal-text {
                 text-align: center;
                 font-size: 10px;
@@ -358,17 +377,27 @@ export function Certificate({
                 
                 <div class="footer">
                   <div class="signature-block">
-                    <div class="signature-line"></div>
+                    ${instructorSignature ? `<img src="${instructorSignature}" alt="Instructor Signature" class="signature-image" crossorigin="anonymous" />` : '<div class="signature-line"></div>'}
                     <div class="signature-label">Instructor</div>
                     <div class="signature-name">${instructorName}</div>
                   </div>
                   
-                  <div class="seal">
-                    <div class="seal-text">OFFICIAL<br/>SEAL</div>
-                  </div>
+                  ${
+                    organizationStamp
+                      ? `
+                    <div class="seal">
+                      <img src="${organizationStamp}" alt="Official Seal" class="seal-image" crossorigin="anonymous" />
+                    </div>
+                  `
+                      : `
+                    <div class="seal">
+                      <div class="seal-text">OFFICIAL<br/>SEAL</div>
+                    </div>
+                  `
+                  }
                   
                   <div class="signature-block">
-                    <div class="signature-line"></div>
+                    ${directorSignature ? `<img src="${directorSignature}" alt="Director Signature" class="signature-image" crossorigin="anonymous" />` : '<div class="signature-line"></div>'}
                     <div class="signature-label">Director</div>
                     <div class="signature-name">${directorName}</div>
                   </div>
@@ -534,7 +563,16 @@ export function Certificate({
           {/* Footer */}
           <div className="flex justify-around mt-[60px] pt-10 relative z-10">
             <div className="text-center flex-1 px-5">
-              <div className="mb-2.5 w-[250px] mx-auto" style={{ borderTop: "2px solid #00a63e" }} />
+              {instructorSignature ? (
+                <img
+                  src={instructorSignature || "/placeholder.svg"}
+                  alt="Instructor Signature"
+                  className="max-w-[150px] max-h-[60px] object-contain mx-auto mb-2.5"
+                  crossOrigin="anonymous"
+                />
+              ) : (
+                <div className="mb-2.5 w-[250px] mx-auto" style={{ borderTop: "2px solid #00a63e" }} />
+              )}
               <div className="text-sm mb-1" style={{ color: "#6b7280", backgroundColor: "transparent" }}>
                 Instructor
               </div>
@@ -543,19 +581,39 @@ export function Certificate({
               </div>
             </div>
 
-            <div
-              className="w-[120px] h-[120px] rounded-full flex items-center justify-center opacity-90"
-              style={{ border: "5px solid #00a63e", backgroundColor: "#ffffff" }}
-            >
-              <div className="text-center text-xs font-semibold" style={{ color: "#00a63e" }}>
-                OFFICIAL
-                <br />
-                SEAL
+            {organizationStamp ? (
+              <div className="w-[120px] h-[120px] flex items-center justify-center">
+                <img
+                  src={organizationStamp || "/placeholder.svg"}
+                  alt="Official Seal"
+                  className="max-w-full max-h-full object-contain"
+                  crossOrigin="anonymous"
+                />
               </div>
-            </div>
+            ) : (
+              <div
+                className="w-[120px] h-[120px] rounded-full flex items-center justify-center opacity-90"
+                style={{ border: "5px solid #00a63e", backgroundColor: "#ffffff" }}
+              >
+                <div className="text-center text-xs font-semibold" style={{ color: "#00a63e" }}>
+                  OFFICIAL
+                  <br />
+                  SEAL
+                </div>
+              </div>
+            )}
 
             <div className="text-center flex-1 px-5">
-              <div className="mb-2.5 w-[250px] mx-auto" style={{ borderTop: "2px solid #00a63e" }} />
+              {directorSignature ? (
+                <img
+                  src={directorSignature || "/placeholder.svg"}
+                  alt="Director Signature"
+                  className="max-w-[150px] max-h-[60px] object-contain mx-auto mb-2.5"
+                  crossOrigin="anonymous"
+                />
+              ) : (
+                <div className="mb-2.5 w-[250px] mx-auto" style={{ borderTop: "2px solid #00a63e" }} />
+              )}
               <div className="text-sm mb-1" style={{ color: "#6b7280", backgroundColor: "transparent" }}>
                 Director
               </div>

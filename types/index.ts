@@ -69,6 +69,8 @@ export interface Organization {
   website?: string
   phoneNumber?: string
   description?: string
+  stampUrl?: string
+  director?: User
 }
 
 export interface Course {
@@ -80,6 +82,7 @@ export interface Course {
   price: number
   isPublished: boolean
   duration: number
+  durationInHours?: number
   enrollmentCount: number
   rating: number
   tags: string[]
@@ -192,6 +195,7 @@ export interface Enrollment {
   course?: Course
   enrolledAt: Date
   completedAt?: Date
+  accessExpiresAt?: Date
   progress: number
   isCompleted: boolean
   certificateId?: string

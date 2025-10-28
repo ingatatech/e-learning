@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Building, Loader2 } from "lucide-react"
+import { ArrowLeft, Building, Loader2, Upload, X } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 import { useAuth } from "@/hooks/use-auth"
@@ -37,7 +37,12 @@ export default function OrganizationFormPage() {
       cell: "",
       village: "",
     },
+    stampUrl: "",
   })
+  const [stampFile, setStampFile] = useState<File | null>(null)
+  const [stampPreview, setStampPreview] = useState<string>("")
+  const [uploadingStamp, setUploadingStamp] = useState(false)
+
   const [editMode, setEditMode] = useState(false)
   const [isFetching, setIsFetching] = useState(false)
   const [isInitialLoad, setIsInitialLoad] = useState(false)
@@ -181,7 +186,12 @@ export default function OrganizationFormPage() {
           phoneNumber: data.organization.phoneNumber || "",
           website: data.organization.website || "",
           director: data.organization.director || "",
+          stampUrl: data.organization.stampUrl || "",
         })
+
+        if (data.organization.stampUrl) {
+          setStampPreview(data.organization.stampUrl)
+        }
 
         setTimeout(() => setIsInitialLoad(false), 100)
       } catch (err: any) {
@@ -198,6 +208,11 @@ export default function OrganizationFormPage() {
     e.preventDefault()
     setIsLoading(true)
     try {
+      let stampUrl = formData.stampUrl
+      if (stampFile) {
+        stampUrl = await uploadStamp()
+      }
+
       const method = editMode ? "PUT" : "POST"
       const url = editMode
         ? `${process.env.NEXT_PUBLIC_API_URL}/organizations/${orgId}`
@@ -209,7 +224,7 @@ export default function OrganizationFormPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, stampUrl }),
       })
       if (!res.ok) throw new Error("Something went wrong")
       toast.success(editMode ? "Organization updated!" : "Organization created!")
@@ -223,6 +238,60 @@ export default function OrganizationFormPage() {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleStampChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select an image file")
+        return
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Image size should be less than 5MB")
+        return
+      }
+      setStampFile(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setStampPreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const uploadStamp = async (): Promise<string> => {
+    if (!stampFile) return formData.stampUrl
+
+    setUploadingStamp(true)
+    try {
+      const formDataUpload = new FormData()
+      formDataUpload.append("file", stampFile)
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formDataUpload,
+      })
+
+      if (!res.ok) throw new Error("Failed to upload stamp")
+      const data = await res.json()
+      return data.url
+    } catch (error) {
+      console.error("Failed to upload stamp:", error)
+      toast.error("Failed to upload stamp image")
+      return formData.stampUrl
+    } finally {
+      setUploadingStamp(false)
+    }
+  }
+
+  const removeStamp = () => {
+    setStampFile(null)
+    setStampPreview("")
+    setFormData((prev) => ({ ...prev, stampUrl: "" }))
   }
 
   return (
@@ -435,9 +504,52 @@ export default function OrganizationFormPage() {
                 />
               </div>
 
+              <div className="space-y-2 pt-4 border-t">
+                <Label htmlFor="stamp">Organization Stamp</Label>
+                <p className="text-sm text-muted-foreground">
+                  Upload an official stamp image to be used on certificates (PNG, JPG, or SVG recommended)
+                </p>
+
+                {stampPreview ? (
+                  <div className="relative inline-block">
+                    <img
+                      src={stampPreview || "/placeholder.svg"}
+                      alt="Stamp preview"
+                      className="w-32 h-32 object-contain border-2 border-dashed border-primary rounded-lg p-2"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
+                      onClick={removeStamp}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-4">
+                    <label
+                      htmlFor="stamp-upload"
+                      className="flex items-center gap-2 px-4 py-2 border-2 border-dashed border-primary rounded-lg cursor-pointer hover:bg-primary/5 transition-colors"
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span className="text-sm">Choose Stamp Image</span>
+                    </label>
+                    <input
+                      id="stamp-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleStampChange}
+                      className="hidden"
+                    />
+                  </div>
+                )}
+              </div>
+
               <div className="flex gap-4 pt-4">
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading
+                <Button type="submit" disabled={isLoading || uploadingStamp}>
+                  {isLoading || uploadingStamp
                     ? editMode
                       ? "Updating..."
                       : "Creating..."

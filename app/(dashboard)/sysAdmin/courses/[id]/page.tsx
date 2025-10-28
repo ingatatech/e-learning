@@ -551,7 +551,10 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
               <div className="space-y-4">
                 <div className="space-y-3">
                   <h4 className="font-medium">Enrolled Students</h4>
-                  {students.map((student, index) => (
+                  {students.length === 0 ?
+                   <span className="text-muted-foreground">No students enrolled yet.</span>
+                   :
+                  students.map((student, index) => (
                     <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">

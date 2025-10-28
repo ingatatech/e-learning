@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useAuth } from "@/hooks/use-auth"
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -7,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Building, Edit, Save, Loader2, MapPin, Phone, Globe, FileText, User } from "lucide-react"
+import { Building, Edit, Save, Loader2, MapPin, Phone, Globe, FileText, User, Upload, X } from "lucide-react"
 import { toast } from "sonner"
 import rwandaData from "@/data/rwandaLocation.json"
 
@@ -23,6 +25,7 @@ interface Organization {
   director: string
   createdAt: string
   updatedAt: string
+  stampUrl: string
 }
 
 export default function OrgManagement() {
@@ -32,6 +35,10 @@ export default function OrgManagement() {
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isInitialLoad, setIsInitialLoad] = useState(false)
+  const [stampFile, setStampFile] = useState<File | null>(null)
+  const [stampPreview, setStampPreview] = useState<string>("")
+  const [uploadingStamp, setUploadingStamp] = useState(false)
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -47,13 +54,8 @@ export default function OrgManagement() {
     phoneNumber: "",
     website: "",
     director: "",
+    stampUrl: "",
   })
-
-  const [provinces, setProvinces] = useState<string[]>([])
-  const [districts, setDistricts] = useState<string[]>([])
-  const [sectors, setSectors] = useState<string[]>([])
-  const [cells, setCells] = useState<string[]>([])
-  const [villages, setVillages] = useState<string[]>([])
 
   useEffect(() => {
     const provinceList = Object.keys(rwandaData)
@@ -193,7 +195,12 @@ export default function OrgManagement() {
             phoneNumber: data.organization.phoneNumber || "",
             website: data.organization.website || "",
             director: data.organization.director || "",
+            stampUrl: data.organization.stampUrl || "",
           })
+
+          if (data.organization.stampUrl) {
+            setStampPreview(data.organization.stampUrl)
+          }
 
           setTimeout(() => setIsInitialLoad(false), 100)
         }
@@ -213,18 +220,77 @@ export default function OrgManagement() {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
+  const handleStampChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select an image file")
+        return
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Image size should be less than 5MB")
+        return
+      }
+      setStampFile(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setStampPreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const uploadStamp = async (): Promise<string> => {
+    if (!stampFile) return formData.stampUrl
+
+    setUploadingStamp(true)
+    try {
+      const formDataUpload = new FormData()
+      formDataUpload.append("file", stampFile)
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formDataUpload,
+      })
+
+      if (!res.ok) throw new Error("Failed to upload stamp")
+      const data = await res.json()
+      return data.url
+    } catch (error) {
+      console.error("Failed to upload stamp:", error)
+      toast.error("Failed to upload stamp image")
+      return formData.stampUrl
+    } finally {
+      setUploadingStamp(false)
+    }
+  }
+
+  const removeStamp = () => {
+    setStampFile(null)
+    setStampPreview("")
+    setFormData((prev) => ({ ...prev, stampUrl: "" }))
+  }
+
   const handleSave = async () => {
     if (!organization) return
 
     setIsSaving(true)
     try {
+      let stampUrl = formData.stampUrl
+      if (stampFile) {
+        stampUrl = await uploadStamp()
+      }
+
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/organizations/${organization.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, stampUrl }),
       })
 
       if (res.ok) {
@@ -271,11 +337,26 @@ export default function OrgManagement() {
         phoneNumber: organization.phoneNumber || "",
         website: organization.website || "",
         director: organization.director || "",
+        stampUrl: organization.stampUrl || "",
       })
+
+      if (organization.stampUrl) {
+        setStampPreview(organization.stampUrl)
+      } else {
+        setStampPreview("")
+      }
+      setStampFile(null)
+
       setTimeout(() => setIsInitialLoad(false), 100)
     }
     setIsEditing(false)
   }
+
+  const [provinces, setProvinces] = useState<string[]>([])
+  const [districts, setDistricts] = useState<string[]>([])
+  const [sectors, setSectors] = useState<string[]>([])
+  const [cells, setCells] = useState<string[]>([])
+  const [villages, setVillages] = useState<string[]>([])
 
   if (loading) {
     return (
@@ -514,12 +595,55 @@ export default function OrgManagement() {
                 />
               </div>
 
+              <div className="space-y-2 pt-4 border-t">
+                <Label htmlFor="stamp">Organization Stamp</Label>
+                <p className="text-sm text-muted-foreground">
+                  Upload an official stamp image to be used on certificates
+                </p>
+
+                {stampPreview ? (
+                  <div className="relative inline-block">
+                    <img
+                      src={stampPreview || "/placeholder.svg"}
+                      alt="Stamp preview"
+                      className="w-32 h-32 object-contain border-2 border-dashed border-primary rounded-lg p-2"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
+                      onClick={removeStamp}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-4">
+                    <label
+                      htmlFor="stamp-upload"
+                      className="flex items-center gap-2 px-4 py-2 border-2 border-dashed border-primary rounded-lg cursor-pointer hover:bg-primary/5 transition-colors"
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span className="text-sm">Choose Stamp Image</span>
+                    </label>
+                    <input
+                      id="stamp-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleStampChange}
+                      className="hidden"
+                    />
+                  </div>
+                )}
+              </div>
+
               <div className="flex gap-4 pt-4">
-                <Button type="submit" disabled={isSaving}>
+                <Button type="submit" disabled={isSaving || uploadingStamp}>
                   <Save className="w-4 h-4 mr-2" />
-                  {isSaving ? "Saving..." : "Save Changes"}
+                  {isSaving || uploadingStamp ? "Saving..." : "Save Changes"}
                 </Button>
-                <Button type="button" variant="outline" onClick={handleCancel} disabled={isSaving}>
+                <Button type="button" variant="outline" onClick={handleCancel} disabled={isSaving || uploadingStamp}>
                   Cancel
                 </Button>
               </div>
@@ -653,6 +777,20 @@ export default function OrgManagement() {
                   </div>
                 </div>
               </div>
+
+              {organization.stampUrl && (
+                <div className="pt-4 border-t">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                    <Building className="w-4 h-4" />
+                    <span>Organization Stamp</span>
+                  </div>
+                  <img
+                    src={organization.stampUrl || "/placeholder.svg"}
+                    alt="Organization stamp"
+                    className="w-32 h-32 object-contain border-2 border-primary rounded-lg p-2"
+                  />
+                </div>
+              )}
             </div>
           )}
         </CardContent>
