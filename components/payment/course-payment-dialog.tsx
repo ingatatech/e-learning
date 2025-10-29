@@ -57,7 +57,7 @@ export function CoursePaymentDialog({
 
     try {
       // Step 1: Create payment intent
-      const intentResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payments/create-intent`, {
+      const intentResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payments/create-payment-intent`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -80,14 +80,14 @@ export function CoursePaymentDialog({
         throw new Error("Failed to create payment intent")
       }
 
-      const { paymentIntent } = await intentResponse.json()
+      const { payment } = await intentResponse.json()
 
       // Step 2: Process payment based on method
       let paymentResult
       if (paymentMethod === "card") {
-        paymentResult = await processCardPayment(paymentIntent.id)
+        paymentResult = await processCardPayment(payment.paymentIntentId)
       } else {
-        paymentResult = await processMobileMoneyPayment(paymentIntent.id)
+        paymentResult = await processMobileMoneyPayment(payment.paymentIntentId)
       }
 
       if (!paymentResult.success) {
@@ -102,7 +102,7 @@ export function CoursePaymentDialog({
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          paymentIntentId: paymentIntent.id,
+          paymentIntentId: payment.paymentIntentId,
           courseId: course.id,
           userId: userId,
           transactionId: paymentResult.transactionId,
