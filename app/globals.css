@@ -12,7 +12,7 @@
     --popover-foreground: oklch(0.145 0 0);
 
     /* Green theme */
-    --primary: oklch(0.45 0.17 152.0); /* Darker green for better contrast */
+    --primary: #006d1b; /* Darker green for better contrast */
     --primary-foreground: oklch(0.985 0 0); /* White text on primary background */
     --secondary: oklch(0.556 0 0); /* Gray-500 */
     --secondary-foreground: oklch(0.985 0 0);

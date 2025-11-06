@@ -117,7 +117,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const register = async (registerData: RegisterData) => {
-    const response = await fetch("/api/auth/register", {
+    setIsLoading(true)
+    const response = await fetch(`${API_BASE_URL}/auth/add`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -128,8 +129,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await response.json()
 
     if (!response.ok) {
-      throw new Error(data.error || "Registration failed")
+      setIsLoading(false)
+      throw new Error(data.error || data.message || "Registration failed")
     }
+    setIsLoading(false)
 
     // Don't auto-login after registration, redirect to login
     router.push("/login?message=Please check your email to verify your account")
