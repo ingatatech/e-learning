@@ -254,8 +254,8 @@ const [slideDirection, setSlideDirection] = useState('');
 
               {/* Desktop Auth Buttons */}
               <div className="hidden md:flex items-center gap-2">
-                <button onClick={() => router.push('/register')} className="px-4 py-2 text-sm font-medium hover:bg-accent rounded-lg transition-colors">
-                  Log in
+                <button onClick={() => router.push('/login')} className="px-4 py-2 text-sm font-medium rounded-lg transition-colors pointer-cursor">
+                  Sign In
                 </button>
                 <button onClick={() => router.push('/register')} className="px-4 py-2 text-sm font-medium bg-transparent border border-primary text-primary hover:bg-primary hover:text-primary-foreground rounded transition-colors">
                   Start Learning
