@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { BookOpen, Users, Award, TrendingUp, Play, Lock, Clock, User, Moon, Sun, ChevronDown, Menu, X, GraduationCapIcon, ChevronUp, ChevronLeft, ChevronRight, Share2 } from "lucide-react"
 import Link from "next/link"
 import { useTheme } from "next-themes"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 
 
@@ -157,6 +157,67 @@ const [slideDirection, setSlideDirection] = useState('');
   const handleItemClick = (i:any) => {
     setActiveDropdown(i === activeDropdown ? null : i);
   };
+
+  function StatCounter({ end, suffix, label }: { end: number; suffix: string; label: string }) {
+  const [count, setCount] = useState(0);
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const duration = 2000; // 2 seconds
+    const steps = 60;
+    const increment = end / steps;
+    const stepDuration = duration / steps;
+    let current = 0;
+
+    const timer = setInterval(() => {
+      current += increment;
+      if (current >= end) {
+        setCount(end);
+        clearInterval(timer);
+      } else {
+        setCount(Math.floor(current));
+      }
+    }, stepDuration);
+
+    return () => clearInterval(timer);
+  }, [isVisible, end]);
+
+  const formatNumber = (num: number) => {
+    if (num >= 1000) {
+      return (num / 1000).toFixed(num % 1000 === 0 ? 0 : 1) + 'K';
+    }
+    return num.toString();
+  };
+
+  return (
+    <div ref={ref}>
+      <div className="text-4xl font-bold text-primary mb-2">
+        {formatNumber(count)}{suffix}
+      </div>
+      <div className="text-muted-foreground">{label}</div>
+    </div>
+  );
+} 
 
   return (
     <div className="min-h-screen">
@@ -431,7 +492,6 @@ const [slideDirection, setSlideDirection] = useState('');
         </section>
       </div>
 
-      {/* Rest of your content */}
       <div className="">
         {/* Features Section */}
         <section className="py-20 px-4 ">
@@ -491,242 +551,229 @@ const [slideDirection, setSlideDirection] = useState('');
         <section className="py-20 px-4">
           <div className="container mx-auto">
             <div className="grid md:grid-cols-4 gap-8 text-center">
-              <div>
-                <div className="text-4xl font-bold text-primary mb-2">10K+</div>
-                <div className="text-muted-foreground">Active Learners</div>
-              </div>
-              <div>
-                <div className="text-4xl font-bold text-primary mb-2">500+</div>
-                <div className="text-muted-foreground">Courses Available</div>
-              </div>
-              <div>
-                <div className="text-4xl font-bold text-primary mb-2">50+</div>
-                <div className="text-muted-foreground">Expert Instructors</div>
-              </div>
-              <div>
-                <div className="text-4xl font-bold text-primary mb-2">95%</div>
-                <div className="text-muted-foreground">Completion Rate</div>
-              </div>
+              <StatCounter end={10000} suffix="+" label="Active Learners" />
+              <StatCounter end={500} suffix="+" label="Courses Available" />
+              <StatCounter end={50} suffix="+" label="Expert Instructors" />
+              <StatCounter end={95} suffix="%" label="Completion Rate" />
             </div>
           </div>
         </section>
-      </div>
 
-    {/* Popular courses */}
-    <section className="py-20 px-4 bg-muted dark:bg-muted/30">
-      <div className="container mx-auto max-w-7xl">
-        {/* Header */}
-        <div className="mb-12">
-          <h2 className="text-3xl md:text-4xl font-normal mb-2">
-            Popular <span className="font-bold underline decoration-primary decoration-2 underline-offset-4">free online courses</span>
-          </h2>
-        </div>
+        {/* Popular courses */}
+        <section className="py-20 px-4 bg-muted dark:bg-muted/30">
+          <div className="container mx-auto max-w-7xl">
+            {/* Header */}
+            <div className="mb-12">
+              <h2 className="text-3xl md:text-4xl font-normal mb-2">
+                Popular <span className="font-bold underline decoration-primary decoration-2 underline-offset-4">free online courses</span>
+              </h2>
+            </div>
 
-        {/* Carousel Container */}
-        <div className="relative">
-          {/* Navigation Buttons */}
-          <button
-            onClick={handlePrev}
-            disabled={currentIndex === 0}
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-12 h-12 rounded-full bg-muted border-2 border-muted-foreground hover:text-primary hover:border-primary disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center shadow-lg transition-all hover:scale-110"
-            aria-label="Previous courses"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </button>
+            {/* Carousel Container */}
+            <div className="relative">
+              {/* Navigation Buttons */}
+              <button
+                onClick={handlePrev}
+                disabled={currentIndex === 0}
+                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-12 h-12 rounded-full bg-muted border-2 border-muted-foreground hover:text-primary hover:border-primary disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center shadow-lg transition-all hover:scale-110"
+                aria-label="Previous courses"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
 
-          <button
-            onClick={handleNext}
-            disabled={currentIndex >= maxIndex}
-            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-12 h-12 rounded-full bg-muted border-2 border-muted-foreground hover:text-primary hover:border-primary disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center shadow-lg transition-all hover:scale-110"
-            aria-label="Next courses"
-          >
-            <ChevronRight className="w-6 h-6" />
-          </button>
+              <button
+                onClick={handleNext}
+                disabled={currentIndex >= maxIndex}
+                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-12 h-12 rounded-full bg-muted border-2 border-muted-foreground hover:text-primary hover:border-primary disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center shadow-lg transition-all hover:scale-110"
+                aria-label="Next courses"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
 
-          {/* Courses Grid with Animation */}
-          <div className="overflow-hidden">
-            <div 
-              className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 transition-all duration-500 ease-in-out ${
-                slideDirection === 'left' ? 'translate-x-8 opacity-0' : 
-                slideDirection === 'right' ? '-translate-x-8 opacity-0' : 
-                'translate-x-0 opacity-100'
-              }`}
-            >
-              {visibleCourses.map((course, index) => (
-                <div
-                  key={currentIndex + index}
-                  className="bg-white dark:bg-accent rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-200 dark:border-gray-800"
+              {/* Courses Grid with Animation */}
+              <div className="overflow-hidden">
+                <div 
+                  className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 transition-all duration-500 ease-in-out ${
+                    slideDirection === 'left' ? 'translate-x-8 opacity-0' : 
+                    slideDirection === 'right' ? '-translate-x-8 opacity-0' : 
+                    'translate-x-0 opacity-100'
+                  }`}
                 >
-                  {/* Course Image */}
-                  <div className="relative aspect-[4/3] overflow-hidden">
-                    <img
-                      src={course.image}
-                      alt={course.title}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute top-3 left-3">
-                      <span className={`${getLevelColor(course.level)} text-white text-xs font-bold px-3 py-1 rounded`}>
-                        {course.level}
-                      </span>
-                    </div>
-                    <button className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow-md transition-colors">
-                      <Share2 className="w-4 h-4 text-gray-800" />
-                    </button>
-                  </div>
+                  {visibleCourses.map((course, index) => (
+                    <div
+                      key={currentIndex + index}
+                      className="bg-white dark:bg-accent rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-200 dark:border-gray-800"
+                    >
+                      {/* Course Image */}
+                      <div className="relative aspect-[4/3] overflow-hidden">
+                        <img
+                          src={course.image}
+                          alt={course.title}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute top-3 left-3">
+                          <span className={`${getLevelColor(course.level)} text-white text-xs font-bold px-3 py-1 rounded`}>
+                            {course.level}
+                          </span>
+                        </div>
+                        <button className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow-md transition-colors">
+                          <Share2 className="w-4 h-4 text-gray-800" />
+                        </button>
+                      </div>
 
-                  {/* Course Content */}
-                  <div className="p-5">
-                    {/* Partner Logo */}
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="text-xs text-text font-medium">
-                        {course.partner}
+                      {/* Course Content */}
+                      <div className="p-5">
+                        {/* Partner Logo */}
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="text-xs text-text font-medium">
+                            {course.partner}
+                          </div>
+                        </div>
+
+                        {/* Course Format */}
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                          </svg>
+                          <span>Course</span>
+                          <span>|</span>
+                          <span>{course.format}</span>
+                        </div>
+
+                        {/* Course Title */}
+                        <h3 className="text-lg font-bold mb-3 text-gray-900 dark:text-gray-300 leading-tight min-h-[3.5rem]">
+                          {course.title}
+                        </h3>
+
+                        {/* Course Description */}
+                        <p className="text-sm text-muted-foreground mb-4 line-clamp-3 min-h-[3.75rem]">
+                          {course.description}
+                        </p>
+
+                        {/* Course Meta */}
+                        <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                          <div className="flex items-center gap-1 text-sm text-gray-600  dark:text-gray-400">
+                            <Clock className="w-4 h-4" />
+                            <span className="font-medium">{course.duration}</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-sm font-bold text-gray-900 dark:text-gray-300">
+                            <Lock className="w-4 h-4" />
+                            <span>{course.price}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
-
-                    {/* Course Format */}
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                      </svg>
-                      <span>Course</span>
-                      <span>|</span>
-                      <span>{course.format}</span>
-                    </div>
-
-                    {/* Course Title */}
-                    <h3 className="text-lg font-bold mb-3 text-gray-900 dark:text-gray-300 leading-tight min-h-[3.5rem]">
-                      {course.title}
-                    </h3>
-
-                    {/* Course Description */}
-                    <p className="text-sm text-muted-foreground mb-4 line-clamp-3 min-h-[3.75rem]">
-                      {course.description}
-                    </p>
-
-                    {/* Course Meta */}
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                      <div className="flex items-center gap-1 text-sm text-gray-600  dark:text-gray-400">
-                        <Clock className="w-4 h-4" />
-                        <span className="font-medium">{course.duration}</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-sm font-bold text-gray-900 dark:text-gray-300">
-                        <Lock className="w-4 h-4" />
-                        <span>{course.price}</span>
-                      </div>
-                    </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* View All Button */}
-        <div className="text-center mt-12">
-          <button className="px-8 py-3 text-base font-semibold rounded-full border-2 border-primary text-primary hover:bg-primary hover:text-white transition-colors">
-            View All Free Courses
-          </button>
-        </div>
-      </div>
-    </section>
-
-
-      {/* Footer */}
-      <footer className="border-t bg-muted py-12 px-4">
-        <div className="container mx-auto">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <BookOpen className="w-5 h-5 text-primary-foreground" />
-                </div>
-                <h3 className="text-lg font-bold text-primary">Ingata E-learning</h3>
               </div>
-              <p className="text-muted-foreground">
-                Transforming education through innovative technology and gamified learning experiences.
-              </p>
             </div>
-            <div>
-              <h4 className="font-semibold mb-4">Platform</h4>
-              <ul className="space-y-2 text-muted-foreground">
-                <li>
-                  <Link href="/courses" className="hover:text-primary transition-colors">
-                    Courses
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/instructors" className="hover:text-primary transition-colors">
-                    Instructors
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/pricing" className="hover:text-primary transition-colors">
-                    Pricing
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/features" className="hover:text-primary transition-colors">
-                    Features
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Support</h4>
-              <ul className="space-y-2 text-muted-foreground">
-                <li>
-                  <Link href="/help" className="hover:text-primary transition-colors">
-                    Help Center
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/contact" className="hover:text-primary transition-colors">
-                    Contact Us
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/community" className="hover:text-primary transition-colors">
-                    Community
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/status" className="hover:text-primary transition-colors">
-                    Status
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Company</h4>
-              <ul className="space-y-2 text-muted-foreground">
-                <li>
-                  <Link href="/about" className="hover:text-primary transition-colors">
-                    About
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/careers" className="hover:text-primary transition-colors">
-                    Careers
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/privacy" className="hover:text-primary transition-colors">
-                    Privacy
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/terms" className="hover:text-primary transition-colors">
-                    Terms
-                  </Link>
-                </li>
-              </ul>
+
+            {/* View All Button */}
+            <div className="text-center mt-12">
+              <button className="px-8 py-3 text-base font-semibold rounded-full border-2 border-primary text-primary hover:bg-primary hover:text-white transition-colors">
+                View All Free Courses
+              </button>
             </div>
           </div>
-          <div className="border-t mt-8 pt-8 text-center text-muted-foreground">
-            <p>&copy; 2024 Ingata E-learning. All rights reserved.</p>
+        </section>
+
+        {/* Footer  */}
+        <footer className="border-t bg-muted py-12 px-4">
+          <div className="container mx-auto">
+            <div className="grid md:grid-cols-4 gap-8">
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                    <BookOpen className="w-5 h-5 text-primary-foreground" />
+                  </div>
+                  <h3 className="text-lg font-bold text-primary">Ingata E-learning</h3>
+                </div>
+                <p className="text-muted-foreground">
+                  Transforming education through innovative technology and gamified learning experiences.
+                </p>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-4">Platform</h4>
+                <ul className="space-y-2 text-muted-foreground">
+                  <li>
+                    <Link href="/courses" className="hover:text-primary transition-colors">
+                      Courses
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/instructors" className="hover:text-primary transition-colors">
+                      Instructors
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/pricing" className="hover:text-primary transition-colors">
+                      Pricing
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/features" className="hover:text-primary transition-colors">
+                      Features
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-4">Support</h4>
+                <ul className="space-y-2 text-muted-foreground">
+                  <li>
+                    <Link href="/help" className="hover:text-primary transition-colors">
+                      Help Center
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/contact" className="hover:text-primary transition-colors">
+                      Contact Us
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/community" className="hover:text-primary transition-colors">
+                      Community
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/status" className="hover:text-primary transition-colors">
+                      Status
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-4">Company</h4>
+                <ul className="space-y-2 text-muted-foreground">
+                  <li>
+                    <Link href="/about" className="hover:text-primary transition-colors">
+                      About
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/careers" className="hover:text-primary transition-colors">
+                      Careers
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/privacy" className="hover:text-primary transition-colors">
+                      Privacy
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/terms" className="hover:text-primary transition-colors">
+                      Terms
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div className="border-t mt-8 pt-8 text-center text-muted-foreground">
+              <p>&copy; 2024 Ingata E-learning. All rights reserved.</p>
+            </div>
           </div>
-        </div>
-      </footer>
+        </footer>
+      </div>
     </div>
   )
 }
