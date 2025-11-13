@@ -379,7 +379,7 @@ export default function MyCoursesPage() {
             </p>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 max-w-4xl mx-auto">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
               <div className="bg-card border-2 border-primary/10 rounded-xl p-4 hover:border-primary/20 transition-colors">
                 <div className="flex items-center gap-2 mb-2">
                   <BookOpen className="w-5 h-5 text-blue-500" />
@@ -402,22 +402,6 @@ export default function MyCoursesPage() {
                   <span className="text-2xl font-bold text-blue-600">{stats.inProgressCourses}</span>
                 </div>
                 <p className="text-sm text-muted-foreground">In Progress</p>
-              </div>
-
-              <div className="bg-card border-2 border-orange-500/10 rounded-xl p-4 hover:border-orange-500/20 transition-colors">
-                <div className="flex items-center gap-2 mb-2">
-                  <Clock className="w-5 h-5 text-orange-500" />
-                  <span className="text-2xl font-bold text-orange-600">{stats.totalHoursSpent}h</span>
-                </div>
-                <p className="text-sm text-muted-foreground">Hours Learned</p>
-              </div>
-
-              <div className="bg-card border-2 border-purple-500/10 rounded-xl p-4 hover:border-purple-500/20 transition-colors">
-                <div className="flex items-center gap-2 mb-2">
-                  <BarChart3 className="w-5 h-5 text-purple-500" />
-                  <span className="text-2xl font-bold text-purple-600">{stats.averageProgress}%</span>
-                </div>
-                <p className="text-sm text-muted-foreground">Avg Progress</p>
               </div>
 
               <div className="bg-card border-2 border-yellow-500/10 rounded-xl p-4 hover:border-yellow-500/20 transition-colors">

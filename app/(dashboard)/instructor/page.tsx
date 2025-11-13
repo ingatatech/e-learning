@@ -9,6 +9,7 @@ import { useEffect, useState } from "react"
 import { useAuth } from "@/hooks/use-auth"
 import type { Course } from "@/types"
 import { DashboardSkeleton } from "@/components/skeletons/dashboard-skeleton"
+import { StatCard } from "@/components/dashboard/card"
 
 interface Student {
   student: {
@@ -61,7 +62,6 @@ export default function InstructorDashboard() {
             },
           },
         )
-
         // Fetch students
         const studentsResponse = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/courses/instructor/${user?.id}/students`,
@@ -151,58 +151,41 @@ export default function InstructorDashboard() {
         </div>
       </div> */}
 
-      {/* Stats Grid */}
+            {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Courses</CardTitle>
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{loading ? "..." : instructorStats.totalCourses}</div>
-            <p className="text-xs text-muted-foreground">
-              {instructorStats.coursesPublished} published, {instructorStats.coursesDraft} draft
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Students</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{loading ? "..." : instructorStats.totalStudents.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">Across all your published courses</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loading ? "..." : "$" + instructorStats.totalRevenue.toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">From published courses</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Average Rating</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{loading ? "..." : instructorStats.avgRating}</div>
-            <p className="text-xs text-muted-foreground">
-              {instructorStats.avgRating > 0 ? "Based on course ratings" : "No ratings yet"}
-            </p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Total Courses"
+          content={loading ? "..." : instructorStats.totalCourses}
+          subtitle={`${instructorStats.coursesPublished} published · ${instructorStats.coursesDraft} draft`}
+          icon={BookOpen}
+          index={0}
+        />
+        
+        <StatCard
+          title="Total Students"
+          content={loading ? "..." : instructorStats.totalStudents.toLocaleString()}
+          subtitle="Across all courses"
+          icon={Users}
+          index={1}
+        />
+        
+        <StatCard
+          title="Total Revenue"
+          content={loading ? "..." : `$${instructorStats.totalRevenue.toLocaleString()}`}
+          subtitle="Published courses"
+          icon={DollarSign}
+          index={2}
+        />
+        
+        <StatCard
+          title="Average Rating"
+          content={loading ? "..." : instructorStats.avgRating}
+          subtitle={instructorStats.avgRating > 0 ? "Course ratings" : "No ratings yet"}
+          icon={TrendingUp}
+          index={3}
+        />
       </div>
+
 
       {/* My Courses & Recent Students */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -259,7 +242,7 @@ export default function InstructorDashboard() {
                 <BookOpen className="w-12 h-12 mx-auto mb-2 opacity-50" />
                 <p>No courses yet</p>
                 <Button variant="link" asChild>
-                  <Link href="/instructor/courses/new">Create your first course</Link>
+                  <Link href="/instructor/courses/create">Create your first course</Link>
                 </Button>
               </div>
             )}

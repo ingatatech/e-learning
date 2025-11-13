@@ -7,6 +7,7 @@ import { Users, BookOpen, Building2, UserPlus, Plus, GraduationCap, DollarSign }
 import Link from "next/link"
 import { useAuth } from "@/hooks/use-auth"
 import { DashboardSkeleton } from "@/components/skeletons/dashboard-skeleton"
+import { StatCard } from "@/components/dashboard/card"
 
 export default function SystemAdminDashboard() {
   const { user, token } = useAuth()
@@ -83,50 +84,38 @@ export default function SystemAdminDashboard() {
       </div> */}
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats ? stats.totalUsers : "..."}</div>
-            <p className="text-xs text-muted-foreground">Students & Instructors</p>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">                
+        <StatCard
+          title="Total Students"
+          content={stats ? stats.totalUsers : "..."}
+          subtitle="Students & Instructors"
+          icon={Users}
+          index={0}
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Courses</CardTitle>
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats ? stats.totalCourses : "..."}</div>
-            <p className="text-xs text-muted-foreground">Published courses</p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Average Rating"
+          content={stats ? stats.totalCourses : "..."}
+          subtitle="Published Courses"
+          icon={BookOpen}
+          index={1}
+        />
+        
+        <StatCard
+          title="Enrollments"
+          content={stats ? stats.totalEnrollments : "..."}
+          subtitle="Active enrollments"
+          icon={GraduationCap}
+          index={2}
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Enrollments</CardTitle>
-            <GraduationCap className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats ? stats.totalEnrollments : "..."}</div>
-            <p className="text-xs text-muted-foreground">Active enrollments</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats ? "$" + stats.totalRevenue : "..."}</div>
-            <p className="text-xs text-muted-foreground">{stats && stats.revenueThisMonth + " this month"}</p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Revenue"
+          content={stats ? "$" + stats.totalRevenue : "..."}
+          subtitle={stats && stats.revenueThisMonth + " this month"}
+          icon={DollarSign}
+          index={3}
+        />
       </div>
 
       {/* Quick Actions */}

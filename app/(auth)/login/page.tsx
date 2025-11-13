@@ -1,41 +1,49 @@
-
 "use client"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { LoginForm } from "@/components/forms/login-form"
-import { BookOpen } from "lucide-react"
+import Link from "next/link"
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "../../../hooks/use-auth" 
+import { useAuth } from "@/hooks/use-auth"
+import { BookOpen } from "lucide-react"
 
 export default function LoginPage() {
-    const { user } = useAuth()
-    const router = useRouter()
-    
-    useEffect(() => {
-      if (user && !user.firstLogin) {
-        router.push(`/${user.role}`) 
-      } else {
-        // stay on login/verify page
-      }
-    }, [user, router])
+  const { user } = useAuth()
+  const router = useRouter()
 
-    
+  useEffect(() => {
+    if (user && !user.firstLogin) {
+      router.push(`/${user.role}`)
+    }
+  }, [user, router])
+
   return (
-    <Card>
-      <CardHeader className="text-center">
-        <div className="flex items-center justify-center gap-2 mb-4">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <BookOpen className="w-5 h-5 text-primary-foreground" />
-          </div>
-          <span className="text-xl font-bold text-primary">Ingata E-learning</span>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="space-y-4">
+        {/* Logo and brand */}
+        <div className="flex items-center gap-3">
+          <BookOpen className="w-5 h-5 text-primary" />
+          <span className="text-primary font-semibold text-lg cursor-pointer" onClick={() => router.push('/')}>Ingata E-learning</span>
         </div>
-        <CardTitle>Welcome Back</CardTitle>
-        <CardDescription>Sign in to your account to continue learning</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <LoginForm />
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Main content */}
+      <div className="space-y-4">
+        <p className="text-gray-400 text-xs font-semibold tracking-wider">WELCOME BACK</p>
+        <h1 className="text-4xl font-bold text-text">
+          Sign In<span className="text-primary">.</span>
+        </h1>
+        <p className="text-gray-400 text-sm">
+          Don't have an account?{" "}
+          <Link href="/register" className="text-primary font-medium">
+            Create one
+          </Link>
+        </p>
+      </div>
+
+      {/* Form */}
+      <LoginForm />
+    </div>
   )
 }

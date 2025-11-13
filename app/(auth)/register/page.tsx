@@ -1,30 +1,39 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+'use client'
 import { RegisterForm } from "@/components/forms/register-form"
 import Link from "next/link"
 import { BookOpen } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 export default function RegisterPage() {
+    const router = useRouter()
+  
   return (
-    <Card>
-      <CardHeader className="text-center">
-        <div className="flex items-center justify-center gap-2 mb-4">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <BookOpen className="w-5 h-5 text-primary-foreground" />
-          </div>
-          <span className="text-xl font-bold text-primary">Ingata E-learning</span>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="space-y-4">
+        {/* Logo and brand */}
+        <div className="flex items-center gap-3">
+          <BookOpen className="w-5 h-5 text-primary" />
+          <span className="text-primary font-semibold text-lg cursor-pointer" onClick={() => router.push('/')}>Ingata E-learning</span>
         </div>
-        <CardTitle>Create Your Account</CardTitle>
-        <CardDescription>Join thousands of learners and start your educational journey</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <RegisterForm />
-        <div className="mt-6 text-center text-sm">
-          <span className="text-muted-foreground">Already have an account? </span>
-          <Link href="/login" className="text-primary hover:underline font-medium">
-            Sign in
+      </div>
+
+      {/* Main content */}
+      <div className="space-y-4">
+        <p className="text-gray-400 text-xs font-semibold tracking-wider uppercase">Good to have you here!</p>
+        <h1 className="text-4xl font-bold text-text">
+          Sign Up<span className="text-primary">.</span>
+        </h1>
+        <p className="text-gray-400 text-sm">
+          Already have an account?{" "}
+          <Link href="/login" className="text-primary font-medium">
+            Sign In
           </Link>
-        </div>
-      </CardContent>
-    </Card>
+        </p>
+      </div>
+
+      {/* Form */}
+      <RegisterForm />
+    </div>
   )
 }

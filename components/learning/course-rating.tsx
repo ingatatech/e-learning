@@ -21,13 +21,12 @@ interface CourseRatingProps {
       profilePicUrl?: string
     }
     rating: number
-    review: string
+    comment: string
     createdAt: string
   }>
 }
 
 export function CourseRating({
-  courseId,
   currentRating,
   currentReview,
   onRatingSubmit,
@@ -37,7 +36,6 @@ export function CourseRating({
   const [review, setReview] = useState(currentReview || "")
   const [hoveredRating, setHoveredRating] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const { user } = useAuth()
 
   const handleSubmit = async () => {
     if (rating === 0) return
@@ -45,6 +43,8 @@ export function CourseRating({
     setIsSubmitting(true)
     try {
       await onRatingSubmit(rating, review)
+      setReview("")
+      setRating(0)
     } finally {
       setIsSubmitting(false)
     }
@@ -144,18 +144,18 @@ export function CourseRating({
                               {[1, 2, 3, 4, 5].map((star) => (
                                 <Star
                                   key={star}
-                                  className={`w-4 h-4 ${
+                                  className={`w-3 h-3 ${
                                     star <= reviewItem.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
                                   }`}
                                 />
                               ))}
                             </div>
-                            <span className="text-sm text-muted-foreground">{formatDate(reviewItem.createdAt)}</span>
+                            <span className="text-xs text-muted-foreground">{formatDate(reviewItem.createdAt)}</span>
                           </div>
                         </div>
                       </div>
-                      {reviewItem.review && (
-                        <p className="text-sm text-muted-foreground leading-relaxed">{reviewItem.review}</p>
+                      {reviewItem.comment && (
+                        <p className="text-sm text-muted-foreground leading-relaxed">{reviewItem.comment}</p>
                       )}
                     </div>
                   </div>

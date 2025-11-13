@@ -91,7 +91,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
             return
           }
 
-          if (enrolledCourse.deadline) {
+          if (enrolledCourse.deadline && enrolledCourse.status !== 'completed') {
             const expiryDate = new Date(enrolledCourse.deadline)
             const now = new Date()
 
@@ -132,7 +132,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
 
   const fetchCourseRating = async () => {
     try {
-      const userRatingRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/${id}/rating/user`, {
+      const userRatingRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reviews/course/${id}`, {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       })
       if (userRatingRes.ok) {
@@ -140,7 +140,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
         setUserRating(userRatingData.rating)
       }
 
-      const reviewsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/${id}/reviews`, {
+      const reviewsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reviews/course/${id}`, {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       })
       if (reviewsRes.ok) {
@@ -154,14 +154,14 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
 
   const handleRatingSubmit = async (rating: number, review: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/${id}/rating`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reviews`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           userId: user?.id,
           courseId: id,
           rating,
-          review,
+          comment: review,
         }),
       })
 

@@ -49,6 +49,11 @@ interface EnrolledCourse {
       }>
     }>
   }
+  instructor: {
+    id: string
+    firstName: string
+    lastName: string
+  }
   enrolledAt: string
   lastAccessed: string
   progress: number
@@ -438,7 +443,7 @@ export default function StudentDashboard() {
                         <div className="flex-1 min-w-0">
                           <h4 className="font-semibold text-sm truncate">{enrollment.course.title}</h4>
                           <p className="text-xs text-muted-foreground">
-                            By {enrollment.course.instructor.firstName} {enrollment.course.instructor.lastName}
+                            By {enrollment.instructor?.firstName} {enrollment.instructor?.lastName}
                           </p>
                         </div>
                         <div className="flex items-center gap-3">
