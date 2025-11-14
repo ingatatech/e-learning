@@ -5,11 +5,9 @@ import type React from "react"
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Card, CardContent } from "@/components/ui/card"
-import { BookOpen, Users, PlayCircle, Trophy, CheckCircle } from "lucide-react"
+import { BookOpen, Users, PlayCircle, Trophy, CheckCircle, FolderOpen } from 'lucide-react'
 import { CourseDetailsStep } from "./steps/course-details-step"
-import { ModuleManagementStep } from "./steps/module-management-step"
-import { LessonBuilderStep } from "./steps/lesson-builder-step"
-import { AssessmentBuilderStep } from "./steps/assessment-builder-step"
+import { TreeBuilderStep } from "./steps/new-tree-builder-step"
 import { ReviewPublishStep } from "./steps/review-publish-step"
 import type { Course, Module } from "@/types"
 import { useAuth } from "@/hooks/use-auth"
@@ -36,7 +34,7 @@ export function CourseCreationWizard() {
   const [thumbnailUrl, setThumbnailUrl] = useState<string>("")
   const [isThumbnailUploading, setIsThumbnailUploading] = useState(false)
   const [thumbnailUploadError, setThumbnailUploadError] = useState<string>("")
-  const [instructors, setInstructos] = useState([])
+  const [instructors, setInstructors] = useState([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -50,7 +48,7 @@ export function CourseCreationWizard() {
       })
       if (response.ok) {
         const data = await response.json()
-        setInstructos(data.instructors)
+        setInstructors(data.instructors)
       }
       setLoading(false)
     }
@@ -70,31 +68,13 @@ export function CourseCreationWizard() {
       points: 50,
     },
     {
-      id: "modules",
-      title: "Course Structure",
-      description: "Organize your content into modules",
-      icon: <Users className="w-3 h-3" />,
-      component: ModuleManagementStep,
+      id: "build",
+      title: "Build Course",
+      description: "Create modules, lessons, and assessments",
+      icon: <FolderOpen className="w-3 h-3" />,
+      component: TreeBuilderStep,
       isCompleted: false,
-      points: 75,
-    },
-    {
-      id: "lessons",
-      title: "Create Lessons",
-      description: "Build engaging lesson content",
-      icon: <PlayCircle className="w-3 h-3" />,
-      component: LessonBuilderStep,
-      isCompleted: false,
-      points: 100,
-    },
-    {
-      id: "assessments",
-      title: "Add Assessments",
-      description: "Create quizzes and assignments",
-      icon: <Trophy className="w-3 h-3" />,
-      component: AssessmentBuilderStep,
-      isCompleted: false,
-      points: 75,
+      points: 200,
     },
     {
       id: "review",
@@ -239,7 +219,7 @@ export function CourseCreationWizard() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       {/* Step Navigation */}
-      <div className="mb-8">
+      <div className="mb-2">
         <div className="flex items-center justify-between overflow-x-auto pb-4">
           {steps.map((step, index) => (
             <div key={step.id} className="flex flex-col items-center min-w-0 flex-1 relative">
@@ -285,7 +265,7 @@ export function CourseCreationWizard() {
 
       {/* Step Content */}
       <Card className="min-h-[600px]">
-        <CardContent className="p-8">
+        <CardContent className="px-8">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentStep}

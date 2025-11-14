@@ -212,35 +212,6 @@ export function ReviewPublishStep({
               </Card>
             </div>
 
-            {/* Quality Score */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-yellow-500" />
-                  Course Quality Score
-                </CardTitle>
-                <CardDescription>Based on completeness, content depth, and best practices</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Overall Quality</span>
-                    <Badge variant={qualityScore >= 80 ? "default" : qualityScore >= 60 ? "secondary" : "outline"}>
-                      {qualityScore}/100
-                    </Badge>
-                  </div>
-                  <Progress value={qualityScore} className="h-3" />
-                  <div className="text-sm text-gray-600">
-                    {qualityScore >= 80 && "Excellent! Your course meets high quality standards."}
-                    {qualityScore >= 60 &&
-                      qualityScore < 80 &&
-                      "Good course structure. Consider adding more content for higher engagement."}
-                    {qualityScore < 60 && "Your course needs more content to provide good value to students."}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Course Preview */}
             <Card>
               <CardHeader>

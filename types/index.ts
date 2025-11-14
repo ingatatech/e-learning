@@ -124,13 +124,27 @@ export interface Module {
   updatedAt: Date
 }
 
+
+export interface ContentBlock {
+  id: string
+  type: "text" | "image" | "video"
+  order: number
+  data: {
+    text?: string
+    url?: string
+  }
+}
+
+export interface LessonContent {
+  version: string
+  blocks: ContentBlock[]
+}
+
 export interface Lesson {
   id: string
   title: string
-  content: string
-  videoUrl?: string
-  imageFiles?: File[] | null
-  imageUrl?: string
+  content: string 
+  contentBlocks?: ContentBlock[]
   duration: number
   order: number
   moduleId: string

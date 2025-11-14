@@ -336,7 +336,7 @@ export function LearningSidebar({
               <div className="flex-1">
                 <p className="font-medium text-sm">Course Completion</p>
                 <p className="text-xs opacity-70">
-                  {allStepsCompleted ? "View your achievements" : "Complete all steps to unlock"}
+                  {allStepsCompleted ? "View your achievements" : "Complete all lessons to unlock"}
                 </p>
               </div>
             </div>
