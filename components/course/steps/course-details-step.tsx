@@ -276,7 +276,7 @@ export function CourseDetailsStep({
 
                 {user?.role !== "instructor" && (
                   <div className="space-y-2">
-                    <Label htmlFor="instructor">Instructor</Label>
+                    <Label htmlFor="instructor">Instructor *</Label>
                     <Select
                       value={courseData.instructorId || ""}
                       onValueChange={(value) => setCourseData({ ...courseData, instructorId: value })}
@@ -312,30 +312,6 @@ export function CourseDetailsStep({
               </div>
             </CardContent>
           </Card>
-        </div>
-
-        {/* Right Column - Additional Details */}
-        <div className="space-y-6">
-          {/* Thumbnail Upload */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ImageIcon className="w-5 h-5" />
-                Course Thumbnail
-              </CardTitle>
-              <CardDescription>Upload an eye-catching course image</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ThumbnailUpload
-                currentUrl={thumbnailUrl}
-                onUploadStart={onThumbnailUploadStart}
-                onUploadComplete={onThumbnailUploadComplete}
-                onUploadError={onThumbnailUploadError}
-                isUploading={isThumbnailUploading}
-              />
-            </CardContent>
-          </Card>
-
           {/* Tags */}
           <Card>
             <CardHeader>
@@ -369,6 +345,31 @@ export function CourseDetailsStep({
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Right Column - Additional Details */}
+        <div className="space-y-6">
+          {/* Thumbnail Upload */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ImageIcon className="w-5 h-5" />
+                Course Thumbnail
+              </CardTitle>
+              <CardDescription>Upload an eye-catching course image</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ThumbnailUpload
+                currentUrl={thumbnailUrl}
+                onUploadStart={onThumbnailUploadStart}
+                onUploadComplete={onThumbnailUploadComplete}
+                onUploadError={onThumbnailUploadError}
+                isUploading={isThumbnailUploading}
+              />
+            </CardContent>
+          </Card>
+
+          
 
           {/* Learning Objectives */}
           <Card>

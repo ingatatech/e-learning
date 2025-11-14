@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { LessonImageUpload } from "./lesson-image-upload"
+import { LessonVideoUpload } from "./lesson-video-upload"
 import { FileText, Video, ImageIcon, FileDown, Trash2, GripVertical, Clock, Briefcase, Zap, Check } from "lucide-react"
 import type { Lesson } from "@/types"
 
@@ -63,9 +64,8 @@ export function LessonEditor({ lesson, onUpdate, onDelete }: LessonEditorProps) 
 
   const handleImageUploadComplete = (blockId: string, imageUrl: string) => {
     updateContentBlock(blockId, {
-      imageUrl: imageUrl,
-      alt: "",
-      caption: "",
+      ...contentBlocks.find((b) => b.id === blockId)?.content,
+      uploadedUrl: imageUrl,
     })
   }
 
@@ -75,6 +75,21 @@ export function LessonEditor({ lesson, onUpdate, onDelete }: LessonEditorProps) 
 
   const handleImageUploadError = (error: string) => {
     alert(`Image upload failed: ${error}`)
+  }
+
+  const handleVideoUploadComplete = (blockId: string, videoUrl: string) => {
+    updateContentBlock(blockId, {
+      ...contentBlocks.find((b) => b.id === blockId)?.content,
+      uploadedUrl: videoUrl,
+    })
+  }
+
+  const handleVideoUploadStart = () => {
+    // Optional: Show loading state
+  }
+
+  const handleVideoUploadError = (error: string) => {
+    alert(`Video upload failed: ${error}`)
   }
 
   useEffect(() => {
@@ -141,9 +156,9 @@ export function LessonEditor({ lesson, onUpdate, onDelete }: LessonEditorProps) 
       case "text":
         return { text: "" }
       case "video":
-        return { url: "", title: "", description: "" }
+        return { url: "", title: "", description: "", uploadedUrl: "" }
       case "image":
-        return { imageUrl: "", alt: "", caption: "" }
+        return { url: "", alt: "", caption: "", uploadedUrl: "" }
       case "file":
         return { url: "", name: "", description: "" }
       case "quiz":
@@ -212,18 +227,37 @@ export function LessonEditor({ lesson, onUpdate, onDelete }: LessonEditorProps) 
       case "video":
         return (
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Video URL</Label>
-              <Input
-                value={block.content.url}
-                onChange={(e) => updateContentBlock(block.id, { ...block.content, url: e.target.value })}
-                placeholder="https://youtube.com/watch?v=..."
-              />
-            </div>
+            <Tabs defaultValue={block.content.uploadedUrl ? "upload" : "url"} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="url">Video URL</TabsTrigger>
+                <TabsTrigger value="upload">Upload Video</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="url" className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Video URL</Label>
+                  <Input
+                    value={block.content.url || ""}
+                    onChange={(e) => updateContentBlock(block.id, { ...block.content, url: e.target.value })}
+                    placeholder="https://youtube.com/watch?v=... or any video URL"
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="upload" className="space-y-4">
+                <LessonVideoUpload
+                  onUploadComplete={(url) => handleVideoUploadComplete(block.id, url)}
+                  onUploadStart={handleVideoUploadStart}
+                  onUploadError={handleVideoUploadError}
+                  currentVideoUrl={block.content.uploadedUrl}
+                />
+              </TabsContent>
+            </Tabs>
+
             <div className="space-y-2">
               <Label>Video Title</Label>
               <Input
-                value={block.content.title}
+                value={block.content.title || ""}
                 onChange={(e) => updateContentBlock(block.id, { ...block.content, title: e.target.value })}
                 placeholder="Video title"
               />
@@ -231,7 +265,7 @@ export function LessonEditor({ lesson, onUpdate, onDelete }: LessonEditorProps) 
             <div className="space-y-2">
               <Label>Description</Label>
               <Textarea
-                value={block.content.description}
+                value={block.content.description || ""}
                 onChange={(e) => updateContentBlock(block.id, { ...block.content, description: e.target.value })}
                 placeholder="Brief description of the video content"
                 rows={2}
@@ -243,13 +277,39 @@ export function LessonEditor({ lesson, onUpdate, onDelete }: LessonEditorProps) 
       case "image":
         return (
           <div className="space-y-4">
-            <Label>Lesson Image</Label>
-            <LessonImageUpload
-              onUploadComplete={(url) => handleImageUploadComplete(block.id, url)}
-              onUploadStart={handleImageUploadStart}
-              onUploadError={handleImageUploadError}
-              currentImageUrl={block.content.imageUrl}
-            />
+            <Tabs defaultValue={block.content.uploadedUrl ? "upload" : "url"} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="url">Image URL</TabsTrigger>
+                <TabsTrigger value="upload">Upload Image</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="url" className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Image URL</Label>
+                  <Input
+                    value={block.content.url || ""}
+                    onChange={(e) => updateContentBlock(block.id, { ...block.content, url: e.target.value })}
+                    placeholder="https://example.com/image.jpg"
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="upload" className="space-y-4">
+                <Label>Lesson Image</Label>
+                <LessonImageUpload
+                  onUploadComplete={(url) => {
+                    updateContentBlock(block.id, {
+                      ...block.content,
+                      uploadedUrl: url,
+                    })
+                  }}
+                  onUploadStart={handleImageUploadStart}
+                  onUploadError={handleImageUploadError}
+                  currentImageUrl={block.content.uploadedUrl}
+                />
+              </TabsContent>
+            </Tabs>
+
             <div className="space-y-2">
               <Label>Alt Text</Label>
               <Input

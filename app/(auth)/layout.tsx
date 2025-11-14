@@ -16,8 +16,7 @@ export default function AuthLayout({
       <div
         className="hidden lg:flex lg:w-1/2 relative bg-cover bg-right bg-no-repeat"
         style={{
-          backgroundImage:
-            "url(https://www.mediatouch.it/wp-content/uploads/2022/02/vecteezy_back-to-school-concept-education-icon-and-study-accessories_.jpg)",
+          backgroundImage:"url(/bg.png)",
         }}
       >
 

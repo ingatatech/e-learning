@@ -64,7 +64,7 @@ export function CourseCreationWizard() {
       id: "details",
       title: "Course Details",
       description: "Set up your course foundation",
-      icon: <BookOpen className="w-5 h-5" />,
+      icon: <BookOpen className="w-3 h-3" />,
       component: CourseDetailsStep,
       isCompleted: false,
       points: 50,
@@ -73,7 +73,7 @@ export function CourseCreationWizard() {
       id: "modules",
       title: "Course Structure",
       description: "Organize your content into modules",
-      icon: <Users className="w-5 h-5" />,
+      icon: <Users className="w-3 h-3" />,
       component: ModuleManagementStep,
       isCompleted: false,
       points: 75,
@@ -82,7 +82,7 @@ export function CourseCreationWizard() {
       id: "lessons",
       title: "Create Lessons",
       description: "Build engaging lesson content",
-      icon: <PlayCircle className="w-5 h-5" />,
+      icon: <PlayCircle className="w-3 h-3" />,
       component: LessonBuilderStep,
       isCompleted: false,
       points: 100,
@@ -91,7 +91,7 @@ export function CourseCreationWizard() {
       id: "assessments",
       title: "Add Assessments",
       description: "Create quizzes and assignments",
-      icon: <Trophy className="w-5 h-5" />,
+      icon: <Trophy className="w-3 h-3" />,
       component: AssessmentBuilderStep,
       isCompleted: false,
       points: 75,
@@ -100,7 +100,7 @@ export function CourseCreationWizard() {
       id: "review",
       title: "Review & Publish",
       description: "Final review and course launch",
-      icon: <CheckCircle className="w-5 h-5" />,
+      icon: <CheckCircle className="w-3 h-3" />,
       component: ReviewPublishStep,
       isCompleted: false,
       points: 100,
@@ -247,7 +247,7 @@ export function CourseCreationWizard() {
                 onClick={() => handleStepClick(index)}
                 disabled={index > currentStep}
                 className={`
-                  w-12 h-12 rounded-full flex items-center justify-center mb-2 transition-all relative
+                  w-6 h-6 rounded-full flex items-center justify-center mb-2 transition-all relative
                   ${
                     index === currentStep
                       ? "bg-primary-500 text-gray-900 dark:text-white shadow-lg scale-110"
@@ -259,27 +259,16 @@ export function CourseCreationWizard() {
                 `}
               >
                 {step.isCompleted ? <CheckCircle className="w-6 h-6" /> : step.icon}
-
-                {/* Points Badge */}
-                {step.isCompleted && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-2 -right-2 bg-yellow-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold"
-                  >
-                    {step.points}
-                  </motion.div>
-                )}
               </button>
               <div className="text-center">
                 <p
-                  className={`text-sm font-medium ${
+                  className={`text-xs font-medium ${
                     index <= currentStep ? "text-gray-900 dark:text-white" : "text-gray-400"
                   }`}
                 >
                   {step.title}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">{step.description}</p>
+                <p className="text-[10px] text-gray-500 mt-1">{step.description}</p>
               </div>
               {index < steps.length - 1 && (
                 <div
