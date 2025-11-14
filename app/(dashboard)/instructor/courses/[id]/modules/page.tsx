@@ -384,7 +384,6 @@ export default function ModulesManagementPage({ params }: { params: Promise<{ id
 
       if (response.ok) {
         updateCourseInCache(id, course)
-        console.log("Course updated successfully")
       }
     } catch (error) {
       console.error("Failed to save course:", error)

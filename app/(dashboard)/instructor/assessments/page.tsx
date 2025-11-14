@@ -56,7 +56,6 @@ export default function InstructorAssessmentsPage() {
   useEffect(() => {
     fetchPendingSubmissions()
   }, [])
-  console.log(selectedSubmission)
 
   const fetchPendingSubmissions = async () => {
     if (!token || !user) return
@@ -108,7 +107,6 @@ export default function InstructorAssessmentsPage() {
     // Calculate final score percentage
     const { earned, total } = calculateTotalPoints()
     const finalScore = total > 0 ? Math.round((earned / total) * 100) : 0
-    console.log(gradingAnswers)
 
      // Only include gradable questions that were actually manually graded
     const gradedAnswers = Object.entries(gradingAnswers)

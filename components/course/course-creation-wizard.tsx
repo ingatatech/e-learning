@@ -209,7 +209,6 @@ export function CourseCreationWizard() {
 
       await response.json()
     } catch (error) {
-      console.log(error)
       // Handle error (show error message, etc.)
     } finally {
       setIsSubmitting(false)

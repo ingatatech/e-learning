@@ -377,7 +377,6 @@ export default function EditCourseModulesPage({ params }: { params: Promise<{ id
 
       if (response.ok) {
         updateCourseInCache(id, course)
-        console.log("Course updated successfully")
         toast.success("Course updated successfully!")
       } else {
         throw new Error("Failed to save course")

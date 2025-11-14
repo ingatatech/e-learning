@@ -232,7 +232,6 @@ export default function DocumentsPage() {
         removeDocumentFromCache(id)
         toast.success("Document deleted")
       } else {
-        console.log(response)
         toast.error("Failed to delete document")
       }
     } catch (error) {

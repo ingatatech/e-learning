@@ -63,7 +63,6 @@ export default function CoursesPage() {
           if (response.ok) {
             const data = await response.json()
             setCourses(data.courses || data)
-            console.log(" Courses fetched and cached:", data.courses?.length || data.length)
           } else {
             throw new Error("Failed to fetch courses")
           }

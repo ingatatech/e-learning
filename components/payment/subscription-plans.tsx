@@ -55,7 +55,6 @@ export function SubscriptionPlans() {
 
       if (result.subscription) {
         // Handle successful subscription
-        console.log("Subscription created:", result.subscription)
       }
     } catch (error) {
       console.error("Subscription failed:", error)

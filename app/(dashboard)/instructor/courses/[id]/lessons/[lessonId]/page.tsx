@@ -170,7 +170,6 @@ Let's start building amazing applications with React!`,
   }
 
   const handleQuizComplete = (score: number, passed: boolean, answers: Record<string, string>) => {
-    console.log("Quiz completed:", { score, passed, answers })
     // Handle quiz completion logic here
     if (passed) {
       setIsCompleted(true)

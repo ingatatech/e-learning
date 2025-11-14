@@ -30,7 +30,6 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
 
 
   const fetchDocuments = async (forceRefresh = false) => {
-    console.log('hasFetched', hasFetched, documents, forceRefresh)
     if (fetchedUserId === user?.id && hasFetched && documents.length > 0 && !forceRefresh) {
       return
     }

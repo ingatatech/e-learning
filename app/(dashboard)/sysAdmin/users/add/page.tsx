@@ -40,7 +40,6 @@ export default function AddUserPage() {
         },
       })
       const data = await res.json()
-      console.log(data)
       if (res.ok) setFormData({
         firstName: data.user.firstName,
         lastName: data.user.lastName,

@@ -42,7 +42,6 @@ export default function AddCoursePage() {
         tags: formData.tags.split(",").map((tag) => tag.trim()),
       }
 
-      console.log("Creating course:", courseData)
       toast.success("Course created successfully!")
       router.push("/admin/courses")
     } catch (error) {

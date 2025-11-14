@@ -63,7 +63,6 @@ export default function CourseReviewPage() {
             price: courseData.course.price,
             tags: courseData.course.tags,
           })
-          console.log(courseData.course.modules)
         }
       } catch (error) {
         console.error("Failed to fetch course data:", error)

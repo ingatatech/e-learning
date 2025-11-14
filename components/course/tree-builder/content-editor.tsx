@@ -126,7 +126,6 @@ export function ContentEditor({
           return parsed.blocks || [];
         }
       } catch (e) {
-        console.log("[v0] Failed to parse content blocks, initializing empty")
       }
       return [];
     })
