@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
-import { Plus, X, ImageIcon, Clock, DollarSign, Tag, Award, BookOpen, Target, CheckSquare, Loader2 } from "lucide-react"
+import { Plus, X, ImageIcon, Clock, DollarSign, Tag, Award, BookOpen, Target, CheckSquare, Loader2 } from 'lucide-react'
 import { ThumbnailUpload } from "../thumbnail-upload"
 import type { Course } from "@/types"
 
@@ -100,6 +100,10 @@ export function CourseDetailsStep({
   }
 
   const handleSubmit = (e: React.FormEvent) => {
+    if (isThumbnailUploading) {
+      e.preventDefault()
+      return
+    }
     e.preventDefault()
     onNext()
   }
@@ -335,7 +339,7 @@ export function CourseDetailsStep({
               </div>
               <div className="flex flex-wrap gap-2">
                 {courseData.tags?.map((tag) => (
-                  <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+                  <Badge key={tag} className="flex items-center gap-1 rounded bg-primary">
                     {tag}
                     <button type="button" onClick={() => removeTag(tag)} className="ml-1 hover:text-red-500">
                       <X className="w-3 h-3" />
@@ -368,8 +372,6 @@ export function CourseDetailsStep({
               />
             </CardContent>
           </Card>
-
-          
 
           {/* Learning Objectives */}
           <Card>
@@ -455,8 +457,8 @@ export function CourseDetailsStep({
       <div className="flex justify-between items-center pt-6">
         <div className="text-sm text-gray-500">Step 1 of 5 • Course Details</div>
 
-        <Button type="submit" disabled={!isFormValid()} size="lg" className="px-8">
-          Continue to Structure
+        <Button type="submit" disabled={!isFormValid() || isThumbnailUploading} size="lg" className="px-8">
+          {isThumbnailUploading ? "Uploading thumbnail..." : "Continue to Structure"}
         </Button>
       </div>
     </form>

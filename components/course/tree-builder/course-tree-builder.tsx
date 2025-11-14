@@ -24,6 +24,8 @@ interface CourseTreeBuilderProps {
   courseData: any
   onNext: () => void
   onPrevious: () => void
+  type?: string
+  loading?: boolean
 }
 
 export function CourseTreeBuilder({
@@ -32,6 +34,8 @@ export function CourseTreeBuilder({
   courseData,
   onNext,
   onPrevious,
+  type,
+  loading,
 }: CourseTreeBuilderProps) {
   const [expandedModules, setExpandedModules] = useState<Set<string>>(
     new Set(modules.map((m) => m.id))
@@ -521,7 +525,7 @@ export function CourseTreeBuilder({
                     </p>
                     <Button onClick={addModule}>
                       <Plus className="w-4 h-4 mr-2" />
-                      Create First Module
+                      Create Module
                     </Button>
                   </CardContent>
                 </Card>
@@ -543,8 +547,8 @@ export function CourseTreeBuilder({
             : "Create at least one module to continue"}
         </div>
 
-        <Button onClick={onNext} disabled={modules.length === 0} size="lg" className="px-8">
-          Review & Publish
+        <Button onClick={onNext} disabled={modules.length === 0 || loading} size="lg" className="px-8">
+          {type === 'update' ? (loading ? "Updating..." : "Update Course") : 'Review & Publish'}
         </Button>
       </div>
     </div>

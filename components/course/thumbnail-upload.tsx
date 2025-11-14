@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
-import { Upload, X, Loader2, CheckCircle, AlertCircle } from "lucide-react"
+import { Upload, X, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
 import { cn } from "@/lib/utils"
 
 interface ThumbnailUploadProps {
@@ -135,7 +135,7 @@ export function ThumbnailUpload({
               className="w-full h-48 object-cover rounded-lg"
             />
             {!isUploading && (
-              <Button variant="destructive" size="sm" className="absolute top-2 right-2" onClick={removeThumbnail}>
+              <Button variant="destructive" size="sm" className="absolute top-2 right-2" onClick={removeThumbnail} type="button">
                 <X className="w-4 h-4" />
               </Button>
             )}
@@ -175,6 +175,7 @@ export function ThumbnailUpload({
               className="mt-4 bg-transparent"
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
+              type="button"
             >
               {isUploading ? (
                 <>

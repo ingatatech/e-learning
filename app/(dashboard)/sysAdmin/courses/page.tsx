@@ -15,30 +15,13 @@ import {
   PaginationNext,
   PaginationEllipsis,
 } from "@/components/ui/pagination"
-import {
-  BookOpen,
-  Users,
-  Star,
-  Clock,
-  Play,
-  Edit,
-  Eye,
-  TrendingUp,
-  Search,
-  Filter,
-  Grid3X3,
-  List,
-  Trophy,
-  Target,
-  Zap,
-  Award,
-  Pen,
-} from "lucide-react"
+import { BookOpen, Users, Star, Clock, Play, Edit, Eye, TrendingUp, Search, Filter, Grid3X3, List, Trophy, Target, Zap, Award, Pen } from 'lucide-react'
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import type { Course } from "@/types"
 import { useAuth } from "@/hooks/use-auth"
 import { useCourses } from "@/hooks/use-courses"
+import { DashboardCourseCard } from "@/components/course/dashboard-course-card"
 
 export default function CourseOverviewPage() {
   const { courses, loading, fetchCourses } = useCourses()
@@ -112,141 +95,6 @@ export default function CourseOverviewPage() {
         return "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400"
     }
   }
-
-  const CourseCard = ({ course, index }: { course: Course; index: number }) => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: index * 0.1 }}
-      whileHover={{ y: -5 }}
-      className="group h-full"
-    >
-      <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/20 relative pt-0 flex flex-col h-full">
-        <div className="absolute top-3 left-3 z-10 flex gap-2">
-          {course.isPublished ? (
-            <Badge className="bg-green-500 hover:bg-green-600 animate-pulse">
-              <Zap className="w-3 h-3 mr-1" />
-              Live
-            </Badge>
-          ) : (
-            <Badge className="bg-muted text-foreground">
-              <Pen className="w-3 h-3 mr-1 text-foreground" />
-              Draft
-            </Badge>
-          )}
-          {course.rating >= 4.8 && (
-            <Badge className="bg-yellow-500 hover:bg-yellow-600">
-              <Trophy className="w-3 h-3 mr-1" />
-              Top Rated
-            </Badge>
-          )}
-          {course.enrollmentCount > 200 && (
-            <Badge className="bg-purple-500 hover:bg-purple-600">
-              <Award className="w-3 h-3 mr-1" />
-              Popular
-            </Badge>
-          )}
-        </div>
-
-        <div className="relative overflow-hidden">
-          <img
-            src={course.thumbnail || "/placeholder0.svg"}
-            alt={course.title}
-            className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-          <div className="absolute inset-0 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <Button size="sm" className="bg-white/90 text-gray-900 hover:bg-white" asChild>
-              <Link href={`/sysAdmin/courses/${course.id}`}>
-                <Eye className="w-4 h-4 mr-2" />
-                View
-              </Link>
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="bg-white/90 border-white/90 text-gray-900 hover:bg-white"
-              asChild
-            >
-              <Link href={`/sysAdmin/courses/${course.id}/edit`}>
-                <Edit className="w-4 h-4 mr-2" />
-                Edit
-              </Link>
-            </Button>
-          </div>
-        </div>
-
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <Badge className={getLevelColor(course.level)}>
-              {course.level.charAt(0).toUpperCase() + course.level.slice(1)}
-            </Badge>
-            <div className="text-right">
-              <div className="text-lg font-bold text-primary">
-                {course.price == 0 || null ? "Free" : `${course.price} RWF`}
-              </div>
-              {course.isPublished && (
-                <div className="flex items-center gap-1 text-sm">
-                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                  <span className="font-medium">{course.rating}</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <CardTitle className="text-lg line-clamp-2 group-hover:text-primary transition-colors">
-            {course.title}
-          </CardTitle>
-          <CardDescription className="line-clamp-2 min-h-[2.5rem]">{course.description}</CardDescription>
-        </CardHeader>
-
-        <CardContent className="pt-0 flex-1 flex flex-col">
-          <div className="grid grid-cols-3 gap-4 mb-4 text-sm">
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Users className="w-4 h-4" />
-              <span>{course.enrollmentCount}</span>
-            </div>
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <BookOpen className="w-4 h-4" />
-              <span>{course.modules?.length || 0} modules</span>
-            </div>
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Clock className="w-4 h-4" />
-              <span>{course.duration > 0 ? formatDuration(course.duration) : "Not Set"}</span>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-1 mb-4">
-            {course.tags.slice(0, 3).map((tag, tagIndex) => (
-              <Badge key={tagIndex} variant="secondary" className="text-xs">
-                {tag}
-              </Badge>
-            ))}
-            {course.tags.length > 3 && (
-              <Badge variant="secondary" className="text-xs">
-                +{course.tags.length - 3}
-              </Badge>
-            )}
-          </div>
-
-          <div className="flex gap-2 mt-auto">
-            <Button className="flex-1" asChild>
-              <Link href={`/sysAdmin/courses/${course.id}`}>
-                <Play className="w-4 h-4 mr-2" />
-                Manage
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" asChild>
-              <Link href={`/sysAdmin/courses/${course.id}/analytics`}>
-                <TrendingUp className="w-4 h-4" />
-              </Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
-  )
 
   if (loading) {
     return (
@@ -398,7 +246,12 @@ export default function CourseOverviewPage() {
           <>
             <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
               {paginatedCourses.map((course, index) => (
-                <CourseCard key={course.id} course={course} index={index} />
+                <DashboardCourseCard
+                  key={course.id}
+                  course={course}
+                  index={index}
+                  variant="admin"
+                />
               ))}
             </div>
 

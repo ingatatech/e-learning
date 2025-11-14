@@ -243,16 +243,16 @@ export function ReviewPublishStep({
                         {courseData.description || "Course description will appear here..."}
                       </p>
                       <div className="flex gap-2">
-                        <Badge variant="outline">{courseData.level || "beginner"}</Badge>
-                        <Badge variant="outline">{modules.length} modules</Badge>
-                        <Badge variant="outline">{totalLessons} lessons</Badge>
-                        {courseData.price && <Badge variant="outline">${courseData.price}</Badge>}
+                        <Badge variant="outline" className="capitalize rounded">{courseData.level || "beginner"}</Badge>
+                        <Badge variant="outline" className="capitalize rounded">{modules.length} modules</Badge>
+                        <Badge variant="outline" className="capitalize rounded">{totalLessons} lessons</Badge>
+                        {courseData.price && <Badge variant="outline" className="capitalize rounded">${courseData.price}</Badge>}
                       </div>
                     </div>
                   </div>
                   <div className="flex gap-2">
                     {courseData.tags?.map((tag, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
+                      <Badge key={index} className="text-xs rounded bg-primary">
                         {tag}
                       </Badge>
                     ))}

@@ -20,30 +20,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import {
-  BookOpen,
-  Plus,
-  Edit,
-  Trash2,
-  Video,
-  ImageIcon,
-  ArrowLeft,
-  Save,
-  X,
-  GripVertical,
-  Trophy,
-  Clock,
-  Briefcase,
-  Zap,
-  FileDown,
-  FileText,
-  Target,
-} from "lucide-react"
+import { BookOpen, Plus, Edit, Trash2, Video, ImageIcon, ArrowLeft, Save, X, GripVertical, Trophy, Clock, Briefcase, Zap, FileDown, FileText, Target } from 'lucide-react'
 import Link from "next/link"
 import { motion, Reorder } from "framer-motion"
 import type { Course, Module, Lesson, Assessment, AssessmentQuestion } from "@/types"
 import { useAuth } from "@/hooks/use-auth"
 import { Checkbox } from "@/components/ui/checkbox"
+import { toast } from "sonner"
+import { useCourses } from "@/hooks/use-courses"
+import { CourseTreeBuilder } from "@/components/course/tree-builder/course-tree-builder"
 
 interface ContentBlock {
   id: string
@@ -52,7 +37,8 @@ interface ContentBlock {
   order: number
 }
 
-export default function ModulesManagementPage({ params }: { params: Promise<{ id: string }> }) {
+export default function EditCourseModulesPage({ params }: { params: Promise<{ id: string }> }) {
+  const { getCourse, updateCourseInCache } = useCourses()
   const [course, setCourse] = useState<Course | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -69,25 +55,29 @@ export default function ModulesManagementPage({ params }: { params: Promise<{ id
   useEffect(() => {
     const fetchCourse = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/get/${id}`, {
+        const courseResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/get/${id}`, {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
         })
-        if (response.ok) {
-          const data = await response.json()
+        
+        if (courseResponse.ok) {
+          const data = await courseResponse.json()
           setCourse(data.course)
+        } else {
+          setCourse(null)
         }
       } catch (error) {
         console.error("Failed to fetch course:", error)
+        toast.error("Failed to load course")
       } finally {
         setLoading(false)
       }
     }
 
     fetchCourse()
-  }, [id, token])
+  }, [id, getCourse])
 
   useEffect(() => {
     if (editingLesson?.lesson) {
@@ -246,11 +236,34 @@ export default function ModulesManagementPage({ params }: { params: Promise<{ id
     updateLesson(moduleId, lessonId, { assessments: updatedAssessments })
   }
 
-  const deleteAssessment = (moduleId: string, lessonId: string, assessmentId: string) => {
+  const deleteAssessment = async (moduleId: string, lessonId: string, assessmentId: string) => {
     if (!editingLesson) return
 
-    const updatedAssessments = editingLesson.lesson.assessments?.filter((a) => a.id !== assessmentId)
-    updateLesson(moduleId, lessonId, { assessments: updatedAssessments })
+    // Confirm deletion
+    if (!confirm("Are you sure you want to delete this assessment? This action cannot be undone.")) {
+      return
+    }
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/assessments/${assessmentId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (response.ok) {
+        const updatedAssessments = editingLesson.lesson.assessments?.filter((a) => a.id !== assessmentId)
+        updateLesson(moduleId, lessonId, { assessments: updatedAssessments })
+        toast.success("Assessment deleted successfully!")
+      } else {
+        throw new Error("Failed to delete assessment")
+      }
+    } catch (error) {
+      console.error("Failed to delete assessment:", error)
+      toast.error("Failed to delete assessment")
+    }
   }
 
   const addQuestion = (moduleId: string, lessonId: string, assessmentId: string) => {
@@ -363,10 +376,15 @@ export default function ModulesManagementPage({ params }: { params: Promise<{ id
       })
 
       if (response.ok) {
+        updateCourseInCache(id, course)
         console.log("Course updated successfully")
+        toast.success("Course updated successfully!")
+      } else {
+        throw new Error("Failed to save course")
       }
     } catch (error) {
       console.error("Failed to save course:", error)
+      toast.error("Failed to save course changes")
     } finally {
       setSaving(false)
     }
@@ -472,21 +490,45 @@ export default function ModulesManagementPage({ params }: { params: Promise<{ id
     }
   }
 
-  const deleteLesson = (moduleId: string, lessonId: string) => {
+  const deleteLesson = async (moduleId: string, lessonId: string) => {
     if (!course) return
 
-    setCourse({
-      ...course,
-      modules:
-        course.modules?.map((module) =>
-          module.id === moduleId
-            ? {
-                ...module,
-                lessons: module.lessons?.filter((lesson) => lesson.id !== lessonId) || [],
-              }
-            : module,
-        ) || [],
-    })
+    // Confirm deletion
+    if (!confirm("Are you sure you want to delete this lesson? This action cannot be undone.")) {
+      return
+    }
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lessons/${lessonId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (response.ok) {
+        // Remove from local state
+        setCourse({
+          ...course,
+          modules:
+            course.modules?.map((module) =>
+              module.id === moduleId
+                ? {
+                    ...module,
+                    lessons: module.lessons?.filter((lesson) => lesson.id !== lessonId) || [],
+                  }
+                : module,
+            ) || [],
+        })
+        toast.success("Lesson deleted successfully!")
+      } else {
+        throw new Error("Failed to delete lesson")
+      }
+    } catch (error) {
+      console.error("Failed to delete lesson:", error)
+      toast.error("Failed to delete lesson")
+    }
   }
 
   const getContentTypeIcon = (lesson: Lesson) => {
@@ -577,7 +619,7 @@ export default function ModulesManagementPage({ params }: { params: Promise<{ id
   ) => {
     const correctAnswers = Array.isArray(question.correctAnswer)
       ? question.correctAnswer
-      : question.correctAnswer && typeof question.correctAnswer === "string"
+      : question.correctAnswer
         ? [question.correctAnswer]
         : []
 
@@ -587,11 +629,10 @@ export default function ModulesManagementPage({ params }: { params: Promise<{ id
           ? correctAnswers.filter((a) => a !== option)
           : [...correctAnswers, option]
         updateQuestion(moduleId, lessonId, assessmentId, questionIndex, {
-          correctAnswer: newCorrectAnswers.length === 1 ? newCorrectAnswers[0] : newCorrectAnswers,
+          correctAnswer: newCorrectAnswers.length > 0 ? newCorrectAnswers : "",
         })
       }
     }
-    // </CHANGE>
 
     const addOption = () => {
       const newOptions = [...(question.options || []), ""]
@@ -606,14 +647,8 @@ export default function ModulesManagementPage({ params }: { params: Promise<{ id
         const newCorrectAnswers = correctAnswers.filter((a) => a !== optionToRemove)
         updateQuestion(moduleId, lessonId, assessmentId, questionIndex, {
           options: newOptions,
-          correctAnswer:
-            newCorrectAnswers.length === 0
-              ? ""
-              : newCorrectAnswers.length === 1
-                ? newCorrectAnswers[0]
-                : newCorrectAnswers,
+          correctAnswer: newCorrectAnswers.length > 0 ? newCorrectAnswers : "",
         })
-        // </CHANGE>
       } else {
         updateQuestion(moduleId, lessonId, assessmentId, questionIndex, { options: newOptions })
       }
@@ -794,12 +829,12 @@ export default function ModulesManagementPage({ params }: { params: Promise<{ id
     )
   }
 
-  if (!course) {
+  if (!course && !loading) {
     return (
       <div className="text-center py-12">
         <h1 className="text-2xl font-bold mb-4">Course not found</h1>
         <Button asChild>
-          <Link href="/sysAdmin/courses">
+          <Link href="/instructor/courses">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Courses
           </Link>
@@ -815,7 +850,7 @@ export default function ModulesManagementPage({ params }: { params: Promise<{ id
         <div>
           <div className="flex items-center gap-4 mb-2">
             <Button variant="ghost" size="sm" asChild>
-              <Link href={`/sysAdmin/courses/${course.id}`}>
+              <Link href={`/instructor/courses/${course.id}`}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Course
               </Link>
@@ -830,592 +865,21 @@ export default function ModulesManagementPage({ params }: { params: Promise<{ id
             <Save className="w-4 h-4 mr-2" />
             {saving ? "Saving..." : "Save Changes"}
           </Button>
-          {/* <Button asChild>
-            <Link href={`/sysAdmin/courses/${course.id}/preview`}>
-              <Play className="w-4 h-4 mr-2" />
-              Preview Course
-            </Link>
-          </Button> */}
         </div>
       </div>
 
-      {/* Course Modules */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Course Modules</CardTitle>
-              <CardDescription>Organize your course content into modules and lessons</CardDescription>
-            </div>
-            <Dialog open={newModuleDialog} onOpenChange={setNewModuleDialog}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Module
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add New Module</DialogTitle>
-                  <DialogDescription>Create a new module to organize your lessons</DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setNewModuleDialog(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={addModule}>Add Module</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {course.modules && course.modules.length > 0 ? (
-            <Reorder.Group
-              axis="y"
-              values={course.modules}
-              onReorder={(newOrder) => setCourse({ ...course, modules: newOrder })}
-              className="space-y-4"
-            >
-              {course.modules.map((module, moduleIndex) => (
-                <Reorder.Item key={module.id} value={module} className="space-y-4">
-                  <Card className="border-2 hover:border-primary/20 transition-colors">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3 flex-1">
-                          <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab" />
-                          <Badge variant="outline" className="text-xs">
-                            Module {moduleIndex + 1}
-                          </Badge>
-                          {editingModule?.id === module.id ? (
-                            <div className="flex-1 space-y-2">
-                              <Input
-                                value={module.title}
-                                onChange={(e) => updateModule(module.id, { title: e.target.value })}
-                                className="font-semibold"
-                                placeholder="Module title"
-                              />
-                              <Textarea
-                                value={module.description}
-                                onChange={(e) => updateModule(module.id, { description: e.target.value })}
-                                placeholder="Module description"
-                                rows={2}
-                              />
-                            </div>
-                          ) : (
-                            <div className="flex-1">
-                              <h3 className="font-semibold text-lg">{module.title}</h3>
-                              <p className="text-sm text-muted-foreground">{module.description}</p>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary" className="text-xs">
-                            {module.lessons?.length || 0} lessons
-                          </Badge>
-                          {editingModule?.id === module.id ? (
-                            <Button size="sm" variant="ghost" onClick={() => setEditingModule(null)}>
-                              <X className="w-4 h-4" />
-                            </Button>
-                          ) : (
-                            <Button size="sm" variant="ghost" onClick={() => setEditingModule(module)}>
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => deleteModule(module.id)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardHeader>
-
-                    <CardContent className="pt-0">
-                      {/* Lessons */}
-                      <div className="space-y-2">
-                        {module.lessons?.map((lesson, lessonIndex) => (
-                          <motion.div
-                            key={lesson.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
-                          >
-                            {editingLesson?.lesson.id === lesson.id ? (
-                              <div className="p-4">
-                                <Tabs value={activeTab} onValueChange={setActiveTab}>
-                                  <TabsList className="grid w-full grid-cols-4">
-                                    <TabsTrigger value="content">Content</TabsTrigger>
-                                    <TabsTrigger value="settings">Settings</TabsTrigger>
-                                    <TabsTrigger value="resources">Resources</TabsTrigger>
-                                    <TabsTrigger value="assessments">Assessments</TabsTrigger>
-                                  </TabsList>
-
-                                  <TabsContent value="content" className="space-y-4 mt-4">
-                                    <div className="space-y-2">
-                                      <Label>Lesson Title</Label>
-                                      <Input
-                                        value={lesson.title}
-                                        onChange={(e) => updateLesson(module.id, lesson.id, { title: e.target.value })}
-                                        placeholder="Lesson title"
-                                      />
-                                    </div>
-
-                                    {/* Content Blocks */}
-                                    <div className="space-y-4">
-                                      {contentBlocks.map((block) => (
-                                        <Card key={block.id} className="relative">
-                                          <CardHeader className="pb-3">
-                                            <div className="flex items-center justify-between">
-                                              <div className="flex items-center gap-2">
-                                                <GripVertical className="w-4 h-4 text-gray-400 cursor-move" />
-                                                {getBlockIcon(block.type)}
-                                                <Badge variant="outline" className="text-xs">
-                                                  {block.type}
-                                                </Badge>
-                                              </div>
-                                              <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => deleteContentBlock(block.id)}
-                                                className="text-red-500 hover:text-red-700"
-                                              >
-                                                <Trash2 className="w-4 h-4" />
-                                              </Button>
-                                            </div>
-                                          </CardHeader>
-                                          <CardContent>{renderContentBlock(block)}</CardContent>
-                                        </Card>
-                                      ))}
-                                    </div>
-
-                                    {/* Add Content Block */}
-                                    <Card className="border-dashed border-2 border-gray-300 hover:border-primary-400 transition-colors">
-                                      <CardContent className="p-6">
-                                        <div className="text-center mb-4">
-                                          <h3 className="font-medium text-gray-900 dark:text-white mb-2">
-                                            Add Content Block
-                                          </h3>
-                                          <p className="text-sm text-gray-600 dark:text-gray-300">
-                                            Choose the type of content you want to add
-                                          </p>
-                                        </div>
-                                        <div className="grid grid-cols-3 gap-2">
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => addContentBlock("text")}
-                                            className="flex flex-col gap-1 h-auto py-3"
-                                          >
-                                            <FileText className="w-5 h-5" />
-                                            <span className="text-xs">Text</span>
-                                          </Button>
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => addContentBlock("video")}
-                                            className="flex flex-col gap-1 h-auto py-3"
-                                          >
-                                            <Video className="w-5 h-5" />
-                                            <span className="text-xs">Video</span>
-                                          </Button>
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => addContentBlock("image")}
-                                            className="flex flex-col gap-1 h-auto py-3"
-                                          >
-                                            <ImageIcon className="w-5 h-5" />
-                                            <span className="text-xs">Image</span>
-                                          </Button>
-                                        </div>
-                                      </CardContent>
-                                    </Card>
-                                  </TabsContent>
-
-                                  <TabsContent value="settings" className="space-y-4 mt-4">
-                                    <div className="grid grid-cols-2 gap-4">
-                                      <div className="space-y-2">
-                                        <Label>Video URL (optional)</Label>
-                                        <Input
-                                          value={lesson.videoUrl || ""}
-                                          onChange={(e) =>
-                                            updateLesson(module.id, lesson.id, { videoUrl: e.target.value })
-                                          }
-                                          placeholder="https://youtube.com/watch?v=..."
-                                        />
-                                      </div>
-
-                                      <div className="space-y-2">
-                                        <Label>Duration (minutes)</Label>
-                                        <Input
-                                          type="number"
-                                          value={lesson.duration}
-                                          onChange={(e) =>
-                                            updateLesson(module.id, lesson.id, {
-                                              duration: Number.parseInt(e.target.value) || 0,
-                                            })
-                                          }
-                                          placeholder="30"
-                                        />
-                                      </div>
-                                    </div>
-
-                                    <div className="space-y-3 pt-2 border-t">
-                                      <Label>Lesson Type</Label>
-                                      <div className="flex items-center justify-between">
-                                        <div className="space-y-0.5">
-                                          <Label className="flex items-center gap-2 font-normal">
-                                            <Briefcase className="w-4 h-4" />
-                                            Project Lesson
-                                          </Label>
-                                          <p className="text-xs text-muted-foreground">
-                                            This lesson contains a hands-on project
-                                          </p>
-                                        </div>
-                                        <Switch
-                                          checked={lesson.isProject || false}
-                                          onCheckedChange={(checked) =>
-                                            updateLesson(module.id, lesson.id, { isProject: checked })
-                                          }
-                                        />
-                                      </div>
-
-                                      <div className="flex items-center justify-between">
-                                        <div className="space-y-0.5">
-                                          <Label className="flex items-center gap-2 font-normal">
-                                            <Zap className="w-4 h-4" />
-                                            Exercise Lesson
-                                          </Label>
-                                          <p className="text-xs text-muted-foreground">
-                                            This lesson includes practical exercises
-                                          </p>
-                                        </div>
-                                        <Switch
-                                          checked={lesson.isExercise || false}
-                                          onCheckedChange={(checked) =>
-                                            updateLesson(module.id, lesson.id, { isExercise: checked })
-                                          }
-                                        />
-                                      </div>
-                                    </div>
-                                  </TabsContent>
-
-                                  <TabsContent value="resources" className="space-y-4 mt-4">
-                                    <p className="text-sm text-muted-foreground">
-                                      Add links to PDFs, documents, code files, and other resources that complement this
-                                      lesson.
-                                    </p>
-
-                                    {resourceLinks.map((link, idx) => (
-                                      <div key={idx} className="space-y-2 p-4 border rounded-lg">
-                                        <div className="flex items-center gap-2">
-                                          <Input
-                                            value={link.url || ""}
-                                            onChange={(e) => handleLinkChange(idx, { ...link, url: e.target.value })}
-                                            placeholder="https://example.com/resource.pdf"
-                                            className="flex-1"
-                                          />
-                                          <Button variant="destructive" size="sm" onClick={() => removeLink(idx)}>
-                                            Remove
-                                          </Button>
-                                        </div>
-                                        <Input
-                                          value={link.title || ""}
-                                          onChange={(e) => handleLinkChange(idx, { ...link, title: e.target.value })}
-                                          placeholder="Resource title (e.g., 'Course Slides', 'Exercise Files')"
-                                          className="text-sm"
-                                        />
-                                        <Textarea
-                                          value={link.description || ""}
-                                          onChange={(e) =>
-                                            handleLinkChange(idx, { ...link, description: e.target.value })
-                                          }
-                                          placeholder="Brief description of this resource..."
-                                          rows={2}
-                                          className="text-sm resize-none"
-                                        />
-                                      </div>
-                                    ))}
-
-                                    <Button
-                                      onClick={addNewLink}
-                                      variant="outline"
-                                      size="sm"
-                                      className="w-full bg-transparent"
-                                    >
-                                      <FileDown className="w-4 h-4 mr-2" />
-                                      Add Resource
-                                    </Button>
-                                  </TabsContent>
-
-                                  <TabsContent value="assessments" className="space-y-4 mt-4">
-                                    {lesson.assessments && lesson.assessments.length > 0 ? (
-                                      <div className="space-y-6">
-                                        {lesson.assessments.map((assessment) => (
-                                          <Card key={assessment.id} className="border-2">
-                                            <CardHeader>
-                                              <div className="flex items-center justify-between">
-                                                <div className="flex-1 space-y-2">
-                                                  <Input
-                                                    value={assessment.title}
-                                                    onChange={(e) =>
-                                                      updateAssessment(module.id, lesson.id, assessment.id, {
-                                                        title: e.target.value,
-                                                      })
-                                                    }
-                                                    placeholder="Assessment title"
-                                                    className="font-semibold"
-                                                  />
-                                                  <Textarea
-                                                    value={assessment.description}
-                                                    onChange={(e) =>
-                                                      updateAssessment(module.id, lesson.id, assessment.id, {
-                                                        description: e.target.value,
-                                                      })
-                                                    }
-                                                    placeholder="Assessment instructions..."
-                                                    rows={2}
-                                                  />
-                                                </div>
-                                                <Button
-                                                  variant="ghost"
-                                                  size="sm"
-                                                  onClick={() => deleteAssessment(module.id, lesson.id, assessment.id)}
-                                                  className="text-destructive hover:text-destructive ml-2"
-                                                >
-                                                  <Trash2 className="w-4 h-4" />
-                                                </Button>
-                                              </div>
-                                            </CardHeader>
-                                            <CardContent className="space-y-4">
-                                              <div className="grid grid-cols-3 gap-4">
-                                                <div className="space-y-2">
-                                                  <Label>Type</Label>
-                                                  <Select
-                                                    value={assessment.type}
-                                                    onValueChange={(value) =>
-                                                      updateAssessment(module.id, lesson.id, assessment.id, {
-                                                        type: value as Assessment["type"],
-                                                      })
-                                                    }
-                                                  >
-                                                    <SelectTrigger>
-                                                      <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                      <SelectItem value="quiz">Quiz</SelectItem>
-                                                      <SelectItem value="assignment">Assignment</SelectItem>
-                                                      <SelectItem value="project">Project</SelectItem>
-                                                    </SelectContent>
-                                                  </Select>
-                                                </div>
-                                                <div className="space-y-2">
-                                                  <Label>Passing Score (%)</Label>
-                                                  <Input
-                                                    type="number"
-                                                    min="0"
-                                                    max="100"
-                                                    value={assessment.passingScore || ""}
-                                                    onChange={(e) =>
-                                                      updateAssessment(module.id, lesson.id, assessment.id, {
-                                                        passingScore: Number.parseInt(e.target.value) || undefined,
-                                                      })
-                                                    }
-                                                  />
-                                                </div>
-                                                <div className="space-y-2">
-                                                  <Label>Time Limit (min)</Label>
-                                                  <Input
-                                                    type="number"
-                                                    min="0"
-                                                    value={assessment.timeLimit || ""}
-                                                    onChange={(e) =>
-                                                      updateAssessment(module.id, lesson.id, assessment.id, {
-                                                        timeLimit: Number.parseInt(e.target.value) || undefined,
-                                                      })
-                                                    }
-                                                    placeholder="No limit"
-                                                  />
-                                                </div>
-                                              </div>
-
-                                              <div className="space-y-4 pt-4 border-t">
-                                                <div className="flex items-center justify-between">
-                                                  <h4 className="font-semibold">Questions</h4>
-                                                  <Badge variant="outline">
-                                                    {assessment.questions.length} question
-                                                    {assessment.questions.length !== 1 ? "s" : ""}
-                                                  </Badge>
-                                                </div>
-
-                                                {assessment.questions.map((question, qIndex) =>
-                                                  renderQuestionEditor(
-                                                    question,
-                                                    qIndex,
-                                                    assessment.id,
-                                                    module.id,
-                                                    lesson.id,
-                                                  ),
-                                                )}
-
-                                                <Card className="border-dashed border-2 border-gray-300 hover:border-primary-400 transition-colors">
-                                                  <CardContent className="p-6 text-center">
-                                                    <Target className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                                                    <h3 className="font-medium text-gray-900 dark:text-white mb-2">
-                                                      Add Question
-                                                    </h3>
-                                                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                                                      Create a new question for this assessment
-                                                    </p>
-                                                    <Button
-                                                      onClick={() => addQuestion(module.id, lesson.id, assessment.id)}
-                                                    >
-                                                      <Plus className="w-4 h-4 mr-2" />
-                                                      Add Question
-                                                    </Button>
-                                                  </CardContent>
-                                                </Card>
-                                              </div>
-                                            </CardContent>
-                                          </Card>
-                                        ))}
-                                      </div>
-                                    ) : (
-                                      <div className="text-center py-12">
-                                        <Trophy className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                                        <h3 className="text-xl font-semibold mb-2">No assessments yet</h3>
-                                        <p className="text-muted-foreground mb-6">
-                                          Add quizzes, assignments, or projects to test student knowledge
-                                        </p>
-                                      </div>
-                                    )}
-
-                                    <Button
-                                      onClick={() => addAssessment(module.id, lesson.id)}
-                                      variant="outline"
-                                      className="w-full"
-                                    >
-                                      <Plus className="w-4 h-4 mr-2" />
-                                      Add Assessment
-                                    </Button>
-                                  </TabsContent>
-                                </Tabs>
-
-                                <div className="flex justify-end gap-2 pt-4 mt-4 border-t">
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => deleteLesson(module.id, lesson.id)}
-                                    className="text-destructive hover:text-destructive"
-                                  >
-                                    <Trash2 className="w-4 h-4 mr-2" />
-                                    Delete Lesson
-                                  </Button>
-                                  <Button size="sm" onClick={saveLessonChanges}>
-                                    <Save className="w-4 h-4 mr-2" />
-                                    Save Lesson
-                                  </Button>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="flex items-center justify-between p-3">
-                                <div className="flex items-center gap-3 flex-1">
-                                  {getContentTypeIcon(lesson)}
-                                  <div className="flex-1">
-                                    <div className="font-medium text-sm">{lesson.title}</div>
-                                    <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap mt-1">
-                                      <span className="flex items-center gap-1">
-                                        <Clock className="w-3 h-3" />
-                                        {lesson.duration}min
-                                      </span>
-                                      {lesson.videoUrl && (
-                                        <Badge variant="outline" className="text-xs h-5">
-                                          <Video className="w-3 h-3 mr-1" />
-                                          Video
-                                        </Badge>
-                                      )}
-                                      {lesson.isProject && (
-                                        <Badge
-                                          variant="outline"
-                                          className="text-xs h-5 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800"
-                                        >
-                                          <Briefcase className="w-3 h-3 mr-1" />
-                                          Project
-                                        </Badge>
-                                      )}
-                                      {lesson.isExercise && (
-                                        <Badge
-                                          variant="outline"
-                                          className="text-xs h-5 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800"
-                                        >
-                                          <Zap className="w-3 h-3 mr-1" />
-                                          Exercise
-                                        </Badge>
-                                      )}
-                                      {lesson.assessments && lesson.assessments.length > 0 && (
-                                        <Badge variant="outline" className="text-xs h-5">
-                                          <Trophy className="w-3 h-3 mr-1" />
-                                          {lesson.assessments.length} assessment
-                                          {lesson.assessments.length > 1 ? "s" : ""}
-                                        </Badge>
-                                      )}
-                                      {lesson.resources && lesson.resources.length > 0 && (
-                                        <Badge variant="outline" className="text-xs h-5">
-                                          <FileDown className="w-3 h-3 mr-1" />
-                                          {lesson.resources.length} resource{lesson.resources.length > 1 ? "s" : ""}
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => setEditingLesson({ lesson, moduleId: module.id })}
-                                  >
-                                    <Edit className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            )}
-                          </motion.div>
-                        ))}
-
-                        {/* Add Lesson Button */}
-                        <Button
-                          variant="ghost"
-                          className="w-full justify-start text-primary hover:text-primary hover:bg-primary/10 border-2 border-dashed border-primary/20 hover:border-primary/40"
-                          onClick={() => addLesson(module.id)}
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Add Lesson to {module.title}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Reorder.Item>
-              ))}
-            </Reorder.Group>
-          ) : (
-            <div className="text-center py-12">
-              <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">No modules yet</h3>
-              <p className="text-muted-foreground mb-6">Start building your course by adding your first module</p>
-              <Button onClick={() => setNewModuleDialog(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Your First Module
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Tree Builder for Editing */}
+      {course && (
+        <CourseTreeBuilder
+          modules={course.modules || []}
+          setModules={(modules) => setCourse({ ...course, modules })}
+          courseData={course}
+          onNext={saveCourse}
+          onPrevious={() => window.history.back()}
+          type='update'
+          loading={saving}
+        />
+      )}
     </div>
   )
 }
