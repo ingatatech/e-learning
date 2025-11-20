@@ -130,7 +130,7 @@ export function ContentScreen({ lesson, onComplete, isCompleted, isStepping }: C
 
   return (
     <div className="w-full space-y-6">
-      <Card>
+      <Card className="px-3">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -145,9 +145,9 @@ export function ContentScreen({ lesson, onComplete, isCompleted, isStepping }: C
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="border-t pt-6">
           {contentBlocks.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-4 px-4">
               {contentBlocks
                 .sort((a, b) => a.order - b.order)
                 .map((block) => (

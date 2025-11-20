@@ -477,31 +477,31 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
             ) : (
               <>
               {daysRemaining !== null && daysRemaining <= 7 && (
-        <div className="px-8 pt-4">
-          <Alert className="border-orange-500 bg-orange-50 dark:bg-orange-950">
-            <Clock className="h-4 w-4 text-orange-600" />
-            <AlertTitle className="text-orange-800 dark:text-orange-200">Course Deadline Approaching</AlertTitle>
-            <AlertDescription className="text-orange-700 dark:text-orange-300">
-              You have {daysRemaining} {daysRemaining === 1 ? "day" : "days"} remaining to complete this course before
-              access expires.
-            </AlertDescription>
-          </Alert>
-        </div>
-      )}
-                {currentStep.type === "content" && (
-                  <ContentScreen
-                    lesson={{
-                      id: currentStep.lessonId,
-                      title: currentStep.lesson.title,
-                      content: currentStep.lesson.content,
-                      duration: currentStep.duration || 0,
-                      resources: currentStep.lesson.resources,
-                    }}
-                    onComplete={(score, passed) => handleStepComplete(score, passed)}
-                    isCompleted={isStepCompleted(currentStep.id)}
-                    isStepping={isStepping}
-                  />
-                )}
+                <div className="px-8 pt-4">
+                  <Alert className="border-orange-500 bg-orange-50 dark:bg-orange-950">
+                    <Clock className="h-4 w-4 text-orange-600" />
+                    <AlertTitle className="text-orange-800 dark:text-orange-200">Course Deadline Approaching</AlertTitle>
+                    <AlertDescription className="text-orange-700 dark:text-orange-300">
+                      You have {daysRemaining} {daysRemaining === 1 ? "day" : "days"} remaining to complete this course before
+                      access expires.
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              )}
+              {currentStep.type === "content" && (
+                <ContentScreen
+                  lesson={{
+                    id: currentStep.lessonId,
+                    title: currentStep.lesson.title,
+                    content: currentStep.lesson.content,
+                    duration: currentStep.duration || 0,
+                    resources: currentStep.lesson.resources,
+                  }}
+                  onComplete={(score, passed) => handleStepComplete(score, passed)}
+                  isCompleted={isStepCompleted(currentStep.id)}
+                  isStepping={isStepping}
+                />
+              )}
 
                 {currentStep.type === "video" && (
                   <VideoScreen

@@ -18,7 +18,28 @@ import OrderedList from "@tiptap/extension-ordered-list"
 import ListItem from "@tiptap/extension-list-item"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { Bold, Italic, UnderlineIcon, Strikethrough, LinkIcon, List, ListOrdered, Quote, Code, AlignLeft, AlignCenter, AlignRight, AlignJustify, ImageIcon, Video, TableIcon, Highlighter, Undo, Redo, Palette, ArrowLeft } from 'lucide-react'
+import {
+  Bold,
+  Italic,
+  UnderlineIcon,
+  Strikethrough,
+  LinkIcon,
+  List,
+  ListOrdered,
+  Quote,
+  Code,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify,
+  TableIcon,
+  Highlighter,
+  Undo,
+  Redo,
+  Palette,
+  Maximize2,
+  Minimize2,
+} from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useCallback, useState } from "react"
 import { DocumentMediaUpload } from "./document-media-upload"
@@ -32,6 +53,7 @@ interface DocumentEditorProps {
 
 export function DocumentEditor({ content, onChange, documentId, token }: DocumentEditorProps) {
   const [mediaUploading, setMediaUploading] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
 
   const editor = useEditor({
     extensions: [
@@ -75,26 +97,31 @@ export function DocumentEditor({ content, onChange, documentId, token }: Documen
   })
 
   const handleMediaUploaded = useCallback(
-  (mediaData: { id: string; documentId: string; type: string; url: string }) => {
-    if (!editor) return
+    (mediaData: { id: string; documentId: string; type: string; url: string }) => {
+      if (!editor) return
 
-    if (mediaData.type === "image") {
-      editor.chain().focus().setImage({ src: mediaData.url }).run()
-    } else if (mediaData.type === "video") {
-      editor.chain().focus().insertContent(
-        `<div style="width: 100%; max-width: 640px; margin: 1rem 0;">
-        <video 
-          src=${mediaData.url} 
-          className="w-full h-48 object-cover rounded-lg bg-black" 
-          controls 
-        />
-        </div>`
-      ).run()
-    }
-  },
-  [editor]
-)
-
+      if (mediaData.type === "image") {
+        editor.chain().focus().setImage({ src: mediaData.url }).run()
+      } else if (mediaData.type === "video") {
+        editor
+          .chain()
+          .focus()
+          .insertContent(
+            `<div style="width: 100%; max-width: 640px; margin: 1rem 0; position: relative; padding-bottom: 56.25%;">
+            <iframe
+              src="${mediaData.url}"
+              style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 0.5rem;"
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen
+            ></iframe>
+          </div>`,
+          )
+          .run()
+      }
+    },
+    [editor],
+  )
 
   const setLink = useCallback(() => {
     const url = window.prompt("Enter URL")
@@ -117,10 +144,24 @@ export function DocumentEditor({ content, onChange, documentId, token }: Documen
     }
   }, [editor])
 
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen)
+    if (!isFullscreen) {
+      document.documentElement.requestFullscreen().catch((err) => {
+        console.error("Fullscreen request failed:", err)
+        setIsFullscreen(false)
+      })
+    } else {
+      if (document.fullscreenElement) {
+        document.exitFullscreen()
+      }
+    }
+  }
+
   if (!editor) return null
 
   return (
-    <div className="flex flex-col h-full bg-background relative">
+    <div className={`flex flex-col h-full bg-background relative ${isFullscreen ? "fixed inset-0 z-50" : ""}`}>
       {/* Sticky Header Container */}
       <div className="sticky top-0 z-20 bg-background border-b shadow-sm">
         {/* Toolbar */}
@@ -329,6 +370,17 @@ export function DocumentEditor({ content, onChange, documentId, token }: Documen
               onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
             >
               <TableIcon className="w-4 h-4" />
+            </Button>
+
+            <Separator orientation="vertical" className="h-6 mx-1" />
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleFullscreen}
+              title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+            >
+              {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
             </Button>
           </div>
         </div>
