@@ -175,7 +175,7 @@ export function CourseBasicInfoModal({ course, open, onOpenChange, onSave }: Cou
             </div>
             <div className="flex flex-wrap gap-2 mt-2">
               {formData.tags.map((tag, index) => (
-                <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                <Badge key={index} className="flex items-center gap-1 rounded bg-primary">
                   {tag}
                   <button type="button" onClick={() => handleRemoveTag(tag)} className="ml-1 hover:text-destructive">
                     <X className="w-3 h-3" />

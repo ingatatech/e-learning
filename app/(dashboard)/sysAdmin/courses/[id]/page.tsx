@@ -403,7 +403,7 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
             </Card>
   
             {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card className="hover:shadow-md transition-shadow cursor-pointer">
                 <CardContent className="p-6 text-center">
                   <Plus className="w-12 h-12 text-primary mx-auto mb-4" />
@@ -411,17 +411,6 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
                   <p className="text-sm text-muted-foreground mb-4">Create new lessons and modules</p>
                   <Button size="sm" asChild>
                     <Link href={`/sysAdmin/courses/${course.id}/modules`}>Add Content</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-  
-              <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardContent className="p-6 text-center">
-                  <BarChart3 className="w-12 h-12 text-blue-500 mx-auto mb-4" />
-                  <h3 className="font-semibold mb-2">View Analytics</h3>
-                  <p className="text-sm text-muted-foreground mb-4">Track student progress and engagement</p>
-                  <Button size="sm" variant="outline" asChild>
-                    <Link href={`/sysAdmin/courses/${course.id}/analytics`}>View Analytics</Link>
                   </Button>
                 </CardContent>
               </Card>
@@ -568,7 +557,7 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
                     {students.length === 0 ?
                      <span className="text-muted-foreground">No students enrolled yet.</span>
                      :
-                    students.map((student, index) => (
+                    students.slice(0, 5).map((student, index) => (
                       <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
@@ -620,19 +609,9 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
                     </div>
                     <div className="text-lg font-bold text-primary">${course.price}</div>
                   </div>
-                  <div className="flex gap-2 pt-4">
-                    <Button variant="outline">
-                      <Settings className="w-4 h-4 mr-2" />
-                      Advanced Settings
-                    </Button>
-                    <Button variant="outline">
-                      <Eye className="w-4 h-4 mr-2" />
-                      Preview as Student
-                    </Button>
-                  </div>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="w-full bg-destructive/20 border border-destructive/35">
                 <CardHeader>
                   <CardTitle>Danger Zone</CardTitle>
                   <CardDescription>Irreversible actions for this course</CardDescription>

@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { FileText, Plus, MoreVertical, Trash2, Send, Clock, Grid3x3, ListIcon, Upload, X } from "lucide-react"
+import { FileText, Plus, MoreVertical, Trash2, Send, Clock, Grid3x3, ListIcon, Upload, X, List, Search, Calendar, User, Download } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { toast } from "sonner"
 import {
@@ -61,12 +61,30 @@ export default function DocumentsPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploadLoading, setUploadLoading] = useState(false)
   const [previewFile, setPreviewFile] = useState<Document | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [filteredDocuments, setFilteredDocuments] = useState<Document[]>([])
 
   useEffect(() => {
     fetchDocuments()
   }, [])
 
-  const files = documents.filter((doc) => doc.fileUrl)
+  // Filter documents based on search query
+  useEffect(() => {
+    if (searchQuery.trim() === "") {
+      setFilteredDocuments(documents)
+    } else {
+      const query = searchQuery.toLowerCase()
+      const filtered = documents.filter(doc => 
+        doc.title.toLowerCase().includes(query) ||
+        doc.status.toLowerCase().includes(query) ||
+        (doc.fileType && doc.fileType.toLowerCase().includes(query)) ||
+        (doc.reviewNotes && doc.reviewNotes.toLowerCase().includes(query))
+      )
+      setFilteredDocuments(filtered)
+    }
+  }, [documents, searchQuery])
+
+  const files = filteredDocuments.filter((doc) => doc.fileUrl)
 
   const getCardColor = (fileType?: string) => {
     if (!fileType) return "bg-background"
@@ -83,55 +101,71 @@ export default function DocumentsPage() {
   }
 
   // Function to get file icon based on extension
-  const getFileIcon = (fileType?: string) => {
+  const getFileIcon = (fileType?: string, size: "sm" | "md" | "lg" = "md") => {
+    const sizeClasses = {
+      sm: "w-4 h-4",
+      md: "w-5 h-5",
+      lg: "w-8 h-8"
+    }
+
+    const containerClasses = {
+      sm: "w-6 h-6",
+      md: "w-8 h-8",
+      lg: "w-10 h-10"
+    }
+
     if (!fileType) {
-      return <FileText className="w-8 h-8 text-muted-foreground" />
+      return (
+        <div className={`flex items-center justify-center bg-muted rounded-md ${containerClasses[size]}`}>
+          <FileText className={`text-muted-foreground ${sizeClasses[size]}`} />
+        </div>
+      )
     }
 
     const type = fileType?.toLowerCase() || ""
 
     if (type.includes("pdf")) {
       return (
-        <div className="w-8 h-8 flex items-center justify-center bg-red-100 rounded-md">
-          <FileText className="w-5 h-5 text-red-600" />
+        <div className={`flex items-center justify-center bg-red-100 rounded-md ${containerClasses[size]}`}>
+          <FileText className={`text-red-600 ${sizeClasses[size]}`} />
         </div>
       )
     }
 
     if (type.includes("presentation") || type.includes("ppt")) {
       return (
-        <div className="w-8 h-8 flex items-center justify-center bg-orange-100 rounded-md">
-          <FileText className="w-5 h-5 text-orange-600" />
+        <div className={`flex items-center justify-center bg-orange-100 rounded-md ${containerClasses[size]}`}>
+          <FileText className={`text-orange-600 ${sizeClasses[size]}`} />
         </div>
       )
     }
 
     if (type.includes("word") || type.includes("document")) {
       return (
-        <div className="w-8 h-8 flex items-center justify-center bg-blue-100 rounded-md">
-          <FileText className="w-5 h-5 text-blue-600" />
+        <div className={`flex items-center justify-center bg-blue-100 rounded-md ${containerClasses[size]}`}>
+          <FileText className={`text-blue-600 ${sizeClasses[size]}`} />
         </div>
       )
     }
 
     // Default file icon
     return (
-      <div className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-md">
-        <FileText className="w-5 h-5 text-gray-600" />
+      <div className={`flex items-center justify-center bg-gray-100 rounded-md ${containerClasses[size]}`}>
+        <FileText className={`text-gray-600 ${sizeClasses[size]}`} />
       </div>
     )
   }
 
   // Function to get file type for display
   const getFileType = (fileName?: string, fileType?: string) => {
-    if (!fileName && !fileType) return "Text"
+    if (!fileName && !fileType) return "Text Document"
 
     const type = fileType?.toLowerCase() || fileName?.toLowerCase() || ""
 
-    if (type.includes("pdf") || fileName?.toLowerCase().endsWith(".pdf")) return "PDF"
+    if (type.includes("pdf") || fileName?.toLowerCase().endsWith(".pdf")) return "PDF Document"
     if (type.includes("presentation") || type.includes("ppt") || fileName?.toLowerCase().match(/\.pptx?$/))
-      return "PowerPoint"
-    if (type.includes("word") || type.includes("document") || fileName?.toLowerCase().match(/\.docx?$/)) return "Word"
+      return "PowerPoint Presentation"
+    if (type.includes("word") || type.includes("document") || fileName?.toLowerCase().match(/\.docx?$/)) return "Word Document"
 
     return "File"
   }
@@ -264,13 +298,39 @@ export default function DocumentsPage() {
   const getStatusBadge = (status: Document["status"]) => {
     switch (status) {
       case "draft":
-        return <Badge variant="secondary">Draft</Badge>
+        return <Badge variant="secondary" className="flex items-center gap-1 w-fit"><Clock className="w-3 h-3" /> Draft</Badge>
       case "submitted":
-        return <Badge className="bg-blue-600">Submitted</Badge>
+        return <Badge className="bg-blue-600 flex items-center gap-1 w-fit"><Send className="w-3 h-3" /> Submitted</Badge>
       case "approved":
-        return <Badge className="bg-green-600">Approved</Badge>
+        return <Badge className="bg-green-600 flex items-center gap-1 w-fit"><FileText className="w-3 h-3" /> Approved</Badge>
       case "rejected":
-        return <Badge variant="destructive">Rejected</Badge>
+        return <Badge variant="destructive" className="flex items-center gap-1 w-fit"><X className="w-3 h-3" /> Rejected</Badge>
+      default:
+        return <Badge variant="secondary">{status}</Badge>
+    }
+  }
+
+  const downloadDocument = async (doc: Document) => {
+    if (!doc.fileUrl) {
+      toast.error("No file available for download")
+      return
+    }
+
+    try {
+      const response = await fetch(doc.fileUrl)
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.style.display = 'none'
+      a.href = url
+      a.download = doc.title || 'document'
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      toast.success("Document downloaded")
+    } catch (error) {
+      console.error("Error downloading document:", error)
+      toast.error("Failed to download document")
     }
   }
 
@@ -321,7 +381,7 @@ export default function DocumentsPage() {
               onClick={() => setViewMode("list")}
               className="rounded-l-none"
             >
-              <ListIcon className="w-4 h-4" />
+              <List className="w-4 h-4" />
             </Button>
           </div>
           <Button onClick={() => setUploadModalOpen(true)} className="cursor-pointer">
@@ -335,13 +395,50 @@ export default function DocumentsPage() {
         </div>
       </div>
 
-      {documents.length === 0 ? (
+      {/* Search Bar */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+        <Input
+          type="text"
+          placeholder="Search documents by title, status, or file type..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10 pr-4 py-2"
+        />
+        {searchQuery && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSearchQuery("")}
+            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        )}
+      </div>
+
+      {filteredDocuments.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <FileText className="w-16 h-16 text-muted-foreground mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No documents yet</h3>
-            <p className="text-muted-foreground mb-4">Create your first document to get started</p>
+            <h3 className="text-xl font-semibold mb-2">
+              {searchQuery ? "No documents found" : "No documents yet"}
+            </h3>
+            <p className="text-muted-foreground mb-4 text-center">
+              {searchQuery 
+                ? `No documents found for "${searchQuery}". Try adjusting your search terms.`
+                : "Create your first document to get started"
+              }
+            </p>
             <div className="flex gap-2">
+              {searchQuery && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => setSearchQuery("")}
+                >
+                  Clear Search
+                </Button>
+              )}
               <Button onClick={() => setUploadModalOpen(true)} variant="outline">
                 <Upload className="w-4 h-4 mr-2" />
                 Upload Document
@@ -354,122 +451,61 @@ export default function DocumentsPage() {
           </CardContent>
         </Card>
       ) : viewMode === "grid" ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {documents.map((doc) => (
-            <Card
-              key={doc.id}
-              className={`hover:shadow-lg transition-shadow cursor-pointer ${getCardColor(doc.fileType)}`}
-              onClick={() => handleCardClick(doc)}
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between bg-transparent overflow-hidden">
-                  <div className="flex-1 min-w-0">
-                    <CardTitle className="text-lg truncate">{doc.title}</CardTitle>
-                    <CardDescription className="flex items-center gap-2 mt-1">
-                      <Clock className="w-3 h-3" />
-                      {formatDistanceToNow(doc.lastEditedAt && new Date(doc.lastEditedAt), { addSuffix: true })}
-                    </CardDescription>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="sm">
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      {(doc.status === "draft" || doc.status === "rejected") && (
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            submitDocument(doc.id)
-                          }}
-                        >
-                          <Send className="w-4 h-4 mr-2" />
-                          Submit for Review
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setDocumentToDelete(doc.id)
-                          setDeleteDialogOpen(true)
-                        }}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  {getStatusBadge(doc.status)}
-                  {getFileIcon(doc.fileType)}
-                </div>
-                {doc.status === "rejected" && doc.reviewNotes && (
-                  <p className="text-sm text-destructive mt-2">{doc.reviewNotes}</p>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Last Edited</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {documents.map((doc) => (
-                <TableRow
-                  key={doc.id}
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => handleCardClick(doc)}
-                >
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      {getFileIcon(doc.fileType)}
-                      {doc.title}
+        <>
+          {/* Search Results Info */}
+          {searchQuery && (
+            <div className="text-sm text-muted-foreground">
+              Found {filteredDocuments.length} document{filteredDocuments.length !== 1 ? 's' : ''} for "{searchQuery}"
+            </div>
+          )}
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {filteredDocuments.map((doc) => (
+              <Card
+                key={doc.id}
+                className={`hover:shadow-lg transition-shadow cursor-pointer ${getCardColor(doc.fileType)} overflow-hidden p-0`}
+                onClick={() => handleCardClick(doc)}
+              >
+                <CardContent className="p-0">
+                  {/* Document Preview Area */}
+                  <div className="relative border-b bg-muted aspect-[3/2] flex items-start justify-center p-4 rounded">
+                    <div className="w-full h-full bg-background shadow-sm rounded border border-border p-3 overflow-hidden">
+                      <div className="space-y-2">
+                        {getFileIcon(doc.fileType)}
+                        <div className="h-2 bg-muted rounded w-3/4"></div>
+                        <div className="h-2 bg-muted rounded w-full"></div>
+                        <div className="h-2 bg-muted rounded w-5/6"></div>
+                        <div className="h-2 bg-muted rounded w-full"></div>
+                        <div className="h-2 bg-muted rounded w-2/3"></div>
+                      </div>
                     </div>
-                  </TableCell>
-                  <TableCell>{getStatusBadge(doc.status)}</TableCell>
-                  <TableCell>{getFileType(doc.fileUrl || doc.title, doc.fileType)}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {formatDistanceToNow(new Date(doc.lastEditedAt), { addSuffix: true })}
-                  </TableCell>
-                  <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="absolute top-2 right-2 h-8 w-8 p-0 bg-background/80 hover:bg-white"
+                        >
                           <MoreVertical className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        {doc.status === "draft" ||
-                          (doc.status === "rejected" && (
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                submitDocument(doc.id)
-                              }}
-                            >
-                              <Send className="w-4 h-4 mr-2" />
-                              Submit for Review
-                            </DropdownMenuItem>
-                          ))}
+                        {(doc.status === "draft" || doc.status === "rejected") && (
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              submitDocument(doc.id);
+                            }}
+                          >
+                            <Send className="w-4 h-4 mr-2" />
+                            Submit for Review
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
                           onClick={(e) => {
-                            e.stopPropagation()
-                            setDocumentToDelete(doc.id)
-                            setDeleteDialogOpen(true)
+                            e.stopPropagation();
+                            setDocumentToDelete(doc.id);
+                            setDeleteDialogOpen(true);
                           }}
                           className="text-destructive"
                         >
@@ -478,18 +514,154 @@ export default function DocumentsPage() {
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
+                  </div>
+
+                  {/* Document Info */}
+                  <div className="p-3">
+                    <div className="flex items-start gap-2 mb-2">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-sm truncate">{doc.title}</h3>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Opened {formatDistanceToNow(doc.lastEditedAt, { addSuffix: true })}</span>
+                    </div>
+                    <div className="mt-2">
+                      {getStatusBadge(doc.status)}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Search Results Info */}
+          {searchQuery && (
+            <div className="text-sm text-muted-foreground mb-4">
+              Found {filteredDocuments.length} document{filteredDocuments.length !== 1 ? 's' : ''} for "{searchQuery}"
+            </div>
+          )}
+          
+          {/* Enhanced List View */}
+          <div className="space-y-4">
+            {filteredDocuments.map((doc) => (
+              <Card 
+                key={doc.id} 
+                className="hover:shadow-md transition-all duration-200 cursor-pointer group border-l-4 border-l-transparent hover:border-l-primary"
+                onClick={() => handleCardClick(doc)}
+              >
+                <CardContent className="">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-4 flex-1 min-w-0">
+                      {/* File Icon */}
+                      <div className="flex-shrink-0">
+                        {getFileIcon(doc.fileType, "lg")}
+                      </div>
+                      
+                      {/* Document Details */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between">
+                          <div className="min-w-0">
+                            <h3 className="font-semibold text-lg truncate group-hover:text-primary transition-colors">
+                              {doc.title}
+                            </h3>
+                          </div>
+                          <div className="flex items-center space-x-2 ml-4">
+                            {getStatusBadge(doc.status)}
+                          </div>
+                        </div>
+
+                        {/* Metadata Row */}
+                        <div className="flex items-center space-x-6 text-sm text-muted-foreground">
+                          <div className="flex items-center space-x-2">
+                            <Calendar className="w-4 h-4" />
+                            <span>Edited {formatDistanceToNow(new Date(doc.lastEditedAt), { addSuffix: true })}</span>
+                          </div>
+                          {doc.fileUrl && (
+                            <div className="flex items-center space-x-2">
+                              <FileText className="w-4 h-4" />
+                              <span>{getFileType(doc.title, doc.fileType)}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center space-x-2 ml-4 flex-shrink-0">
+                      {doc.fileUrl && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            downloadDocument(doc);
+                          }}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
+                      )}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {(doc.status === "draft" || doc.status === "rejected") && (
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                submitDocument(doc.id);
+                              }}
+                            >
+                              <Send className="w-4 h-4 mr-2" />
+                              Submit for Review
+                            </DropdownMenuItem>
+                          )}
+                          {doc.fileUrl && (
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                downloadDocument(doc);
+                              }}
+                            >
+                              <Download className="w-4 h-4 mr-2" />
+                              Download
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDocumentToDelete(doc.id);
+                              setDeleteDialogOpen(true);
+                            }}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
       )}
 
       {/* Full Screen Preview Modal */}
       {previewFile && (
         <div className="fixed inset-0 bg-background z-50 flex flex-col">
-          {/* Header */}
           <div className="flex items-center justify-between p-4 border-b">
             <div className="flex items-center gap-2">
               {getFileIcon(previewFile.fileType)}
@@ -499,13 +671,11 @@ export default function DocumentsPage() {
               <X className="w-4 h-4" />
             </Button>
           </div>
-
-          {/* Preview Content */}
           <div className="flex-1 p-4">
             <FilePreview
-              fileUrl={previewFile.fileUrl!}
-              fileType={previewFile.fileType!}
-              fileName={previewFile.title!}
+              fileUrl={previewFile.fileUrl}
+              fileType={previewFile.fileType}
+              fileName={previewFile.title}
               fileId={previewFile.id}
             />
           </div>
@@ -522,8 +692,8 @@ export default function DocumentsPage() {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  setUploadModalOpen(false)
-                  setSelectedFile(null)
+                  setUploadModalOpen(false);
+                  setSelectedFile(null);
                 }}
               >
                 <X className="w-4 h-4" />
@@ -559,8 +729,8 @@ export default function DocumentsPage() {
                 <Button
                   variant="outline"
                   onClick={() => {
-                    setUploadModalOpen(false)
-                    setSelectedFile(null)
+                    setUploadModalOpen(false);
+                    setSelectedFile(null);
                   }}
                 >
                   Cancel
@@ -588,17 +758,17 @@ export default function DocumentsPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Document</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this document? This action cannot be undone.
-            </AlertDialogDescription>
           </AlertDialogHeader>
+          <AlertDialogDescription>
+            Are you sure you want to delete this document? This action cannot be undone.
+          </AlertDialogDescription>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (documentToDelete) {
-                  deleteDocument(documentToDelete)
-                  setDocumentToDelete(null)
+                  deleteDocument(documentToDelete);
+                  setDocumentToDelete(null);
                 }
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"

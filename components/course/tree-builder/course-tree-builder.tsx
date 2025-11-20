@@ -68,7 +68,6 @@ export function CourseTreeBuilder({
   // Add new module
   const addModule = () => {
     const newModule: Module = {
-      id: `module-${Date.now()}`,
       title: "New Module",
       description: "",
       order: modules.length + 1,
@@ -91,7 +90,6 @@ export function CourseTreeBuilder({
   // Add lesson to module
   const addLesson = (moduleId: string) => {
     const newLesson: Lesson = {
-      id: `lesson-${Date.now()}`,
       title: "New Lesson",
       content: "",
       duration: 0,
@@ -123,7 +121,6 @@ export function CourseTreeBuilder({
   // Add assessment to lesson
   const addAssessment = (moduleId: string, lessonId: string) => {
     const newAssessment: Assessment = {
-      id: `assessment-${Date.now()}`,
       title: "New Assessment",
       description: "",
       type: "quiz",

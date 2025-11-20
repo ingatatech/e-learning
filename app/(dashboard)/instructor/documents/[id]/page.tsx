@@ -190,11 +190,11 @@ export default function DocumentEditorPage({ params }: { params: Promise<{ id: s
   if (!document) return null
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-screen flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="border-b bg-background">
+      <div className="sticky top-0 z-30 border-b bg-background">
         <div className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-4 flex-1">
+          <div className="flex items-center gap-4 flex-1 ">
             <Button
               variant="ghost"
               size="sm"
@@ -242,7 +242,7 @@ export default function DocumentEditorPage({ params }: { params: Promise<{ id: s
 
       {/* Editor */}
       <div className="flex-1 overflow-hidden">
-        <DocumentEditor content={content} onChange={setContent} />
+        <DocumentEditor content={content} onChange={setContent} documentId={id} token={token} />
       </div>
 
       <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
