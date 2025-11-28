@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/dialog"
 import { LessonDetailModal } from "@/components/course/lesson/lesson-detail-modal"
 import { CourseBasicInfoModal } from "@/components/course/course-basic-info-modal"
+import { useCourses } from "@/hooks/use-courses"
 
 export default function InstructorCourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const [course, setCourse] = useState<Course | null>(null)
@@ -59,6 +60,7 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null)
   const [isLessonModalOpen, setIsLessonModalOpen] = useState(false)
   const [isEditCourseOpen, setIsEditCourseOpen] = useState(false)
+  const { fetchSingleCourse } = useCourses()
 
   useEffect(() => {
     let isMounted = true
@@ -67,18 +69,13 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
         setLoading(true)
         
         // Fetch course data
-        const courseResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/get/${id}`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        })
+        const courseResponse = await fetchSingleCourse(id)
         
         if (!isMounted) return
         
-        if (courseResponse.ok) {
-          const data = await courseResponse.json()
-          setCourse(data.course)
+        if (courseResponse) {
+          const data = await courseResponse
+          setCourse(data)
         } else {
           setCourse(null)
         }

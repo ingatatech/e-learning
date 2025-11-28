@@ -120,7 +120,7 @@ export function Navbar() {
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               className="h-9 w-9 rounded hover:bg-accent flex items-center justify-center transition-colors"
             >
-              {theme === "light" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
 
             {/* Desktop Auth Buttons */}
