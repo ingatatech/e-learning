@@ -47,7 +47,7 @@ import React from "react"
 import { useAuth } from "@/hooks/use-auth"
 
 interface SidebarProps {
-  userRole: "admin" | "sysAdmin" | "instructor" | "student"
+  userRole: "admin" | "gdv" | "sysAdmin" | "instructor" | "student"
   className?: string
   user?: {
     name: string
@@ -160,6 +160,7 @@ const roleIcons: Record<string, any> = {
   sysAdmin: Server,
   instructor: UserRoundCheck,
   student: GraduationCap,
+  gdv: Building,
 }
 
 export function Sidebar({ userRole, className }: SidebarProps) {

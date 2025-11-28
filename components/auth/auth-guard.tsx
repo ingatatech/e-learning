@@ -7,7 +7,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { getUserFromToken } from "@/lib/auth-guard"
 import { Loader2 } from "lucide-react"
 
-const protectedRoutes = ["/admin", "/instructor", "/student", "/sysAdmin", "/profile", "/settings", "/change-password"]
+const protectedRoutes = ["/admin", "/instructor", "/student", "/sysAdmin", "/profile", "/settings", "/change-password", "/gdv"]
 const authRoutes = ["/login", "/verify-otp", "/forgot-password", "/reset-password"]
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {

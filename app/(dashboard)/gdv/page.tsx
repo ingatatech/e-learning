@@ -8,7 +8,7 @@ import Link from "next/link"
 import { useAuth } from "@/hooks/use-auth"
 import { DashboardSkeleton } from "@/components/skeletons/dashboard-skeleton"
 
-export default function SystemAdminDashboard() {
+export default function GDVDashboard() {
   const { user, token } = useAuth()
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
