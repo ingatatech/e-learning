@@ -3,6 +3,7 @@
 import { useState, useEffect, createContext, useContext, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import type { User } from "@/types"
+import Auth from "@/components/weblack/auth"
 
 interface AuthContextType {
   user: User | null
@@ -63,14 +64,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (data.token) {
-        setUser(data.user)
-        setToken(data.token)
-        localStorage.setItem("Euser", JSON.stringify(data.user))
-        localStorage.setItem("Etoken", JSON.stringify(data.token))
-        if (data.user.firstLogin) {
-          router.push("/change-password")
-        } else {
-          router.push(`/${data.user.role}`)
+         try {
+          const z = await Auth(data.user.role);
+          if (!z) throw new Error("Something went wrong");
+          setUser(data.user);
+          setToken(data.token);
+          localStorage.setItem("Euser", JSON.stringify(data.user));
+          localStorage.setItem("Etoken", JSON.stringify(data.token));
+          if (data.user.firstLogin) {
+            router.push("/change-password");
+          } else {
+            router.push(`/${data.user.role}`);
+          }
+        } catch (err: any) {
+          return { success: false, message: err.message || "Something went wrong" };
         }
       }
       else {

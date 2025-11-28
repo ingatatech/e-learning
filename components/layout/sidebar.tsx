@@ -85,6 +85,26 @@ const navigationItems: Record<string, NavigationItem[]> = {
     { name: "Students", href: "/instructor/students", icon: Users },
     { name: "Settings", href: "/settings", icon: Cog },
   ],
+  gdv: [
+    { name: "Dashboard", href: "/instructor", icon: Home },
+    {
+      name: "Organizations",
+      icon: Building,
+      children: [
+        { name: "Add Organization", href: "/gdv/organizations/add", icon: Building },
+        { name: "All Organizations", href: "/gdv/organizations", icon: Building },
+      ],
+    },
+    {
+      name: "Users",
+      icon: Users2,
+      children: [
+        { name: "Add User", href: "/gdv/users/add", icon: UserPlus },
+        { name: "All Users", href: "/gdv/users", icon: Users },
+      ],
+    },
+    { name: "Settings", href: "/settings", icon: Cog },
+  ],
   admin: [
     { name: "Dashboard", href: "/admin", icon: Home },
     {

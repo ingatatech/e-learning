@@ -60,7 +60,7 @@ export function LoginForm() {
           <Input
             id="email"
             name="email"
-            type="email"
+            type="text"
             placeholder="Enter your email"
             value={formData.email}
             onChange={handleChange}
