@@ -8,54 +8,56 @@ interface CoursesContextType {
   courses: Course[]
   loading: boolean
   error: string | null
-  fetchCourses: (forceRefresh?: boolean) => Promise<void>
+  fetchCourses: (forceRefresh?: boolean, type?: string) => Promise<void>
   getCourse: (id: string) => Course | undefined
-  fetchSingleCourse: (id: string) => Promise<Course | null>
+  fetchSingleCourse: (id: string, type?: string) => Promise<Course | null>
   invalidateCache: () => void
   updateCourseInCache: (id: string, updates: Partial<Course>) => void
 }
-const LS_KEY = "courses_cache"
+const CACHE_KEYS = {
+  live: "courses_live",
+  draft: "courses_draft",
+  enrolled: "courses_enrolled",
+  instructor: "courses_instructor",
+  org: "courses_org",
+};
 
-const loadFromLocal = (): Course[] => {
+const loadFromLocal = (key: string): Course[] => {
   try {
-    const raw = typeof window !== "undefined" ? localStorage.getItem(LS_KEY) : null
+    const raw = localStorage.getItem(key)
     return raw ? JSON.parse(raw) : []
   } catch {
     return []
   }
 }
 
-const saveToLocal = (data: Course[]) => {
+const saveToLocal = (key: string, data: Course[]) => {
   try {
-    localStorage.setItem(LS_KEY, JSON.stringify(data))
+    localStorage.setItem(key, JSON.stringify(data))
   } catch {
-    console.error("Failed to save to local storage")
+    console.error("Could not save to local")
   }
 }
 
 const CoursesContext = createContext<CoursesContextType | undefined>(undefined)
 
 export function CoursesProvider({ children }: { children: ReactNode }) {
-  const [courses, setCourses] = useState<Course[]>(loadFromLocal())
+  const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasFetched, setHasFetched] = useState(false)
   const { user, token } = useAuth()
 
-  const fetchCourses = async (forceRefresh = false, type="") => {
-    if (hasFetched && courses.length > 0 && !forceRefresh) {
-      return
-    }
+  const fetchCourses = async (forceRefresh = false, type="live") => {
 
-    if (!user || !token) {
-      return
-    }
+    if (!user || !token)return
+
+    const cacheKey = CACHE_KEYS[type] || CACHE_KEYS.org;
 
     if (!forceRefresh) {
-      const local = loadFromLocal()
+      const local = loadFromLocal(cacheKey)
       if (local.length > 0) {
         setCourses(local)
-        setHasFetched(true)
         return
       }
     }
@@ -86,10 +88,9 @@ export function CoursesProvider({ children }: { children: ReactNode }) {
       })
 
       if (response.ok) {
-        const data = await response.json()
-        setCourses(data.courses || data)
-        saveToLocal(data.courses || data)
-        setHasFetched(true)
+        const data = (await response.json()).courses || []
+        saveToLocal(cacheKey, data)
+        setCourses(data)
       } else {
         throw new Error("Failed to fetch courses")
       }
@@ -101,17 +102,18 @@ export function CoursesProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const getCourse = (id: string) => {
-    const course = courses.find((course) => Number(course.id) === Number(id))
+  const getCourse = (id: string, cacheKey = CACHE_KEYS.org) => {
+    const store = loadFromLocal(cacheKey)
+    const course = store.find((course) => Number(course.id) === Number(id))
     return course
   }
 
-  const fetchSingleCourse = async (id: string): Promise<Course | null> => {
+  const fetchSingleCourse = async (id: string, type="org"): Promise<Course | null> => {
     // First check cache
-    const cachedCourse = getCourse(id)
-    if (cachedCourse) {
-      return cachedCourse
-    }
+    const cacheKey = CACHE_KEYS[type] || CACHE_KEYS.org;
+
+    const cachedCourse = getCourse(id, cacheKey)
+    if (cachedCourse) return cachedCourse
 
     // If not in cache, fetch it
     try {
@@ -124,12 +126,13 @@ export function CoursesProvider({ children }: { children: ReactNode }) {
       if (response.ok) {
         const course = await response.json()
         // Add to cache
-        setCourses(prev => {
-          const updated = [...prev, course]
-          saveToLocal(updated)
-          return updated
-        })
+        saveToLocal(cacheKey, [
+          ...loadFromLocal(cacheKey),
+          course
+        ])
+
         return course
+
       }
       return null
     } catch (err) {

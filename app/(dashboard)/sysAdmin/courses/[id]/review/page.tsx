@@ -29,6 +29,7 @@ import {
 import { useAuth } from "@/hooks/use-auth"
 import { toast } from "sonner"
 import type { Course, Module } from "@/types"
+import { useCourses } from "@/hooks/use-courses"
 
 export default function CourseReviewPage() {
   const params = useParams()
@@ -42,40 +43,40 @@ export default function CourseReviewPage() {
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [editedCourse, setEditedCourse] = useState<Partial<Course>>({})
+  const { fetchSingleCourse, getCourse } = useCourses()
 
-  useEffect(() => {
-    const fetchCourseData = async () => {
+   useEffect(() => {
+    const loadCourse = async () => {
+      setLoading(true)
       try {
-        const [courseRes] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/get/${params.id}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ])
-
-        if (courseRes.ok) {
-          const courseData = await courseRes.json()
-          setCourse(courseData.course)
-          setModules(courseData.course.modules || [])
-          setEditedCourse({
-            title: courseData.course.title,
-            description: courseData.course.description,
-            level: courseData.course.level,
-            price: courseData.course.price,
-            tags: courseData.course.tags,
-          })
+        if (params.id) {
+          const courseId = Array.isArray(params.id) ? params.id[0] : params.id
+          const courseData = await fetchSingleCourse(courseId, "draft") 
+          
+          if (courseData) {
+            setCourse(courseData)
+            setModules(courseData.modules || [])
+            setEditedCourse({
+              title: courseData.title,
+              description: courseData.description,
+              level: courseData.level,
+              price: courseData.price,
+              tags: courseData.tags,
+            })
+          } else {
+            toast.error("Course not found")
+          }
         }
       } catch (error) {
-        console.error("Failed to fetch course data:", error)
+        console.error("Failed to load course:", error)
         toast.error("Failed to load course data")
       } finally {
         setLoading(false)
       }
     }
 
-    if (params.id && token) {
-      fetchCourseData()
-    }
-  }, [params.id, token])
+    loadCourse()
+  }, [params.id, token, fetchSingleCourse, getCourse])
 
   const toggleModule = (moduleIndex: number) => {
     const newExpanded = new Set(expandedModules)

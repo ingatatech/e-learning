@@ -39,21 +39,20 @@ import { useAuth } from "@/hooks/use-auth"
 import { useCourses } from "@/hooks/use-courses"
 
 export default function CourseOverviewPage() {
-  const [courses, setCourses] = useState<Course[]>([])
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState<"all" | "published" | "draft">("all")
   const [sortBy, setSortBy] = useState<"title" | "students" | "rating" | "created">("created")
-  const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(6)
   const { token, user } = useAuth()
-  const { fetchCourses } = useCourses()
+  const { fetchCourses, courses, loading } = useCourses()
   
 
   useEffect(() => {
     fetchCourses(false, "draft")
   }, [])
+
 
   const filteredCourses = courses
     .filter((course) => {
@@ -82,6 +81,7 @@ export default function CourseOverviewPage() {
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       }
     })
+
 
   const totalPages = Math.ceil(filteredCourses.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
