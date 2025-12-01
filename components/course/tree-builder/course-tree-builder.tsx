@@ -5,13 +5,13 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { BookOpen, ChevronDown, ChevronRight, Plus, Trash2, GripVertical } from 'lucide-react'
+import { BookOpen, ChevronDown, ChevronRight, Plus, Trash2, Trophy } from "lucide-react"
 import type { Module, Lesson, Assessment } from "@/types"
 import { ContentEditor } from "./content-editor"
 
 interface TreeItem {
   id: string
-  type: "module" | "lesson" | "assignment"
+  type: "module" | "lesson" | "assignment" | "final-assessment"
   title: string
   moduleId?: string
   lessonId?: string
@@ -28,6 +28,10 @@ interface CourseTreeBuilderProps {
   loading?: boolean
 }
 
+const generateId = () => {
+  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+}
+
 export function CourseTreeBuilder({
   modules,
   setModules,
@@ -37,9 +41,7 @@ export function CourseTreeBuilder({
   type,
   loading,
 }: CourseTreeBuilderProps) {
-  const [expandedModules, setExpandedModules] = useState<Set<string>>(
-    new Set(modules.map((m) => m.id))
-  )
+  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set(modules.map((m) => m.id)))
   const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set())
   const [selectedItem, setSelectedItem] = useState<TreeItem | null>(null)
 
@@ -67,7 +69,9 @@ export function CourseTreeBuilder({
 
   // Add new module
   const addModule = () => {
+    const moduleId = generateId()
     const newModule: Module = {
+      id: moduleId,
       title: "New Module",
       description: "",
       order: modules.length + 1,
@@ -78,9 +82,9 @@ export function CourseTreeBuilder({
       lessons: [],
     }
     setModules([...modules, newModule])
-    setExpandedModules(new Set([...expandedModules, newModule.id]))
+    setExpandedModules(new Set([...expandedModules, moduleId]))
     setSelectedItem({
-      id: newModule.id,
+      id: moduleId,
       type: "module",
       title: newModule.title,
       data: newModule,
@@ -89,7 +93,9 @@ export function CourseTreeBuilder({
 
   // Add lesson to module
   const addLesson = (moduleId: string) => {
+    const lessonId = generateId()
     const newLesson: Lesson = {
+      id: lessonId,
       title: "New Lesson",
       content: "",
       duration: 0,
@@ -103,14 +109,12 @@ export function CourseTreeBuilder({
 
     setModules(
       modules.map((module) =>
-        module.id === moduleId
-          ? { ...module, lessons: [...(module.lessons || []), newLesson] }
-          : module
-      )
+        module.id === moduleId ? { ...module, lessons: [...(module.lessons || []), newLesson] } : module,
+      ),
     )
-    setExpandedLessons(new Set([...expandedLessons, newLesson.id]))
+    setExpandedLessons(new Set([...expandedLessons, lessonId]))
     setSelectedItem({
-      id: newLesson.id,
+      id: lessonId,
       type: "lesson",
       title: newLesson.title,
       moduleId,
@@ -120,7 +124,9 @@ export function CourseTreeBuilder({
 
   // Add assessment to lesson
   const addAssessment = (moduleId: string, lessonId: string) => {
+    const assessmentId = generateId()
     const newAssessment: Assessment = {
+      id: assessmentId,
       title: "New Assessment",
       description: "",
       type: "quiz",
@@ -143,20 +149,48 @@ export function CourseTreeBuilder({
                       ...lesson,
                       assessments: [...(lesson.assessments || []), newAssessment],
                     }
-                  : lesson
+                  : lesson,
               ),
             }
-          : module
-      )
+          : module,
+      ),
     )
 
     setSelectedItem({
-      id: newAssessment.id,
+      id: assessmentId,
       type: "assignment",
       title: newAssessment.title,
       moduleId,
       lessonId,
-      data: newAssessment,
+      data: newAssessment as any,
+    })
+  }
+
+  // Add function to add final assessment to module
+  const addFinalAssessment = (moduleId: string) => {
+    const assessmentId = generateId()
+    const newFinalAssessment = {
+      id: assessmentId,
+      title: "Final Assessment",
+      type: undefined as any,
+      description: "",
+      passingScore: 70,
+      timeLimit: 60,
+      fileRequired: false,
+      questions: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+
+    setModules(
+      modules.map((module) => (module.id === moduleId ? { ...module, finalAssessment: newFinalAssessment } : module)),
+    )
+    setSelectedItem({
+      id: assessmentId,
+      type: "final-assessment",
+      title: newFinalAssessment.title,
+      moduleId,
+      data: newFinalAssessment as any,
     })
   }
 
@@ -169,8 +203,8 @@ export function CourseTreeBuilder({
         modules.map((module) =>
           module.id === item.moduleId
             ? { ...module, lessons: module.lessons?.filter((l) => l.id !== item.id) }
-            : module
-        )
+            : module,
+        ),
       )
     } else if (item.type === "assignment" && item.moduleId && item.lessonId) {
       setModules(
@@ -184,11 +218,15 @@ export function CourseTreeBuilder({
                         ...lesson,
                         assessments: lesson.assessments?.filter((a) => a.id !== item.id),
                       }
-                    : lesson
+                    : lesson,
                 ),
               }
-            : module
-        )
+            : module,
+        ),
+      )
+    } else if (item.type === "final-assessment" && item.moduleId) {
+      setModules(
+        modules.map((module) => (module.id === item.moduleId ? { ...module, finalAssessment: undefined } : module)),
       )
     }
 
@@ -200,21 +238,17 @@ export function CourseTreeBuilder({
   // Update item
   const updateItem = (item: TreeItem, updates: any) => {
     if (item.type === "module") {
-      setModules(
-        modules.map((m) => (m.id === item.id ? { ...m, ...updates } : m))
-      )
+      setModules(modules.map((m) => (m.id === item.id ? { ...m, ...updates } : m)))
     } else if (item.type === "lesson" && item.moduleId) {
       setModules(
         modules.map((module) =>
           module.id === item.moduleId
             ? {
                 ...module,
-                lessons: module.lessons?.map((l) =>
-                  l.id === item.id ? { ...l, ...updates } : l
-                ),
+                lessons: module.lessons?.map((l) => (l.id === item.id ? { ...l, ...updates } : l)),
               }
-            : module
-        )
+            : module,
+        ),
       )
     } else if (item.type === "assignment" && item.moduleId && item.lessonId) {
       setModules(
@@ -226,37 +260,35 @@ export function CourseTreeBuilder({
                   lesson.id === item.lessonId
                     ? {
                         ...lesson,
-                        assessments: lesson.assessments?.map((a) =>
-                          a.id === item.id ? { ...a, ...updates } : a
-                        ),
+                        assessments: lesson.assessments?.map((a) => (a.id === item.id ? { ...a, ...updates } : a)),
                       }
-                    : lesson
+                    : lesson,
                 ),
               }
-            : module
-        )
+            : module,
+        ),
       )
-    }
-
-    // Update selectedItem if it's the same one
-    if (selectedItem?.id === item.id) {
-      setSelectedItem({ ...item, data: { ...item.data, ...updates } })
+    } else if (item.type === "final-assessment" && item.moduleId) {
+      setModules(
+        modules.map((module) =>
+          module.id === item.moduleId
+            ? { ...module, finalAssessment: { ...module.finalAssessment, ...updates } as any }
+            : module,
+        ),
+      )
     }
   }
 
   const totalLessons = modules.reduce((acc, m) => acc + (m.lessons?.length || 0), 0)
   const totalAssessments = modules.reduce(
-    (acc, m) =>
-      acc + (m.lessons?.reduce((acc2, l) => acc2 + (l.assessments?.length || 0), 0) || 0),
-    0
+    (acc, m) => acc + (m.lessons?.reduce((acc2, l) => acc2 + (l.assessments?.length || 0), 0) || 0),
+    0,
   )
 
   return (
     <div className="space-y-6">
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-          Build Your Course
-        </h2>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Build Your Course</h2>
         <div className="flex justify-center gap-4 flex-wrap">
           <Badge variant="outline" className="flex items-center gap-1 rounded">
             {modules.length} Modules
@@ -277,12 +309,7 @@ export function CourseTreeBuilder({
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle>Course Structure</CardTitle>
-                <Button
-                  size="sm"
-                  onClick={addModule}
-                  className="h-8 w-8 p-0"
-                  title="Add Module"
-                >
+                <Button size="sm" onClick={addModule} className="h-8 w-8 p-0" title="Add Module">
                   <Plus className="w-4 h-4" />
                 </Button>
               </div>
@@ -327,9 +354,7 @@ export function CourseTreeBuilder({
                           )}
                         </button>
                         <BookOpen className="w-4 h-4 text-primary-600 flex-shrink-0" />
-                        <span className="flex-1 text-sm font-medium truncate">
-                          {module.title || "Untitled Module"}
-                        </span>
+                        <span className="flex-1 text-sm font-medium truncate">{module.title || "Untitled Module"}</span>
                         <div className="flex gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={(e) => {
@@ -478,6 +503,62 @@ export function CourseTreeBuilder({
                           ))}
                         </div>
                       )}
+
+                      {/* Final Assessment Button */}
+                      {expandedModules.has(module.id) && (
+                        <div className="ml-4 space-y-1 border-l border-gray-200 dark:border-gray-700 pl-2">
+                          {/* Lessons rendering... */}
+                          {module.finalAssessment ? (
+                            <div
+                              className={`flex items-center gap-1 p-2 rounded-lg cursor-pointer transition-colors group ${
+                                selectedItem?.id === module.finalAssessment.id
+                                  ? "bg-purple-50 dark:bg-purple-950 border border-purple-200 dark:border-purple-800"
+                                  : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                              }`}
+                              onClick={() =>
+                                setSelectedItem({
+                                  id: module.finalAssessment!.id,
+                                  type: "final-assessment",
+                                  title: module.finalAssessment!.title,
+                                  moduleId: module.id,
+                                  data: module.finalAssessment as any,
+                                })
+                              }
+                            >
+                              <Trophy className="w-4 h-4 text-purple-600 flex-shrink-0" />
+                              <span className="flex-1 text-sm font-medium truncate">
+                                {module.finalAssessment.title}
+                              </span>
+                              <div className="flex gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    deleteItem({
+                                      id: module.finalAssessment!.id,
+                                      type: "final-assessment",
+                                      title: module.finalAssessment!.title,
+                                      moduleId: module.id,
+                                      data: module.finalAssessment as any,
+                                    })
+                                  }}
+                                  className="p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded text-red-600"
+                                  title="Delete Final Assessment"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => addFinalAssessment(module.id)}
+                              className="flex items-center gap-1 p-2 w-full rounded-lg text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950 transition-colors text-sm"
+                            >
+                              <Plus className="w-3 h-3" />
+                              <span>Add Final Assessment</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))
                 )}
@@ -505,11 +586,7 @@ export function CourseTreeBuilder({
                 />
               </motion.div>
             ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 <Card className="h-full flex items-center justify-center min-h-[700px]">
                   <CardContent className="text-center py-12">
                     <BookOpen className="w-16 h-16 text-gray-300 dark:text-gray-700 mx-auto mb-4" />
@@ -517,8 +594,7 @@ export function CourseTreeBuilder({
                       Select or Create Content
                     </h3>
                     <p className="text-gray-400 dark:text-gray-500 mb-6">
-                      Click on any item in the tree to edit it, or add new modules, lessons, and
-                      assessments
+                      Click on any item in the tree to edit it, or add new modules, lessons, and assessments
                     </p>
                     <Button onClick={addModule}>
                       <Plus className="w-4 h-4 mr-2" />
@@ -545,7 +621,7 @@ export function CourseTreeBuilder({
         </div>
 
         <Button onClick={onNext} disabled={modules.length === 0 || loading} size="lg" className="px-8">
-          {type === 'update' ? (loading ? "Updating..." : "Update Course") : 'Review & Publish'}
+          {type === "update" ? (loading ? "Updating..." : "Update Course") : "Review & Publish"}
         </Button>
       </div>
     </div>

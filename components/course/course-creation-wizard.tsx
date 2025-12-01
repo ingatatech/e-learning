@@ -5,7 +5,7 @@ import type React from "react"
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Card, CardContent } from "@/components/ui/card"
-import { BookOpen, Users, PlayCircle, Trophy, CheckCircle, FolderOpen } from 'lucide-react'
+import { BookOpen, CheckCircle, FolderOpen } from "lucide-react"
 import { CourseDetailsStep } from "./steps/course-details-step"
 import { TreeBuilderStep } from "./steps/new-tree-builder-step"
 import { ReviewPublishStep } from "./steps/review-publish-step"
@@ -139,7 +139,7 @@ export function CourseCreationWizard() {
   }
 
   const formatCourseDataForAPI = () => {
-    return {
+    const formattedData = {
       title: courseData.title || "",
       description: courseData.description || "",
       thumbnail: thumbnailUrl || courseData.thumbnail || "",
@@ -184,8 +184,21 @@ export function CourseCreationWizard() {
               }))
             : [],
         })),
+        ...(module.finalAssessment && {
+          finalAssessment: {
+            title: module.finalAssessment.title,
+            type: module.finalAssessment.type,
+            description: module.finalAssessment.description,
+            instructions: module.finalAssessment.instructions,
+            passingScore: module.finalAssessment.passingScore || 0,
+            timeLimit: module.finalAssessment.timeLimit || null,
+            fileRequired: module.finalAssessment.fileRequired || false,
+            questions: module.finalAssessment.type === "assessment" ? module.finalAssessment.questions || [] : [],
+          },
+        }),
       })),
     }
+    return formattedData
   }
 
 

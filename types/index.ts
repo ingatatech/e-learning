@@ -109,6 +109,7 @@ export interface Course {
   about: string
   whatYouWillLearn: string[]
   requirements: string[]
+  finalAssessment?: FinalAssessment
 }
 
 export interface Module {
@@ -120,10 +121,10 @@ export interface Module {
   courseId: string
   course?: Course
   lessons?: Lesson[]
+  finalAssessment?: FinalAssessment
   createdAt: Date
   updatedAt: Date
 }
-
 
 export interface ContentBlock {
   id: string
@@ -143,7 +144,7 @@ export interface LessonContent {
 export interface Lesson {
   id: string
   title: string
-  content: string 
+  content: string
   contentBlocks?: ContentBlock[]
   duration: number
   order: number
@@ -168,7 +169,7 @@ export interface Assessment {
   id: string
   title: string
   description: string
-  type: "quiz" | "assignment" | "project"
+  type: "assessment" | "project"
   questions: AssessmentQuestion[]
   passingScore: number
   timeLimit?: number
@@ -352,4 +353,18 @@ export interface PaginatedResponse<T> {
   page: number
   limit: number
   totalPages: number
+}
+
+export interface FinalAssessment {
+  id: string
+  title: string
+  type: "assessment" | "project"
+  description: string
+  passingScore: number
+  timeLimit?: number | null
+  fileRequired: boolean
+  instructions?: string
+  questions?: AssessmentQuestion[]
+  createdAt: Date
+  updatedAt: Date
 }

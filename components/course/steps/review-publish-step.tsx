@@ -14,12 +14,12 @@ import {
   Trophy,
   Users,
   Target,
-  Sparkles,
   Rocket,
   Eye,
   Settings,
   ChevronDown,
   ChevronRight,
+  FileText,
 } from "lucide-react"
 import { CourseCompletionCelebration } from "../gamification/course-completion-celebration"
 import type { Course, Module } from "@/types"
@@ -93,6 +93,11 @@ export function ReviewPublishStep({
     {
       label: "Course tags added",
       completed: (courseData.tags?.length || 0) > 0,
+      required: false,
+    },
+    {
+      label: "Final assessment added",
+      completed: !!courseData.finalAssessment,
       required: false,
     },
   ]
@@ -203,13 +208,29 @@ export function ReviewPublishStep({
                   <div className="text-sm text-gray-600">Assessments</div>
                 </CardContent>
               </Card>
-              <Card>
-                <CardContent className="p-6 text-center">
-                  <Target className="w-8 h-8 text-purple-500 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-gray-900 dark:text-white">{totalQuestions}</div>
-                  <div className="text-sm text-gray-600">Questions</div>
-                </CardContent>
-              </Card>
+              {courseData.finalAssessment ? (
+                <Card>
+                  <CardContent className="p-6 text-center">
+                    {courseData.finalAssessment.type === "assessment" ? (
+                      <Trophy className="w-8 h-8 text-purple-500 mx-auto mb-2" />
+                    ) : (
+                      <FileText className="w-8 h-8 text-cyan-500 mx-auto mb-2" />
+                    )}
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">1</div>
+                    <div className="text-sm text-gray-600">
+                      Final {courseData.finalAssessment.type === "assessment" ? "Exam" : "Project"}
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent className="p-6 text-center">
+                    <Target className="w-8 h-8 text-purple-500 mx-auto mb-2" />
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{totalQuestions}</div>
+                    <div className="text-sm text-gray-600">Questions</div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Course Preview */}
@@ -243,10 +264,20 @@ export function ReviewPublishStep({
                         {courseData.description || "Course description will appear here..."}
                       </p>
                       <div className="flex gap-2">
-                        <Badge variant="outline" className="capitalize rounded">{courseData.level || "beginner"}</Badge>
-                        <Badge variant="outline" className="capitalize rounded">{modules.length} modules</Badge>
-                        <Badge variant="outline" className="capitalize rounded">{totalLessons} lessons</Badge>
-                        {courseData.price && <Badge variant="outline" className="capitalize rounded">${courseData.price}</Badge>}
+                        <Badge variant="outline" className="capitalize rounded">
+                          {courseData.level || "beginner"}
+                        </Badge>
+                        <Badge variant="outline" className="capitalize rounded">
+                          {modules.length} modules
+                        </Badge>
+                        <Badge variant="outline" className="capitalize rounded">
+                          {totalLessons} lessons
+                        </Badge>
+                        {courseData.price && (
+                          <Badge variant="outline" className="capitalize rounded">
+                            ${courseData.price}
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -260,6 +291,72 @@ export function ReviewPublishStep({
                 </div>
               </CardContent>
             </Card>
+
+            {/* Final Assessment Display */}
+            {courseData.finalAssessment && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    {courseData.finalAssessment.type === "assessment" ? (
+                      <Trophy className="w-5 h-5 text-orange-500" />
+                    ) : (
+                      <FileText className="w-5 h-5 text-blue-500" />
+                    )}
+                    Final {courseData.finalAssessment.type === "assessment" ? "Assessment" : "Project"}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Title</p>
+                      <p className="font-medium">{courseData.finalAssessment.title}</p>
+                    </div>
+
+                    {courseData.finalAssessment.type === "assessment" ? (
+                      <>
+                        <div className="grid grid-cols-3 gap-4">
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Passing Score</p>
+                            <p className="font-medium">{courseData.finalAssessment.passingScore}%</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Time Limit</p>
+                            <p className="font-medium">
+                              {courseData.finalAssessment.timeLimit
+                                ? `${courseData.finalAssessment.timeLimit} min`
+                                : "No limit"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Questions</p>
+                            <p className="font-medium">{courseData.finalAssessment.questions?.length || 0}</p>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Description</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">
+                            {courseData.finalAssessment.description}
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Instructions</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">
+                            {courseData.finalAssessment.instructions || courseData.finalAssessment.description}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">File Upload</p>
+                          <Badge className="w-fit">Required</Badge>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* Content Details Tab */}
