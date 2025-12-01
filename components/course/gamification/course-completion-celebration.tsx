@@ -1,11 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Trophy, Star, Sparkles, BookOpen, PlayCircle, Target, Award, X, Share2, Download } from "lucide-react"
+import { X } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/hooks/use-auth"
 
 interface CourseCompletionCelebrationProps {
   courseTitle: string
@@ -19,57 +19,8 @@ interface CourseCompletionCelebrationProps {
 }
 
 export function CourseCompletionCelebration({ courseTitle, stats, onClose }: CourseCompletionCelebrationProps) {
-  const [showConfetti, setShowConfetti] = useState(true)
-  const [currentStep, setCurrentStep] = useState(0)
   const router = useRouter()
-
-  const achievements = [
-    {
-      icon: <BookOpen className="w-8 h-8" />,
-      title: "Course Creator",
-      description: "Successfully created your first course",
-      color: "text-blue-500",
-    },
-    {
-      icon: <PlayCircle className="w-8 h-8" />,
-      title: "Content Master",
-      description: `Created ${stats.lessons} engaging lessons`,
-      color: "text-green-500",
-    },
-    {
-      icon: <Target className="w-8 h-8" />,
-      title: "Assessment Expert",
-      description: `Built ${stats.assessments} assessments`,
-      color: "text-orange-500",
-    },
-    {
-      icon: <Star className="w-8 h-8" />,
-      title: "Quality Champion",
-      description: `Achieved ${stats.qualityScore}% quality score`,
-      color: "text-yellow-500",
-    },
-  ]
-
-  const xpEarned = 500 + stats.modules * 50 + stats.lessons * 25 + stats.assessments * 75
-
-  useEffect(() => {
-    const timer = setTimeout(() => setShowConfetti(false), 3000)
-    return () => clearTimeout(timer)
-  }, [])
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentStep((prev) => {
-        if (prev < achievements.length - 1) {
-          return prev + 1
-        }
-        clearInterval(interval)
-        return prev
-      })
-    }, 800)
-
-    return () => clearInterval(interval)
-  }, [achievements.length])
+  const { user } = useAuth() 
 
   return (
     <AnimatePresence>
@@ -79,34 +30,6 @@ export function CourseCompletionCelebration({ courseTitle, stats, onClose }: Cou
         exit={{ opacity: 0 }}
         className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       >
-        {/* Confetti Effect */}
-        {showConfetti && (
-          <div className="absolute inset-0 pointer-events-none">
-            {[...Array(50)].map((_, i) => (
-              <motion.div
-                key={i}
-                initial={{
-                  opacity: 1,
-                  y: -100,
-                  x: Math.random() * window.innerWidth,
-                  rotate: 0,
-                }}
-                animate={{
-                  y: window.innerHeight + 100,
-                  rotate: 360,
-                }}
-                transition={{
-                  duration: 3,
-                  delay: Math.random() * 2,
-                  ease: "easeOut",
-                }}
-                className={`absolute w-3 h-3 ${
-                  ["bg-yellow-400", "bg-blue-400", "bg-green-400", "bg-red-400", "bg-purple-400"][i % 5]
-                } rounded-full`}
-              />
-            ))}
-          </div>
-        )}
 
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
@@ -122,42 +45,23 @@ export function CourseCompletionCelebration({ courseTitle, stats, onClose }: Cou
                 <X className="w-4 h-4" />
               </Button>
 
-              {/* Main Trophy */}
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.5, type: "spring", stiffness: 200 }}
-                className="relative"
-              >
-                <div className="w-24 h-24 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                  <Trophy className="w-12 h-12 text-white" />
-                </div>
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-                  className="absolute -top-2 -right-2"
-                >
-                  <Sparkles className="w-8 h-8 text-yellow-400" />
-                </motion.div>
-              </motion.div>
-
               {/* Title */}
               <div className="space-y-2">
                 <motion.h2
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.7 }}
+                  transition={{ delay: 0.3 }}
                   className="text-3xl font-bold text-gray-900 dark:text-white"
                 >
-                  🎉 Course Published!
+                Course Published!
                 </motion.h2>
                 <motion.p
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.9 }}
+                  transition={{ delay: 0.4 }}
                   className="text-gray-600 dark:text-gray-300"
                 >
-                  "{courseTitle}" is now live and ready for students!
+                  "{courseTitle}" {user!.role == "sysAdmin" ? "is now live and ready for students!" : "is now ready to be reviewed!"} 
                 </motion.p>
               </div>
 
@@ -185,19 +89,11 @@ export function CourseCompletionCelebration({ courseTitle, stats, onClose }: Cou
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 2.5 }}
+                transition={{ delay: 0.5 }}
                 className="flex gap-3 justify-center"
               >
-                <Button variant="outline" size="sm">
-                  <Share2 className="w-4 h-4 mr-2" />
-                  Share Success
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Download className="w-4 h-4 mr-2" />
-                  Certificate
-                </Button>
-                <Button onClick={() => router.push('/instructor/courses')} size="sm">
-                  Continue
+                <Button onClick={() => router.push(`/${user!.role}/courses`)} size="lg" className="rounded">
+                  View Courses
                 </Button>
               </motion.div>
             </CardContent>

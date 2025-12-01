@@ -23,6 +23,8 @@ import {
 } from "lucide-react"
 import { CourseCompletionCelebration } from "../gamification/course-completion-celebration"
 import type { Course, Module } from "@/types"
+import { useAuth } from "@/hooks/use-auth"
+import { useRouter } from "next/navigation"
 
 interface ReviewPublishStepProps {
   courseData: Partial<Course>
@@ -44,6 +46,9 @@ export function ReviewPublishStep({
   const [isPublished, setIsPublished] = useState(false)
   const [showCelebration, setShowCelebration] = useState(false)
   const [expandedModules, setExpandedModules] = useState<Set<number>>(new Set())
+  const { user } = useAuth()
+  const router = useRouter()
+
 
   const totalLessons = modules.reduce((acc, module) => acc + (module.lessons?.length || 0), 0)
   const totalAssessments = modules.reduce(
@@ -167,11 +172,12 @@ export function ReviewPublishStep({
 
       <div className="text-center mb-8">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-          {isPublished ? "Course Published Successfully!" : "Review & Publish"}
+          {isPublished ? user!.role == "sysAdmin" ? "Course Published Successfully!" : "Course Submitted Successfully"  : "Review & Publish"}
         </h2>
         <p className="text-gray-600 dark:text-gray-300">
-          {isPublished
-            ? "Your course is now live and ready for students!"
+          {isPublished ?
+            user!.role == "sysAdmin"
+              ? "Your course is now live and ready for students!" : "Your course has been successfully submitted for review."
             : "Final review of your course before making it available to students"}
         </p>
       </div>
@@ -411,7 +417,6 @@ export function ReviewPublishStep({
                                         Lesson {lessonIndex + 1}: {lesson.title}
                                       </h5>
                                     </div>
-                                    <p className="text-xs text-muted-foreground mb-2">{lesson.description}</p>
 
                                     {lesson.assessments && lesson.assessments.length > 0 && (
                                       <div className="mt-2 space-y-2">
@@ -509,24 +514,16 @@ export function ReviewPublishStep({
           </div>
 
           <div className="space-y-4">
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">🎉 Congratulations!</h3>
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Congratulations!</h3>
             <p className="text-gray-600 dark:text-gray-300 max-w-md mx-auto">
-              Your course "{courseData.title}" has been successfully published and is now available to students.
+              Your course "{courseData.title}" {user!. role == 'sysAdmin' ? "has been successfully published and is now available to students." : "has been successfully submitted."} 
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
-            <Button variant="outline" className="flex items-center gap-2 bg-transparent">
+          <div className="max-w-2xl mx-auto">
+            <Button variant="outline" className="mx-auto flex items-center gap-2 bg-transparent rounded cursor-pointer" onClick={() => router.push(`/${user!.role}/courses`)}>
               <Eye className="w-4 h-4" />
-              View Course
-            </Button>
-            <Button variant="outline" className="flex items-center gap-2 bg-transparent">
-              <Users className="w-4 h-4" />
-              Manage Students
-            </Button>
-            <Button variant="outline" className="flex items-center gap-2 bg-transparent">
-              <Settings className="w-4 h-4" />
-              Course Settings
+              View Courses
             </Button>
           </div>
         </div>
