@@ -11,7 +11,7 @@ import { useCourses } from "@/hooks/use-courses"
 import { CourseTreeBuilder } from "@/components/course/tree-builder/course-tree-builder"
 
 export default function EditCourseModulesPage({ params }: { params: Promise<{ id: string }> }) {
-  const { getCourse, updateCourseInCache } = useCourses()
+  const { getCourse, updateCourseInCache, fetchSingleCourse } = useCourses()
   const [course, setCourse] = useState<Course | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -21,16 +21,10 @@ export default function EditCourseModulesPage({ params }: { params: Promise<{ id
   useEffect(() => {
     const fetchCourse = async () => {
       try {
-        const courseResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/get/${id}`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        })
-        
-        if (courseResponse.ok) {
-          const data = await courseResponse.json()
-          setCourse(data.course)
+        const courseResponse = await fetchSingleCourse(id, "live")
+        if (courseResponse) {
+          setCourse(courseResponse)
+          console.log(courseResponse)
         } else {
           setCourse(null)
         }
@@ -43,50 +37,134 @@ export default function EditCourseModulesPage({ params }: { params: Promise<{ id
     }
 
     fetchCourse()
-  }, [id, getCourse])
+  }, [])
 
-  const saveCourse = async () => {
-    if (!course) return
+const saveCourse = async () => {
+  if (!course) return
 
-    setSaving(true)
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/update/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          instructorId: course.instructor?.id || course.instructorId,
-          modules: course.modules?.map((module) => ({
-            ...module,
-            lessons: module.lessons?.map((lesson) => ({
-              ...lesson,
-              content: lesson.content || "",
-              duration: lesson.duration || 0,
-              order: lesson.order || 0,
-              isProject: lesson.isProject || false,
-              isExercise: lesson.isExercise || false,
-              resources: lesson.resources || [],
-              assessments: lesson.assessments || [],
+  setSaving(true)
+  try {
+    const modulesToSend = course.modules?.map((module) => {
+      const moduleData: any = {
+        title: module.title,
+        description: module.description || "",
+        order: module.order || 0,
+        duration: module.duration || 0,
+        lessons: module.lessons?.map((lesson) => ({
+          title: lesson.title,
+          content: lesson.content || "",
+          duration: lesson.duration || 0,
+          order: lesson.order || 0,
+          isProject: lesson.isProject || false,
+          isExercise: lesson.isExercise || false,
+          resources: lesson.resources || [],
+          assessments: lesson.assessments?.map((assessment) => {
+          const assessmentData: any = {
+            title: assessment.title,
+            type: assessment.type,
+            description: assessment.description || "",
+            instructions: assessment.instructions || "",
+            passingScore: assessment.passingScore || 0,
+            timeLimit: assessment.timeLimit || null,
+            fileRequired: assessment.fileRequired || false,
+            questions: (assessment.questions || []).map((question) => ({
+              question: question.question,
+              type: question.type,
+              options: question.options || [],
+              correctAnswer: question.correctAnswer,
+              points: question.points || 1,
+              // Only include question ID if it's a numeric database ID
+              ...(question.id && String(question.id).match(/^\d+$/) && { id: question.id }),
             })),
-          })),
-        }),
-      })
+          }
+              // Only include assessment ID if it's a numeric database ID (not client-generated)
+            // Check if it's a valid database ID (numeric)
+            const assessmentId = assessment.id;
+            if (assessmentId && String(assessmentId).match(/^\d+$/)) {
+              assessmentData.id = assessmentId;
+            }
 
-      if (response.ok) {
-        updateCourseInCache(id, course)
-        toast.success("Course updated successfully!")
-      } else {
-        throw new Error("Failed to save course")
+            return assessmentData;
+          }) || [],
+          // Only include numeric database IDs
+          ...(lesson.id && String(lesson.id).match(/^\d+$/) && { id: lesson.id }),
+        })),
+        // Only include numeric database IDs for modules
+        ...(module.id && String(module.id).match(/^\d+$/) && { id: module.id }),
       }
-    } catch (error) {
-      console.error("Failed to save course:", error)
-      toast.error("Failed to save course changes")
-    } finally {
-      setSaving(false)
+
+      // Add final assessment if it exists
+      if (module.finalAssessment) {
+        const finalAssessmentData: any = {
+          title: module.finalAssessment.title,
+          type: module.finalAssessment.type,
+          description: module.finalAssessment.description || module.finalAssessment.assessment.description || "",
+          instructions: module.finalAssessment.description || module.finalAssessment.assessment.description || "",
+          passingScore: module.finalAssessment.passingScore || module.finalAssessment.assessment.passingScore || 0,
+          timeLimit: module.finalAssessment.timeLimit || module.finalAssessment.assessment.timeLimit || null,
+          fileRequired: module.finalAssessment.fileRequired || false,
+        }
+
+        // Only include ID if it's a numeric database ID (not client-generated)
+        // Check if it's a valid database ID (numeric)
+        const finalAssessmentId = module.finalAssessment.id;
+        if (finalAssessmentId && String(finalAssessmentId).match(/^\d+$/)) {
+          finalAssessmentData.id = finalAssessmentId;
+        }
+
+        // Include assessment data if type is "assessment"
+        if (module.finalAssessment.type === "assessment") {
+          finalAssessmentData.questions = (module.finalAssessment.questions || []).map((question) => ({
+            question: question.question,
+            type: question.type,
+            options: question.options || [],
+            correctAnswer: question.correctAnswer,
+            points: question.points || 1,
+            // Only include question ID if it's a numeric database ID
+            ...(question.id && String(question.id).match(/^\d+$/) && { id: question.id }),
+          }));
+
+          // DO NOT send assessmentId - it's causing the issue
+          // The assessmentId "1764684787093-b3uo6p4yi" is not a valid database ID
+          // Remove this line completely:
+          // ...(module.finalAssessment?.id && { assessmentId: module.finalAssessment.id })
+        }
+
+        moduleData.finalAssessment = finalAssessmentData;
+      }
+
+      return moduleData
+    })
+
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/update/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        instructorId: course.instructor?.id || course.instructorId,
+        modules: modulesToSend,
+      }),
+    })
+
+    if (response.ok) {
+      const updatedCourse = await fetchSingleCourse(id, "live")
+      if (updatedCourse) {
+        setCourse(updatedCourse)
+        updateCourseInCache(id, updatedCourse, "live")
+      }
+      toast.success("Course updated successfully!")
+    } else {
+      throw new Error("Failed to save course")
     }
+  } catch (error) {
+    console.error("Failed to save course:", error)
+    toast.error("Failed to save course changes")
+  } finally {
+    setSaving(false)
   }
+}
 
   if (loading) {
     return (
@@ -126,7 +204,6 @@ export default function EditCourseModulesPage({ params }: { params: Promise<{ id
               </Link>
             </Button>
           </div>
-          <h1 className="text-3xl font-bold">Manage Course Content</h1>
           <p className="text-muted-foreground">{course.title}</p>
         </div>
 
@@ -143,9 +220,10 @@ export default function EditCourseModulesPage({ params }: { params: Promise<{ id
         <CourseTreeBuilder
           modules={course.modules || []}
           setModules={(modules) => setCourse({ ...course, modules })}
-          courseData={course}
           onNext={saveCourse}
           onPrevious={() => window.history.back()}
+          type='update'
+          loading={saving}
         />
       )}
     </div>

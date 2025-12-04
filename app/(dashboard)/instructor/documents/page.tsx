@@ -1,8 +1,8 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import type React from "react"
 
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
 import { useDocuments } from "@/hooks/use-documents"
 import type { Document } from "@/types"
@@ -63,6 +63,18 @@ export default function DocumentsPage() {
   const [previewFile, setPreviewFile] = useState<Document | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [filteredDocuments, setFilteredDocuments] = useState<Document[]>([])
+  const searchParams = useSearchParams()
+
+  const hasCreatedDocument = useRef(false)
+
+  useEffect(() => {
+    const prm = searchParams.get("new")
+    
+    if (prm === "true" && !hasCreatedDocument.current) {
+      hasCreatedDocument.current = true
+      createNewDocument()
+    }
+  }, [searchParams])
 
   useEffect(() => {
     fetchDocuments()

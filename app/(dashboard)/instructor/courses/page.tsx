@@ -48,8 +48,8 @@ export default function CourseOverviewPage() {
   const { token, user } = useAuth()
 
   useEffect(() => {
-    fetchCourses()
-  }, [fetchCourses])
+    fetchCourses(false, "live")
+  }, [])
 
   const filteredCourses = courses
     .filter((course) => {

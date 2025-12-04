@@ -12,14 +12,14 @@ interface CoursesContextType {
   getCourse: (id: string) => Course | undefined
   fetchSingleCourse: (id: string, type?: string) => Promise<Course | null>
   invalidateCache: () => void
-  updateCourseInCache: (id: string, updates: Partial<Course>) => void
+  updateCourseInCache: (id: string, updates: Partial<Course>, type?: string) => void
 }
 const CACHE_KEYS = {
-  live: "courses_live",
-  draft: "courses_draft",
-  enrolled: "courses_enrolled",
-  instructor: "courses_instructor",
-  org: "courses_org",
+  live: "LIS_courses_live",
+  draft: "LIS_courses_draft",
+  enrolled: "LIS_courses_enrolled",
+  instructor: "LIS_courses_instructor",
+  org: "LIS_courses_org",
 };
 
 const loadFromLocal = (key: string): Course[] => {
@@ -68,19 +68,16 @@ export function CoursesProvider({ children }: { children: ReactNode }) {
     try {
       let url = ""
 
-      if (user.role === "instructor") {
-        url = `${process.env.NEXT_PUBLIC_API_URL}/courses/instructor/${user.id}/live/courses`
-      } else if (user.role === "sysAdmin" && type === "draft") {
-        url = `${process.env.NEXT_PUBLIC_API_URL}/courses/organization/${user?.organization?.id}/draft/courses`
-      }else if (user.role === "sysAdmin") {
-        url = `${process.env.NEXT_PUBLIC_API_URL}/courses/organization/${user.organization?.id}/courses`
-      } else if (user.role === "student") {
-        url = `${process.env.NEXT_PUBLIC_API_URL}/courses/student/${user.id}/enrolled`
-      } else {
-        // Default to public courses
-        url = `${process.env.NEXT_PUBLIC_API_URL}/courses`
-      }
-
+        if (type === "live") {
+          url = `${process.env.NEXT_PUBLIC_API_URL}/courses/instructor/${user.id}/live/courses`
+        } else if (type === "all") {
+          url = `${process.env.NEXT_PUBLIC_API_URL}/courses/instructor/${user?.id}/courses`
+        } else if (type === "org") {
+          url = `${process.env.NEXT_PUBLIC_API_URL}/courses/organization/${user.organization?.id}/courses`
+        } else if (type === "draft") {
+          url = `${process.env.NEXT_PUBLIC_API_URL}/courses/organization/${user?.organization?.id}/draft/courses`
+        }
+        
       const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -117,7 +114,7 @@ export function CoursesProvider({ children }: { children: ReactNode }) {
 
     // If not in cache, fetch it
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/${id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/get/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -128,10 +125,10 @@ export function CoursesProvider({ children }: { children: ReactNode }) {
         // Add to cache
         saveToLocal(cacheKey, [
           ...loadFromLocal(cacheKey),
-          course
+          course.course,
         ])
 
-        return course
+        return course.course
 
       }
       return null
@@ -147,10 +144,10 @@ export function CoursesProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(LS_KEY)
   }
 
-  const updateCourseInCache = (id: string, updates: Partial<Course>) => {
+  const updateCourseInCache = (id: string, updates: Partial<Course>, type="org") => {
     setCourses(prev => {
       const updated = prev.map(c => (c.id === id ? { ...c, ...updates } : c))
-      saveToLocal(updated)
+      saveToLocal(type, updated)
       return updated
     })
   }

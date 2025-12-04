@@ -12,7 +12,7 @@ export function getTokenFromStorage(): string | null {
   if (typeof window === "undefined") return null
 
   try {
-    const token = localStorage.getItem("Etoken")
+    const token = localStorage.getItem("LIS_Etoken")
     if (!token) return null
 
     // Remove quotes if token is stored as JSON string

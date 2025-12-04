@@ -21,7 +21,6 @@ interface TreeItem {
 interface CourseTreeBuilderProps {
   modules: Module[]
   setModules: (modules: Module[]) => void
-  courseData: any
   onNext: () => void
   onPrevious: () => void
   type?: string
@@ -35,7 +34,6 @@ const generateId = () => {
 export function CourseTreeBuilder({
   modules,
   setModules,
-  courseData,
   onNext,
   onPrevious,
   type,
@@ -129,7 +127,7 @@ export function CourseTreeBuilder({
       id: assessmentId,
       title: "New Assessment",
       description: "",
-      type: "quiz",
+      type: "assessment",
       questions: [],
       passingScore: 70,
       timeLimit: 30,
@@ -167,12 +165,12 @@ export function CourseTreeBuilder({
   }
 
   // Add function to add final assessment to module
-  const addFinalAssessment = (moduleId: string) => {
+  const addFinalAssessment = (moduleId: string, type: string) => {
     const assessmentId = generateId()
     const newFinalAssessment = {
       id: assessmentId,
       title: "Final Assessment",
-      type: undefined as any,
+      type: "assessment" as any  ,
       description: "",
       passingScore: 70,
       timeLimit: 60,
@@ -181,6 +179,7 @@ export function CourseTreeBuilder({
       createdAt: new Date(),
       updatedAt: new Date(),
     }
+    console.log(newFinalAssessment)
 
     setModules(
       modules.map((module) => (module.id === moduleId ? { ...module, finalAssessment: newFinalAssessment } : module)),
@@ -309,7 +308,7 @@ export function CourseTreeBuilder({
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle>Course Structure</CardTitle>
-                <Button size="sm" onClick={addModule} className="h-8 w-8 p-0" title="Add Module">
+                <Button size="sm" onClick={addModule} className="h-8 w-8 p-0 rounded" title="Add Module">
                   <Plus className="w-4 h-4" />
                 </Button>
               </div>

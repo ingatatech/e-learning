@@ -20,7 +20,7 @@ interface DocumentsContextType {
 const DocumentsContext = createContext<DocumentsContextType | undefined>(undefined)
 
 // Cache keys based on user role
-const DOCUMENTS_CACHE_KEYS = "docs"
+const DOCUMENTS_CACHE_KEYS = "LIS_docs"
 
 const loadFromLocal = (): Document[] => {
   try {

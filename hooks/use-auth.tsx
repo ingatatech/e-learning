@@ -38,10 +38,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("Euser")
+    const storedUser = localStorage.getItem("LIS_Euser")
     if (storedUser) {
       setUser(JSON.parse(storedUser))
-      setToken(JSON.parse(localStorage.getItem("Etoken") || ""))
+      setToken(JSON.parse(localStorage.getItem("LIS_Etoken") || ""))
     }
   }, [])
 
@@ -69,8 +69,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (!z) throw new Error("Something went wrong");
           setUser(data.user);
           setToken(data.token);
-          localStorage.setItem("Euser", JSON.stringify(data.user));
-          localStorage.setItem("Etoken", JSON.stringify(data.token));
+          localStorage.setItem("LIS_Euser", JSON.stringify(data.user));
+          localStorage.setItem("LIS_Etoken", JSON.stringify(data.token));
           if (data.user.firstLogin) {
             router.push("/change-password");
           } else {
@@ -109,8 +109,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       setUser(data.user)
       setToken(data.token)
-      localStorage.setItem("Euser", JSON.stringify(data.user))
-      localStorage.setItem("Etoken", JSON.stringify(data.token))
+      localStorage.setItem("LIS_Euser", JSON.stringify(data.user))
+      localStorage.setItem("LIS_Etoken", JSON.stringify(data.token))
       if (data.user.firstLogin) {
         router.push("/change-password")
       } else {
@@ -149,9 +149,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, { method: "POST", credentials: "include" })
       setUser(null)
-      localStorage.removeItem("Etoken")
-      localStorage.removeItem("Euser")
-      router.push("/login")
+
+      Object.keys(localStorage).forEach(key => {
+      if (key.startsWith("LIS_")) {
+        localStorage.removeItem(key);
+      }
+    });
     } catch (error) {
       console.error("Logout error:", error)
     } finally {
@@ -177,7 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const updatedUser = { ...user, ...updates }
     setUser(updatedUser)
-    localStorage.setItem("Euser", JSON.stringify(updatedUser))
+    localStorage.setItem("LIS_Euser", JSON.stringify(updatedUser))
   }
 
   return (

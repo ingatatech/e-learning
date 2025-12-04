@@ -169,7 +169,7 @@ export interface Assessment {
   id: string
   title: string
   description: string
-  type: "assessment" | "project"
+  type: "assessment" | "project" | "final-assessment"
   questions: AssessmentQuestion[]
   passingScore: number
   timeLimit?: number

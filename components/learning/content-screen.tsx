@@ -130,17 +130,20 @@ export function ContentScreen({ lesson, onComplete, isCompleted, isStepping }: C
 
   return (
     <div className="w-full space-y-6">
-      <Card className="px-3">
+      <Card className="px-3 shadow-none border-0 ">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <BookOpen className="w-6 h-6 text-primary" />
               <div>
-                <CardTitle className="text-2xl">{lesson.title}</CardTitle>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                  <Clock className="w-4 h-4" />
-                  <span>{lesson.duration} minutes</span>
-                </div>
+                <CardTitle className="text-xl">{lesson.title}</CardTitle>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                      <Clock className="w-4 h-4" />
+                  {(lesson.duration && lesson.duration > 0) ? (
+                      <span>{lesson.duration} minutes</span>
+                    ) : (
+                      <span>Self-paced</span>
+                    )}
+                    </div>
               </div>
             </div>
           </div>

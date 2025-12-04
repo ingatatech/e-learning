@@ -46,8 +46,8 @@ export function GoogleLoginButton({ onError, isLoading, setIsLoading }: GoogleLo
         }
         setUser(data.user);
         setToken(data.accessToken);
-        localStorage.setItem("Euser", JSON.stringify(data.user))
-        localStorage.setItem("Etoken", JSON.stringify(data.accessToken))
+        localStorage.setItem("LIS_Euser", JSON.stringify(data.user))
+        localStorage.setItem("LIS_Etoken", JSON.stringify(data.accessToken))
         if (data.user.firstLogin) {
         router.push("/change-password")
         } else {

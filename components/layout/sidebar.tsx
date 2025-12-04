@@ -42,6 +42,7 @@ import {
   Wallet,
   Cog,
   FileCog,
+  Settings,
 } from "lucide-react"
 import React from "react"
 import { useAuth } from "@/hooks/use-auth"
@@ -385,7 +386,7 @@ export function Sidebar({ userRole, className }: SidebarProps) {
         <div className="flex items-center justify-between p-6 border-b border-border">
           {!isCollapsed && (
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
+              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded flex items-center justify-center shadow-lg">
                 {React.createElement(roleIcons[userRole] || BookOpen, { className: "w-5 h-5 text-white" })}
               </div>
               <div>
@@ -502,14 +503,14 @@ export function Sidebar({ userRole, className }: SidebarProps) {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/profile" className="cursor-pointer rounded-lg">
-                      <User className="mr-2 h-4 w-4" />
-                      Profile Settings
+                    <Link href="/settings" className="cursor-pointer rounded-lg">
+                      <Settings className="mr-2 h-4 w-4" />
+                      Settings
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/profile" className="cursor-pointer rounded-lg">
-                      <Bell className="mr-2 h-4 w-4" />
+                      <User className="mr-2 h-4 w-4" />
                       Profile
                     </Link>
                   </DropdownMenuItem>

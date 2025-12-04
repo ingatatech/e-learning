@@ -17,10 +17,7 @@ import {
 } from "@/components/ui/pagination"
 import {
   Search,
-  Star,
-  Clock,
   Users,
-  Play,
   BookOpen,
   Trophy,
   Target,
@@ -29,13 +26,13 @@ import {
   Award,
   Filter,
   X,
-  SquarePen,
   ArrowLeft,
 } from "lucide-react"
 import Link from "next/link"
 import { Header } from "@/components/layout/header"
 import { useAuth } from "@/hooks/use-auth"
-import { Course } from "@/types"
+import { BrowseCourseCard } from "@/components/course/browse-course-card"
+import { useCourses } from "@/hooks/use-courses"
 
 export default function CoursesPage() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -46,37 +43,15 @@ export default function CoursesPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(6)
   const { token, user } = useAuth()
-  const [ loading, setLoading ] = useState(false)
-  const [ courses, setCourses ] = useState<Course[]>([])
+  const { fetchCourses, courses, loading } = useCourses()
 
   useEffect(() => {
     if (user && token) {
-      const fetchCourses = async () => {
-        setLoading(true)
-        try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/organization/${user.organization!.id}/courses`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          })
-
-          if (response.ok) {
-            const data = await response.json()
-            setCourses(data.courses || data)
-          } else {
-            throw new Error("Failed to fetch courses")
-          }
-        } catch (err) {
-          console.error(" Error fetching courses:", err)
-        } finally {
-          setLoading(false)
-        }
-      }
-
-      fetchCourses()
+      fetchCourses(false, "org")
     }
-  }, [user, token])
-
+  }, [])
+  
+  console.log(courses)
   const filteredCourses = courses.filter((course) => {
     const matchesSearch =
       course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -198,7 +173,7 @@ export default function CoursesPage() {
             </div>
 
             <div className="mb-6">
-              <label className="text-sm font-medium mb-2 block">Search Adventures</label>
+              <label className="text-sm font-medium mb-2 block">Search courses</label>
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -317,7 +292,7 @@ export default function CoursesPage() {
 
         {/* Main Content */}
         <div className="flex-1 lg:ml-80">
-          <div className="px-6 py-8">
+          <div className="px-6 pb-8">
             <Button
               onClick={() => setSidebarOpen(true)}
               className="lg:hidden mb-6 bg-primary/10 hover:bg-primary/20 text-primary border-primary/20"
@@ -327,7 +302,7 @@ export default function CoursesPage() {
               Show Filters
             </Button>
 
-            <div className="text-center mb-12 relative">
+            <div className="text-center relative">
               <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-secondary/10 rounded-3xl -z-10"></div>
               <div className="py-12">
                 <div className="flex items-center justify-center gap-3 mb-4">
@@ -337,22 +312,8 @@ export default function CoursesPage() {
                   <h1 className="text-4xl font-bold text-primary">Browse the courses</h1>
                 </div>
                 <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-6">
-                  Embark on your learning journey and unlock new achievements
+                  Embark on your learning journey and improve your skills with our diverse collection of courses.
                 </p>
-
-                <div className="flex items-center justify-center gap-8 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Award className="w-4 h-4 text-yellow-500" />
-                    <span className="font-medium">{filteredCourses.length} Courses Available</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-blue-500" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-orange-500" />
-                    <span className="font-medium">Learn & Earn XP</span>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -362,7 +323,7 @@ export default function CoursesPage() {
                   <Trophy className="w-3 h-3 mr-1" />
                   {filteredCourses.length} Courses Found
                 </Badge>
-                <span className="text-muted-foreground text-sm">out of {courses.length} total adventures</span>
+                <span className="text-muted-foreground text-sm">out of {courses.length} total courses</span>
               </div>
             </div>
 
@@ -370,124 +331,19 @@ export default function CoursesPage() {
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {paginatedCourses.map((course) => (
-                    <Card
+                    <BrowseCourseCard
                       key={course.id}
-                      className="pt-0 overflow-hidden hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group border-2 hover:border-primary/20 bg-gradient-to-b from-card to-card/50 flex flex-col h-full"
-                    >
-                      <div className="relative">
-                        <img
-                          src={course.thumbnail || "/placeholder0.svg"}
-                          alt={course.title}
-                          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-
-                        <div className="absolute top-2 left-2 flex flex-col gap-1">
-                          {course.isPopular && (
-                            <Badge className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 shadow-md">
-                              <Crown className="w-3 h-3 mr-1" />
-                              Popular
-                            </Badge>
-                          )}
-                          <Badge className={`${getLevelColor(course.level)} shadow-md flex items-center gap-1`}>
-                            {getLevelIcon(course.level)}
-                            {course.level.charAt(0).toUpperCase() + course.level.slice(1)}
-                          </Badge>
-                        </div>
-
-                        <div className="absolute top-2 right-2">
-                          {course.price == 0 || course.price === null || course.price === undefined ? (
-                            <Badge className="bg-green-500 hover:bg-green-600 shadow-md">
-                              <Zap className="w-3 h-3 mr-1" />
-                              FREE
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary" className="shadow-md font-bold">
-                              {course.price}RWF
-                            </Badge>
-                          )}
-                        </div>
-
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
-                          <Button
-                            size="sm"
-                            className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-75 group-hover:scale-100 bg-primary/90 hover:bg-primary shadow-lg"
-                            asChild
-                          >
-                            <Link href={`/courses/${course.id}`}>
-                              <Play className="w-4 h-4 mr-2" />
-                              Start Course
-                            </Link>
-                          </Button>
-                        </div>
-                      </div>
-
-                      <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-1">
-                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                            <span className="text-sm font-bold">{course.rating}</span>
-                            <span className="text-xs text-muted-foreground">({course.reviewCount})</span>
-                          </div>
-                        </div>
-                        <CardTitle className="text-lg line-clamp-2 group-hover:text-primary transition-colors">
-                          {course.title}
-                        </CardTitle>
-                        <CardDescription className="line-clamp-2 min-h-[2.5rem]">{course.description}</CardDescription>
-                      </CardHeader>
-
-                      <CardContent className="pt-0 flex-1 flex flex-col">
-                        <div className="flex items-center gap-2 mb-4">
-                          <img
-                            src={course.instructor?.profilePicUrl || "/placeholder.svg"}
-                            alt={course.instructor?.profilePicUrl}
-                            className="w-7 h-7 rounded-full border-2 border-primary/20"
-                          />
-                          <div className="flex items-center gap-1">
-                            <Award className="w-3 h-3 text-primary" />
-                            <span className="text-sm font-medium text-primary">
-                              {course.instructor?.firstName ?? ""} {course.instructor?.lastName ?? ""}
-                              {course.instructor?.firstName || course.instructor?.lastName ? "" : "Unknown Instructor"}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-2 mb-4 text-xs">
-                          <div className="flex items-center gap-1 p-2 bg-muted/50 rounded-lg">
-                            <Users className="w-3 h-3 text-blue-500" />
-                            <span className="font-medium">{course.enrollmentCount?.toLocaleString()}</span>
-                          </div>
-                          <div className="flex items-center gap-1 p-2 bg-muted/50 rounded-lg">
-                            <BookOpen className="w-3 h-3 text-green-500" />
-                            {course.modules?.reduce((sum, mod) => sum + (mod.lessons?.length ?? 0), 0) ?? 0}
-                          </div>
-                          <div className="flex items-center gap-1 p-2 bg-muted/50 rounded-lg">
-                            <Clock className="w-3 h-3 text-orange-500" />
-                            <span className="font-medium">{course.duration}</span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between mt-auto">
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg font-bold text-primary">
-                              {course.price == 0 || course.price === null || course.price === undefined
-                                ? "FREE"
-                                : `${course.price}RWF`}
-                            </span>
-                            {course.originalPrice > course.price && (
-                              <span className="text-sm text-muted-foreground line-through">
-                                {course.originalPrice}RWF
-                              </span>
-                            )}
-                          </div>
-                          <Button size="sm" className="bg-primary hover:bg-primary/70 shadow-md" asChild>
-                            <Link href={`/courses/${course.id}`}>
-                              <SquarePen className="w-3 h-3 mr-1" />
-                              Enroll
-                            </Link>
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
+                      id={course.id}
+                      title={course.title}
+                      description={course.description}
+                      image={course.thumbnail}
+                      partner={course.organization?.name}
+                      level={course.level}
+                      language={course.language}
+                      duration={course.duration}
+                      price={course.price}
+                      category={course.category}
+                    />
                   ))}
                 </div>
 
@@ -544,7 +400,7 @@ export default function CoursesPage() {
                 </div>
                 <h3 className="text-xl font-bold mb-3">No Courses match your criteria</h3>
                 <p className="text-muted-foreground mb-6">
-                  Try adjusting your filters to discover more learning adventures
+                  Try adjusting your filters to discover more learning courses
                 </p>
                 <Button onClick={clearAllFilters} variant="outline">
                   <Target className="w-4 h-4 mr-2" />

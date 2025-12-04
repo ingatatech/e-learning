@@ -418,7 +418,7 @@ export function AssessmentScreen({
 
     return (
       <div className="max-w-4xl mx-auto p-6">
-        <Card>
+        <Card className="shadow-none border-0">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
               {previousPassed ? (

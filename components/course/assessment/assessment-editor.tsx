@@ -31,16 +31,16 @@ export function AssessmentEditor({ assessment, onUpdate, onDelete }: AssessmentE
       correctAnswer: "",
       points: 1,
     }
-    onUpdate({ questions: [...assessment.questions, newQuestion] })
+    onUpdate({ questions: [...assessment.questions || [], newQuestion] })
   }
 
   const updateQuestion = (index: number, updates: Partial<AssessmentQuestion>) => {
-    const updatedQuestions = assessment.questions.map((q, i) => (i === index ? { ...q, ...updates } : q))
+    const updatedQuestions = assessment.questions?.map((q, i) => (i === index ? { ...q, ...updates } : q))
     onUpdate({ questions: updatedQuestions })
   }
 
   const deleteQuestion = (index: number) => {
-    const updatedQuestions = assessment.questions.filter((_, i) => i !== index)
+    const updatedQuestions = assessment.questions?.filter((_, i) => i !== index)
     onUpdate({ questions: updatedQuestions })
   }
 
@@ -265,11 +265,11 @@ export function AssessmentEditor({ assessment, onUpdate, onDelete }: AssessmentE
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">Questions</h3>
                 <Badge variant="outline">
-                  {assessment.questions.length} question{assessment.questions.length !== 1 ? "s" : ""}
+                  {assessment.questions?.length} question{assessment.questions?.length !== 1 ? "s" : ""}
                 </Badge>
               </div>
 
-              {assessment.questions.map((question, index) => renderQuestionEditor(question, index))}
+              {assessment.questions?.map((question, index) => renderQuestionEditor(question, index))}
 
               {/* Add Question */}
               <Card className="border-dashed border-2 border-gray-300 hover:border-primary-400 transition-colors">
@@ -346,12 +346,12 @@ export function AssessmentEditor({ assessment, onUpdate, onDelete }: AssessmentE
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-primary-600">{assessment.questions.length}</div>
+                    <div className="text-2xl font-bold text-primary-600">{assessment.questions?.length}</div>
                     <div className="text-sm text-gray-600">Questions</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-green-600">
-                      {assessment.questions.reduce((acc, q) => acc + q.points, 0)}
+                      {assessment.questions?.reduce((acc, q) => acc + q.points, 0)}
                     </div>
                     <div className="text-sm text-gray-600">Total Points</div>
                   </div>

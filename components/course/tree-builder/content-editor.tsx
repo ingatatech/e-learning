@@ -34,7 +34,12 @@ export function ContentEditor({ item, modules, onUpdate, onDelete }: ContentEdit
 
   // Sync when the item prop changes
   useEffect(() => {
-    setCurrentData(item.data)
+    if (item.type === "final-assessment") {
+      setCurrentData(item.data.assessment || [])
+    } else {
+      setCurrentData(item.data)
+    }
+    
 
     // Also update contentBlocks for lessons
     if (item.type === "lesson") {
@@ -293,8 +298,8 @@ export function ContentEditor({ item, modules, onUpdate, onDelete }: ContentEdit
     )
   }
 
-  if (item.type === "assignment") {
-    const assessment = currentData as Assessment
+  if (item.type === "assignment" || "final-assessment") {
+    let assessment = currentData as Assessment
     const module = modules.find((m) => m.id === item.moduleId)
     const lesson = module?.lessons?.find((l) => l.id === item.lessonId)
 
