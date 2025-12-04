@@ -97,7 +97,7 @@ export function CourseTreeBuilder({
       title: "New Lesson",
       content: "",
       duration: 0,
-      order: 1,
+      order: modules.find((m) => m.id === moduleId)?.lessons?.length! + 1 || 0,
       moduleId,
       isProject: false,
       isExercise: false,
@@ -179,7 +179,6 @@ export function CourseTreeBuilder({
       createdAt: new Date(),
       updatedAt: new Date(),
     }
-    console.log(newFinalAssessment)
 
     setModules(
       modules.map((module) => (module.id === moduleId ? { ...module, finalAssessment: newFinalAssessment } : module)),
@@ -339,6 +338,7 @@ export function CourseTreeBuilder({
                           })
                         }
                       >
+                      {(module.lessons && module.lessons.length > 0) && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
@@ -352,6 +352,7 @@ export function CourseTreeBuilder({
                             <ChevronRight className="w-4 h-4" />
                           )}
                         </button>
+                      )}
                         <BookOpen className="w-4 h-4 text-primary-600 flex-shrink-0" />
                         <span className="flex-1 text-sm font-medium truncate">{module.title || "Untitled Module"}</span>
                         <div className="flex gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -404,19 +405,21 @@ export function CourseTreeBuilder({
                                   })
                                 }
                               >
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    toggleLesson(lesson.id)
-                                  }}
-                                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
-                                >
-                                  {expandedLessons.has(lesson.id) ? (
-                                    <ChevronDown className="w-3 h-3" />
-                                  ) : (
-                                    <ChevronRight className="w-3 h-3" />
-                                  )}
-                                </button>
+                                {(lesson.assessments && lesson.assessments.length > 0) && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      toggleLesson(lesson.id)
+                                    }}
+                                    className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+                                  >
+                                    {expandedLessons.has(lesson.id) ? (
+                                      <ChevronDown className="w-3 h-3" />
+                                    ) : (
+                                      <ChevronRight className="w-3 h-3" />
+                                    )}
+                                  </button>
+                                )}
                                 <div className="w-3 h-3 rounded-full bg-blue-500 flex-shrink-0" />
                                 <span className="flex-1 text-xs font-medium truncate">
                                   {lesson.title || "Untitled Lesson"}

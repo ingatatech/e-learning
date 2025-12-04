@@ -361,10 +361,6 @@ export default function ModulesManagementPage({ params }: { params: Promise<{ id
           })),
         }),
       })
-
-      if (response.ok) {
-        console.log("Course updated successfully")
-      }
     } catch (error) {
       console.error("Failed to save course:", error)
     } finally {

@@ -175,7 +175,12 @@ export default function MyCoursesPage() {
         const progressData = await progressResponse.json()
 
         // Get the course to generate steps
-        const courseResponse = await fetchSingleCourse(courseId)
+        const courseResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/get/${courseId}`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        })
 
         if (courseResponse.ok) {
           const courseData = await courseResponse.json()
@@ -572,9 +577,43 @@ export default function MyCoursesPage() {
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-1">
-                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                          <span className="text-sm font-bold">{enrollment.course.rating}</span>
-                          <span className="text-xs text-muted-foreground">({enrollment.course.reviewCount})</span>
+                          {(() => {
+                            // Check if we have reviews array
+                            const reviews = enrollment.course.reviews || [];
+                            
+                            // Determine average rating
+                            let avg = 0;
+                            let reviewCount = 0;
+                            
+                            if (reviews.length > 0) {
+                              // Use reviews array if available
+                              avg = reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length;
+                              reviewCount = reviews.length;
+                            } else if (enrollment.course.rating !== undefined && enrollment.course.reviewCount !== undefined) {
+                              // Fallback to existing rating and reviewCount properties
+                              avg = enrollment.course.rating;
+                              reviewCount = enrollment.course.reviewCount;
+                            }
+                            
+                            // Round to nearest star (0-5)
+                            const filled = Math.round(Math.min(Math.max(avg, 0), 5));
+                            const total = 5;
+                            const empty = total - filled;
+
+                            return (
+                              <>
+                                {[...Array(filled)].map((_, i) => (
+                                  <Star key={`filled-${i}`} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                                ))}
+                                {[...Array(empty)].map((_, i) => (
+                                  <Star key={`empty-${i}`} className="w-4 h-4 fill-gray-300 text-gray-300" />
+                                ))}
+                                <span className="ml-2 text-sm text-muted-foreground">
+                                  {reviewCount > 0 ? `${avg.toFixed(1)} (${reviewCount})` : "No reviews"}
+                                </span>
+                              </>
+                            );
+                          })()}
                         </div>
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Calendar className="w-3 h-3" />

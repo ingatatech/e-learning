@@ -51,7 +51,6 @@ export default function CoursesPage() {
     }
   }, [])
   
-  console.log(courses)
   const filteredCourses = courses.filter((course) => {
     const matchesSearch =
       course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||

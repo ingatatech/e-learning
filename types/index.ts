@@ -215,6 +215,13 @@ export interface Enrollment {
   isCompleted: boolean
   certificateId?: string
   certificate?: Certificate
+  reviews?: Array<{ // Add this optional property
+    id: string
+    rating: number
+    comment?: string
+    userId: string
+    createdAt: string
+  }>
 }
 
 export interface Category {

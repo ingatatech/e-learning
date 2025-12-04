@@ -21,7 +21,6 @@ import {
   Star,
   Clock,
   Play,
-  Edit,
   Eye,
   TrendingUp,
   Search,
@@ -161,10 +160,6 @@ export default function CourseOverviewPage() {
               className="bg-white/90 border-white/90 text-gray-900 hover:bg-white"
               asChild
             >
-              <Link href={`/instructor/courses/${course.id}/edit`}>
-                <Edit className="w-4 h-4 mr-2" />
-                Edit
-              </Link>
             </Button>
           </div>
         </div>

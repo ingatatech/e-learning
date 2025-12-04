@@ -46,7 +46,6 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
   const [showCelebration, setShowCelebration] = useState(false)
   const [celebrationData, setCelebrationData] = useState<any>({})
   const [isStepping, setIsStepping] = useState(false)
-  const [viewMode, setViewMode] = useState<"course" | "grades">("course")
   const router = useRouter()
 
   const {

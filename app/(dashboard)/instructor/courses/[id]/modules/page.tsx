@@ -24,7 +24,6 @@ export default function EditCourseModulesPage({ params }: { params: Promise<{ id
         const courseResponse = await fetchSingleCourse(id, "live")
         if (courseResponse) {
           setCourse(courseResponse)
-          console.log(courseResponse)
         } else {
           setCourse(null)
         }
@@ -123,11 +122,6 @@ const saveCourse = async () => {
             // Only include question ID if it's a numeric database ID
             ...(question.id && String(question.id).match(/^\d+$/) && { id: question.id }),
           }));
-
-          // DO NOT send assessmentId - it's causing the issue
-          // The assessmentId "1764684787093-b3uo6p4yi" is not a valid database ID
-          // Remove this line completely:
-          // ...(module.finalAssessment?.id && { assessmentId: module.finalAssessment.id })
         }
 
         moduleData.finalAssessment = finalAssessmentData;
@@ -135,6 +129,7 @@ const saveCourse = async () => {
 
       return moduleData
     })
+    console.log(modulesToSend)
 
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/update/${id}`, {
       method: "PUT",
