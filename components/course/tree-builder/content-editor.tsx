@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
-import { BookOpen, FileText, Trophy, Trash2, AlertCircle } from "lucide-react"
+import { BookOpen, FileText, Trophy, Trash2, AlertCircle, Plus } from "lucide-react"
 import { ContentBlockBuilder } from "../lesson/content-block-builder"
 import { AssessmentEditor } from "../assessment/assessment-editor"
 import type { Module, Lesson, Assessment, ContentBlock } from "@/types"
@@ -39,7 +39,6 @@ export function ContentEditor({ item, modules, onUpdate, onDelete }: ContentEdit
     } else {
       setCurrentData(item.data)
     }
-    
 
     // Also update contentBlocks for lessons
     if (item.type === "lesson") {
@@ -246,8 +245,9 @@ export function ContentEditor({ item, modules, onUpdate, onDelete }: ContentEdit
           </div>
 
           <Tabs defaultValue="content" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="content">Content</TabsTrigger>
+              <TabsTrigger value="resources">Resources</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
 
@@ -259,6 +259,91 @@ export function ContentEditor({ item, modules, onUpdate, onDelete }: ContentEdit
                 </p>
               </div>
               <ContentBlockBuilder blocks={contentBlocks} onBlocksChange={handleBlocksChange} />
+            </TabsContent>
+
+            <TabsContent value="resources" className="space-y-4 mt-4">
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-base font-medium">Lesson Resources</Label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Add downloadable resources, links, and materials for this lesson
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  {(lesson.resources || []).map((resource, index) => (
+                    <Card key={index} className="p-4 border">
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <Label className="text-sm">Resource Title</Label>
+                          <Input
+                            value={resource.title}
+                            onChange={(e) => {
+                              const newResources = [...(lesson.resources || [])]
+                              newResources[index].title = e.target.value
+                              setCurrentData({ ...lesson, resources: newResources })
+                              onUpdate({ resources: newResources })
+                            }}
+                            placeholder="e.g., Sample Code, PDF Guide"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm">Resource URL</Label>
+                          <Input
+                            value={resource.url}
+                            onChange={(e) => {
+                              const newResources = [...(lesson.resources || [])]
+                              newResources[index].url = e.target.value
+                              setCurrentData({ ...lesson, resources: newResources })
+                              onUpdate({ resources: newResources })
+                            }}
+                            placeholder="https://example.com/resource"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm">Description (Optional)</Label>
+                          <Input
+                            value={resource.description || ""}
+                            onChange={(e) => {
+                              const newResources = [...(lesson.resources || [])]
+                              newResources[index].description = e.target.value
+                              setCurrentData({ ...lesson, resources: newResources })
+                              onUpdate({ resources: newResources })
+                            }}
+                            placeholder="Brief description of the resource"
+                          />
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const newResources = lesson.resources?.filter((_, i) => i !== index) || []
+                            setCurrentData({ ...lesson, resources: newResources })
+                            onUpdate({ resources: newResources })
+                          }}
+                          className="text-red-500 hover:text-red-700 w-full"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Remove Resource
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const newResources = [...(lesson.resources || []), { url: "", title: "", description: "" }]
+                    setCurrentData({ ...lesson, resources: newResources })
+                    onUpdate({ resources: newResources })
+                  }}
+                  className="w-full bg-transparent"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Resource
+                </Button>
+              </div>
             </TabsContent>
 
             <TabsContent value="settings" className="space-y-4 mt-4">
@@ -298,8 +383,8 @@ export function ContentEditor({ item, modules, onUpdate, onDelete }: ContentEdit
     )
   }
 
-  if (item.type === "assignment" || "final-assessment") {
-    let assessment = currentData as Assessment
+  if (item.type === "assignment" || item.type === "final-assessment") {
+    const assessment = currentData as Assessment
     const module = modules.find((m) => m.id === item.moduleId)
     const lesson = module?.lessons?.find((l) => l.id === item.lessonId)
 

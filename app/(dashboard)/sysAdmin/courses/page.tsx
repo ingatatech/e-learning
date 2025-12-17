@@ -24,18 +24,14 @@ import { useCourses } from "@/hooks/use-courses"
 import { DashboardCourseCard } from "@/components/course/dashboard-course-card"
 
 export default function CourseOverviewPage() {
-  const { courses, loading, fetchCourses } = useCourses()
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState<"all" | "published" | "draft">("all")
   const [sortBy, setSortBy] = useState<"title" | "students" | "rating" | "created">("created")
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(6)
-  const { token, user } = useAuth()
-
-  useEffect(() => {
-    fetchCourses(false, "org")
-  }, [])
+  const { useCoursesByType } = useCourses()
+  const { courses, loading } = useCoursesByType("org")
 
 
   const filteredCourses = courses

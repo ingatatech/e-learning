@@ -26,8 +26,10 @@ interface CourseDetailsStepProps {
   onThumbnailUploadError: (error: string) => void
   isThumbnailUploading: boolean
   instructors: any
+  categories: any
   user: any
   loading: any
+  inLoading: any
 }
 
 export function CourseDetailsStep({
@@ -41,8 +43,10 @@ export function CourseDetailsStep({
   onThumbnailUploadError,
   isThumbnailUploading,
   instructors,
+  categories,
   user,
   loading,
+  inLoading,
 }: CourseDetailsStepProps) {
   const [currentTag, setCurrentTag] = useState("")
   const [currentLearningObjective, setCurrentLearningObjective] = useState("")
@@ -259,21 +263,18 @@ export function CourseDetailsStep({
                   <Select
                     value={courseData.category || ""}
                     onValueChange={(value) => setCourseData({ ...courseData, category: value })}
+                    disabled={inLoading}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Programming">Programming</SelectItem>
-                      <SelectItem value="Design">Design</SelectItem>
-                      <SelectItem value="Business">Business</SelectItem>
-                      <SelectItem value="Marketing">Marketing</SelectItem>
-                      <SelectItem value="Data Science">Data Science</SelectItem>
-                      <SelectItem value="Photography">Photography</SelectItem>
-                      <SelectItem value="Music">Music</SelectItem>
-                      <SelectItem value="Health & Fitness">Health & Fitness</SelectItem>
-                      <SelectItem value="Language">Language</SelectItem>
-                      <SelectItem value="Personal Development">Personal Development</SelectItem>
+
+                    {categories.map((category: { id: React.Key | null | undefined; name: string | number | bigint | boolean | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | Promise<string | number | bigint | boolean | React.ReactPortal | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | null | undefined> | null | undefined }) => (
+                      <SelectItem key={category.id} value={category.name}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -284,6 +285,7 @@ export function CourseDetailsStep({
                     <Select
                       value={courseData.instructorId || ""}
                       onValueChange={(value) => setCourseData({ ...courseData, instructorId: value })}
+                      disabled={inLoading}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select Instructor" />

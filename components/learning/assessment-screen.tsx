@@ -1,6 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import type React from "react"
+
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -40,38 +42,60 @@ import {
   AlertTriangle,
   Play,
   ChevronRight,
+  Upload,
+  X,
+  ShieldCheck,
+  Loader2,
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { toast } from "@/components/ui/use-toast"
 import { Pssnt } from "../weblack/pssnt"
-import { set } from "date-fns"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+
+interface MatchingPair {
+  id: string
+  left: string
+  right: string
+}
 
 interface Question {
   id: string
   question: string
-  type: "multiple_choice" | "true_false" | "essay" | "short_answer"
+  type: "multiple_choice" | "true_false" | "essay" | "short_answer" | "matching" | "checkboxes"
   options: string[]
   correctAnswer: string | string[]
   points: number
+  matchingPairs?: MatchingPair[]
 }
 
 interface Assessment {
   id: string
   title: string
   description: string
-  type: "quiz" | "assignment" | "project"
+  type: "quiz" | "assignment" | "project" | "assessment"
   passingScore: number
   timeLimit: number
   questions: Question[]
+  createdAt: string
+  updatedAt: string
+  fileRequired?: boolean
+  instructions?: string
 }
 
 interface SavedAnswer {
-  id: string
-  answer: string
+  id: number
+  answerId: number
+  answer: string | string[]
   isCorrect: boolean
   pointsEarned: number
-  createdAt: string
-  question: Question
+  question: {
+    id: string
+    question: string
+    type: string
+    correctAnswer?: string | string[]
+    points: number
+  }
 }
 
 interface AssessmentScreenProps {
@@ -86,6 +110,7 @@ interface AssessmentScreenProps {
   isPending?: boolean
   isFailed?: boolean
   refetch?: () => void
+  markStepPending?: boolean
 }
 
 export function AssessmentScreen({
@@ -100,6 +125,7 @@ export function AssessmentScreen({
   isPending,
   isFailed,
   refetch,
+  markStepPending,
 }: AssessmentScreenProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({})
@@ -115,6 +141,11 @@ export function AssessmentScreen({
   const [passed, setPassed] = useState(false)
   const [loadingRetake, setLoadingRetake] = useState(false)
   const [loading, setLoading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [uploadingFile, setUploadingFile] = useState(false)
+  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null)
+  const [isActive, setIsActive] = useState(false)
 
   const { token, user } = useAuth()
 
@@ -198,6 +229,7 @@ export function AssessmentScreen({
   const handleStartAssessment = () => {
     setShowStartModal(false)
     setTimerStarted(true)
+    setIsActive(true)
   }
 
   const handleNext = () => {
@@ -215,8 +247,8 @@ export function AssessmentScreen({
   const handleSubmit = async () => {
     if (!token || !user) return
 
-    let totalPoints = 0
     let earnedPoints = 0
+    let totalPoints = 0
     const correctAnswersMap: Record<string, string | string[]> = {}
 
     const requiresManualGrading = assessment.questions.some((q) => q.type === "short_answer" || q.type === "essay")
@@ -247,6 +279,21 @@ export function AssessmentScreen({
           if (userAnswer === question.correctAnswer) {
             earnedPoints += question.points
           }
+        }
+      } else if (question.type === "matching") {
+        const userMatches = Array.isArray(userAnswer) ? userAnswer : userAnswer ? userAnswer.split(",") : []
+        const correctMatches = Array.isArray(question.correctAnswer)
+          ? question.correctAnswer
+          : question.correctAnswer
+            ? [question.correctAnswer]
+            : []
+
+        const isCorrect =
+          userMatches.length === correctMatches.length &&
+          userMatches.every((match, idx) => match === correctMatches[idx])
+
+        if (isCorrect) {
+          earnedPoints += question.points
         }
       }
     })
@@ -344,6 +391,57 @@ export function AssessmentScreen({
   const currentQuestion = assessment.questions[currentQuestionIndex]
   const currentAnswerValue = answers[currentQuestion?.id] || ""
 
+  // Handle file upload specifically for assessments with fileRequired flag
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files.length > 0) {
+      setUploadedFile(event.target.files[0])
+    }
+  }
+
+  const handleFileUpload = async () => {
+    if (!uploadedFile || !token || !user) return
+
+    setUploadingFile(true)
+    const formData = new FormData()
+    formData.append("file", uploadedFile)
+    formData.append("assessmentId", assessment.id)
+    formData.append("userId", user.id)
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload/assessment-file`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setUploadedFileUrl(data.url)
+        toast({
+          title: "File Uploaded Successfully",
+          description: "Your file has been uploaded.",
+        })
+      } else {
+        toast({
+          title: "File Upload Failed",
+          description: "There was an error uploading your file. Please try again.",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("File upload error:", error)
+      toast({
+        title: "File Upload Error",
+        description: "An unexpected error occurred during file upload.",
+        variant: "destructive",
+      })
+    } finally {
+      setUploadingFile(false)
+    }
+  }
+
   if (showStartModal && !isSubmitted && !isCompleted && !isPending && !isFailed) {
     return (
       <div className="max-w-4xl mx-auto p-6">
@@ -374,6 +472,53 @@ export function AssessmentScreen({
                 </div>
               </div>
 
+              {assessment.instructions && (
+                <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <FileText className="w-5 h-5 text-blue-600 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-blue-800 dark:text-blue-200">Instructions:</p>
+                      <ul className="text-sm text-blue-700 dark:text-blue-300 mt-2 space-y-1">
+                        {assessment.instructions.split("\n").map((line, index) => (
+                          <li key={index}>• {line}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {assessment.fileRequired && (
+                <div className="p-4 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <Upload className="w-5 h-5 text-yellow-600 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-yellow-800 dark:text-yellow-200">File Upload Required</p>
+                      <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-2">
+                        Please upload the required file before starting the assessment.
+                      </p>
+                      <div className="mt-3">
+                        <input type="file" ref={fileInputRef} onChange={handleFileChange} className="text-sm" />
+                        <Button onClick={handleFileUpload} disabled={!uploadedFile || uploadingFile} className="ml-2">
+                          {uploadingFile ? <Loader2 className="h-4 w-4 animate-spin" /> : "Upload"}
+                        </Button>
+                        {uploadedFileUrl && (
+                          <Alert className="mt-3 py-2">
+                            <AlertDescription className="flex items-center gap-2">
+                              <ShieldCheck className="w-4 h-4 text-green-500" />
+                              File uploaded successfully.
+                              <Button variant="ghost" size="sm" onClick={() => setUploadedFileUrl(null)}>
+                                <X className="w-4 h-4" />
+                              </Button>
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg">
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
@@ -391,7 +536,11 @@ export function AssessmentScreen({
             </div>
 
             <DialogFooter>
-              <Button onClick={handleStartAssessment} className="flex items-center gap-2">
+              <Button
+                onClick={handleStartAssessment}
+                className="flex items-center gap-2"
+                disabled={assessment.fileRequired && !uploadedFileUrl}
+              >
                 <Play className="w-4 h-4" />
                 Begin Assessment
               </Button>
@@ -410,6 +559,20 @@ export function AssessmentScreen({
             <CardContent className="text-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
               <p className="text-muted-foreground">Loading your answers...</p>
+            </CardContent>
+          </Card>
+        </div>
+      )
+    }
+
+    if (!assessment.questions || assessment.questions.length === 0) {
+      return (
+        <div className="max-w-4xl mx-auto p-6">
+          <Card>
+            <CardContent className="text-center py-12">
+              <AlertCircle className="w-12 h-12 text-orange-500 mx-auto mb-4" />
+              <p className="text-lg font-semibold mb-2">No Questions Available</p>
+              <p className="text-muted-foreground">This assessment doesn't have any questions to review.</p>
             </CardContent>
           </Card>
         </div>
@@ -457,6 +620,20 @@ export function AssessmentScreen({
                   : "This assessment has been completed. You can review your answers below."}
               </p>
             </div>
+
+            {assessment.fileRequired && uploadedFileUrl && (
+              <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-green-600" />
+                  <p className="font-medium text-green-700 dark:text-green-300">
+                    File uploaded successfully:{" "}
+                    <a href={uploadedFileUrl} target="_blank" rel="noopener noreferrer" className="underline">
+                      {uploadedFileUrl.substring(uploadedFileUrl.lastIndexOf("/") + 1)}
+                    </a>
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div className="text-left">
               <h3 className="text-lg font-semibold mb-4">Your Submitted Answers</h3>
@@ -550,6 +727,20 @@ export function AssessmentScreen({
                 <div className="text-sm text-muted-foreground">Submitted On</div>
               </div>
             </div>
+
+            {assessment.fileRequired && uploadedFileUrl && (
+              <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-green-600" />
+                  <p className="font-medium text-green-700 dark:text-green-300">
+                    File uploaded successfully:{" "}
+                    <a href={uploadedFileUrl} target="_blank" rel="noopener noreferrer" className="underline">
+                      {uploadedFileUrl.substring(uploadedFileUrl.lastIndexOf("/") + 1)}
+                    </a>
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg">
               <div className="flex items-start gap-3">
@@ -726,6 +917,20 @@ export function AssessmentScreen({
                 </div>
               </div>
 
+              {assessment.fileRequired && uploadedFileUrl && (
+                <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-green-600" />
+                    <p className="font-medium text-green-700 dark:text-green-300">
+                      File uploaded successfully:{" "}
+                      <a href={uploadedFileUrl} target="_blank" rel="noopener noreferrer" className="underline">
+                        {uploadedFileUrl.substring(uploadedFileUrl.lastIndexOf("/") + 1)}
+                      </a>
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg">
                 <div className="flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
@@ -746,7 +951,7 @@ export function AssessmentScreen({
 
     return (
       <div className="max-w-4xl mx-auto p-6">
-        <Pssnt onComplete={(score, passed) => onComplete(score, passed)} />
+        {/* <Pssnt onComplete={(score, passed) => onComplete(score, passed)} /> */}
         <Card>
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
@@ -827,10 +1032,7 @@ export function AssessmentScreen({
                         correctAnswer.every((answer) => userAnswer.includes(answer)) &&
                         userAnswer.every((answer) => correctAnswer.includes(answer))
                       : userAnswer === correctAnswer
-                    const pointsEarned = answers.find((a) => a.question.id === question.id)
-                      ? (savedAnswers.find((sa) => sa.question.id === question.id)?.pointsEarned ?? 0)
-                      : 0
-
+                    const pointsEarned = savedAnswers.find((sa) => sa.question.id === question.id)?.pointsEarned ?? 0
                     return (
                       <div key={question.id} className="p-4 border rounded-lg">
                         <div className="flex items-start gap-3">
@@ -900,6 +1102,128 @@ export function AssessmentScreen({
   const totalQuestions = assessment.questions.length
   const progress = ((currentQuestionIndex + 1) / totalQuestions) * 100
 
+  const renderQuestion = (currentQuestion: Question, index: number) => {
+    return (
+      <div key={currentQuestion.id}>
+        <h3 className="text-lg font-medium mb-4">{currentQuestion.question}</h3>
+
+        {currentQuestion.type === "multiple_choice" && (
+          <>
+            {currentQuestion.type == "multiple_choice" ? (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground mb-3">Select all that apply</p>
+                {currentQuestion.options.map((option, index) => {
+                  const currentAnswers = Array.isArray(currentAnswerValue) ? currentAnswerValue : []
+                  return (
+                    <div key={index} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
+                      <Checkbox
+                        id={`checkbox-${index}`}
+                        checked={currentAnswers.includes(option)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            handleAnswerChange(currentQuestion.id, [...currentAnswers, option])
+                          } else {
+                            handleAnswerChange(
+                              currentQuestion.id,
+                              currentAnswers.filter((a) => a !== option),
+                            )
+                          }
+                        }}
+                      />
+                      <Label htmlFor={`checkbox-${index}`} className="flex-1 cursor-pointer">
+                        {option}
+                      </Label>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <RadioGroup
+                value={currentAnswerValue as string}
+                onValueChange={(value) => handleAnswerChange(currentQuestion.id, value)}
+              >
+                {currentQuestion.options.map((option, index) => (
+                  <div key={index} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
+                    <RadioGroupItem value={option} id={`option-${index}`} />
+                    <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
+                      {option}
+                    </Label>
+                  </div>
+                ))}
+              </RadioGroup>
+            )}
+          </>
+        )}
+
+        {currentQuestion.type === "true_false" && (
+          <RadioGroup
+            value={currentAnswerValue as string}
+            onValueChange={(value) => handleAnswerChange(currentQuestion.id, value)}
+          >
+            <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
+              <RadioGroupItem value="true" id="true" />
+              <Label htmlFor="true" className="flex-1 cursor-pointer">
+                True
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
+              <RadioGroupItem value="false" id="false" />
+              <Label htmlFor="false" className="flex-1 cursor-pointer">
+                False
+              </Label>
+            </div>
+          </RadioGroup>
+        )}
+
+        {(currentQuestion.type === "essay" || currentQuestion.type === "short_answer") && (
+          <Textarea
+            placeholder="Type your answer here..."
+            value={currentAnswerValue as string}
+            onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
+            className={currentQuestion.type === "essay" ? "min-h-32" : "min-h-20"}
+          />
+        )}
+
+        {currentQuestion.type === "matching" && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <Label className="text-sm font-semibold mb-3 block">Items to Match</Label>
+                <div className="space-y-2">
+                  {currentQuestion.matchingPairs?.map((pair, pairIdx) => (
+                    <div key={pair.id} className="p-3 bg-muted rounded-lg border">
+                      <p className="text-sm">{pair.left}</p>
+                      <Select
+                        value={(answers[`${currentQuestion.id}-match-${pairIdx}`] as string) || ""}
+                        onValueChange={(value) => {
+                          const newAnswers = { ...answers }
+                          newAnswers[`${currentQuestion.id}-match-${pairIdx}`] = value
+                          setAnswers(newAnswers)
+                        }}
+                        disabled={isSubmitted}
+                      >
+                        <SelectTrigger className="mt-2">
+                          <SelectValue placeholder="Select match..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {currentQuestion.matchingPairs?.map((p) => (
+                            <SelectItem key={p.id} value={p.right}>
+                              {p.right}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-4xl mx-auto p-6">
       <Pssnt onComplete={(score, passed) => onComplete(score, passed)} />
@@ -938,89 +1262,7 @@ export function AssessmentScreen({
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">{currentQuestion.question}</h3>
-
-            {currentQuestion.type === "multiple_choice" && (
-              <>
-                {currentQuestion.type == "multiple_choice" ? (
-                  <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground mb-3">Select all that apply</p>
-                    {currentQuestion.options.map((option, index) => {
-                      const currentAnswers = Array.isArray(currentAnswerValue) ? currentAnswerValue : []
-                      return (
-                        <div
-                          key={index}
-                          className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50"
-                        >
-                          <Checkbox
-                            id={`checkbox-${index}`}
-                            checked={currentAnswers.includes(option)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                handleAnswerChange(currentQuestion.id, [...currentAnswers, option])
-                              } else {
-                                handleAnswerChange(
-                                  currentQuestion.id,
-                                  currentAnswers.filter((a) => a !== option),
-                                )
-                              }
-                            }}
-                          />
-                          <Label htmlFor={`checkbox-${index}`} className="flex-1 cursor-pointer">
-                            {option}
-                          </Label>
-                        </div>
-                      )
-                    })}
-                  </div>
-                ) : (
-                  <RadioGroup
-                    value={currentAnswerValue as string}
-                    onValueChange={(value) => handleAnswerChange(currentQuestion.id, value)}
-                  >
-                    {currentQuestion.options.map((option, index) => (
-                      <div key={index} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
-                        <RadioGroupItem value={option} id={`option-${index}`} />
-                        <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
-                          {option}
-                        </Label>
-                      </div>
-                    ))}
-                  </RadioGroup>
-                )}
-              </>
-            )}
-
-            {currentQuestion.type === "true_false" && (
-              <RadioGroup
-                value={currentAnswerValue as string}
-                onValueChange={(value) => handleAnswerChange(currentQuestion.id, value)}
-              >
-                <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
-                  <RadioGroupItem value="true" id="true" />
-                  <Label htmlFor="true" className="flex-1 cursor-pointer">
-                    True
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
-                  <RadioGroupItem value="false" id="false" />
-                  <Label htmlFor="false" className="flex-1 cursor-pointer">
-                    False
-                  </Label>
-                </div>
-              </RadioGroup>
-            )}
-
-            {(currentQuestion.type === "essay" || currentQuestion.type === "short_answer") && (
-              <Textarea
-                placeholder="Type your answer here..."
-                value={currentAnswerValue as string}
-                onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
-                className={currentQuestion.type === "essay" ? "min-h-32" : "min-h-20"}
-              />
-            )}
-          </div>
+          {renderQuestion(currentQuestion, currentQuestionIndex)}
 
           <div className="flex items-center justify-between pt-6 border-t">
             <Button variant="outline" onClick={handlePrevious} disabled={currentQuestionIndex === 0}>

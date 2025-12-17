@@ -1,213 +1,171 @@
 "use client"
 
-import { useState, createContext, useContext, type ReactNode } from "react"
+import { createContext, useContext, type ReactNode } from "react"
 import { useAuth } from "./use-auth"
 import type { Document } from "@/types"
+import useSWR, { mutate } from "swr"
+import { fetcher } from "@/lib/fetcher"
 
 interface DocumentsContextType {
-  documents: Document[]
-  loading: boolean
-  error: string | null
-  fetchDocuments: (forceRefresh?: boolean) => Promise<void>
-  getDocument: (id: string) => Document | undefined
-  fetchSingleDocument: (id: string) => Promise<Document | null>
-  invalidateCache: () => void
-  updateDocumentInCache: (id: string, updates: Partial<Document>) => void
-  addDocumentToCache: (document: Document) => void
-  removeDocumentFromCache: (id: string) => void
+  useDocs: () => {
+    documents: Document[]
+    loading: boolean
+    error: any
+    mutate: () => void
+  }
+  useDocument: (id: string) => {
+    document: Document | undefined
+    loading: boolean
+    error: any
+    mutate: () => void
+  }
+  updateDocumentInCache: (id: string, updates: Partial<Document>) => Promise<void>
+  addDocumentToCache: (document: Document) => Promise<void>
+  removeDocumentFromCache: (id: string) => Promise<void>
+  invalidateCache: () => Promise<void>
 }
 
 const DocumentsContext = createContext<DocumentsContextType | undefined>(undefined)
 
-// Cache keys based on user role
-const DOCUMENTS_CACHE_KEYS = "LIS_docs"
-
-const loadFromLocal = (): Document[] => {
-  try {
-    const raw = localStorage.getItem(DOCUMENTS_CACHE_KEYS)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
-}
-
-const saveToLocal = (data: Document[]) => {
-  try {
-    localStorage.setItem(DOCUMENTS_CACHE_KEYS, JSON.stringify(data))
-  } catch {
-    console.error("Could not save documents to localStorage")
-  }
-}
-
-
 export function DocumentsProvider({ children }: { children: ReactNode }) {
-  const [documents, setDocuments] = useState<Document[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const { user, token } = useAuth()
 
-  const fetchDocuments = async (forceRefresh = false) => {
-
-    if (!user || !token) return
-
-    // Check cache first if not forcing refresh
-    if (!forceRefresh) {
-      const cachedDocuments = loadFromLocal()
-      if (cachedDocuments.length > 0) {
-        setDocuments(cachedDocuments)
-        return
-      }
-    }
-
-    setLoading(true)
-    setError(null)
-
-    try {
-      let url = ""
+  const useDocs = () => {
+    const getCacheKey = () => {
+      if (!user || !token) return null
 
       if (user.role === "instructor") {
-        url = `${process.env.NEXT_PUBLIC_API_URL}/docs/instructor/${user.id}`
+        return `${process.env.NEXT_PUBLIC_API_URL}/docs/instructor/${user.id}`
       } else if (user.role === "sysAdmin") {
-        url = `${process.env.NEXT_PUBLIC_API_URL}/docs/submitted`
-      } else {
-        return
+        return `${process.env.NEXT_PUBLIC_API_URL}/docs/submitted`
       }
 
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        // Save to localStorage
-        saveToLocal(data)
-        
-        setDocuments(data)
-      } else {
-        throw new Error("Failed to fetch documents")
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch documents")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const getDocument = (id: string): Document | undefined => {
-    // First check in-memory cache
-    const inMemoryDoc = documents.find((document) => Number(document.id) === Number(id))
-    if (inMemoryDoc) return inMemoryDoc
-    
-    // Then check localStorage cache
-    if (user) {
-      const cachedDocuments = loadFromLocal()
-      return cachedDocuments.find((document) => Number(document.id) === Number(id))
-    }
-    
-    return undefined
-  }
-
-  const fetchSingleDocument = async (id: string): Promise<Document | null> => {
-    // First check cache
-    const cachedDoc = getDocument(id)
-    if (cachedDoc) return cachedDoc
-
-    // If not in cache, fetch from API
-    if (!token) return null
-
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/docs/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      if (response.ok) {
-        const document = await response.json()
-        
-        // Add to cache
-        if (user) {
-          const cachedDocuments = loadFromLocal()
-          const updatedDocuments = [...cachedDocuments.filter(d => d.id !== document.id), document]
-          saveToLocal(updatedDocuments)
-          
-          // Also update in-memory state
-          setDocuments(prev => {
-            const filtered = prev.filter(d => d.id !== document.id)
-            return [...filtered, document]
-          })
-        }
-        
-        return document
-      }
-      return null
-    } catch (err) {
-      console.error("Error fetching single document:", err)
       return null
     }
-  }
 
-  const invalidateCache = () => {
-    setDocuments([])
-    if (user) {
-      localStorage.removeItem(DOCUMENTS_CACHE_KEYS)
+    const {
+      data,
+      error,
+      isLoading,
+      mutate: mutateDocuments,
+    } = useSWR(getCacheKey(), (url) => fetcher(url, token!), {
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      dedupingInterval: 2000,
+    })
+
+    return {
+      documents: data || [],
+      loading: isLoading,
+      error,
+      mutate: mutateDocuments,
     }
   }
 
-  const updateDocumentInCache = (id: string, updates: Partial<Document>) => {
-    setDocuments((prev) => {
-      const updated = prev.map((doc) => (doc.id === id ? { ...doc, ...updates } : doc))
-      
-      // Also update localStorage
-      if (user) {
-        saveToLocal(updated)
-      }
-      
-      return updated
+  const useDocument = (id: string) => {
+    const getCacheKey = () => {
+      if (!token || !id) return null
+      return `${process.env.NEXT_PUBLIC_API_URL}/docs/${id}`
+    }
+
+    const {
+      data,
+      error,
+      isLoading,
+      mutate: mutateDocument,
+    } = useSWR(getCacheKey(), (url) => fetcher(url, token!), {
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      dedupingInterval: 2000,
     })
+
+    return {
+      document: data,
+      loading: isLoading,
+      error,
+      mutate: mutateDocument,
+    }
   }
 
-  const addDocumentToCache = (document: Document) => {
-    setDocuments((prev) => {
-      const updated = [document, ...prev]
-      
-      // Also update localStorage
-      if (user) {
-        saveToLocal(updated)
-      }
-      
-      return updated
-    })
+  const updateDocumentInCache = async (id: string, updates: Partial<Document>) => {
+    const listCacheKey =
+      user?.role === "instructor"
+        ? `${process.env.NEXT_PUBLIC_API_URL}/docs/instructor/${user.id}`
+        : `${process.env.NEXT_PUBLIC_API_URL}/docs/submitted`
+
+    const singleCacheKey = `${process.env.NEXT_PUBLIC_API_URL}/docs/${id}`
+
+    // Update both list and single document caches
+    await Promise.all([
+      mutate(
+        listCacheKey,
+        (data: Document[]) => {
+          if (!data) return data
+          return data.map((doc) => (doc.id === id ? { ...doc, ...updates } : doc))
+        },
+        { revalidate: false },
+      ),
+      mutate(
+        singleCacheKey,
+        (data: Document) => {
+          if (!data) return data
+          return { ...data, ...updates }
+        },
+        { revalidate: false },
+      ),
+    ])
   }
 
-  const removeDocumentFromCache = (id: string) => {
-    setDocuments((prev) => {
-      const updated = prev.filter((doc) => doc.id !== id)
-      
-      // Also update localStorage
-      if (user) {
-        saveToLocal(updated)
-      }
-      
-      return updated
-    })
+  const addDocumentToCache = async (document: Document) => {
+    const listCacheKey =
+      user?.role === "instructor"
+        ? `${process.env.NEXT_PUBLIC_API_URL}/docs/instructor/${user.id}`
+        : `${process.env.NEXT_PUBLIC_API_URL}/docs/submitted`
+
+    await mutate(
+      listCacheKey,
+      (data: Document[]) => {
+        if (!data) return [document]
+        return [document, ...data]
+      },
+      { revalidate: false },
+    )
+  }
+
+  const removeDocumentFromCache = async (id: string) => {
+    const listCacheKey =
+      user?.role === "instructor"
+        ? `${process.env.NEXT_PUBLIC_API_URL}/docs/instructor/${user.id}`
+        : `${process.env.NEXT_PUBLIC_API_URL}/docs/submitted`
+
+    await mutate(
+      listCacheKey,
+      (data: Document[]) => {
+        if (!data) return data
+        return data.filter((doc) => doc.id !== id)
+      },
+      { revalidate: false },
+    )
+  }
+
+  const invalidateCache = async () => {
+    const cacheKeys = [
+      `${process.env.NEXT_PUBLIC_API_URL}/docs/instructor/${user?.id}`,
+      `${process.env.NEXT_PUBLIC_API_URL}/docs/submitted`,
+    ]
+
+    await Promise.all(cacheKeys.map((key) => mutate(key)))
   }
 
   return (
     <DocumentsContext.Provider
       value={{
-        documents,
-        loading,
-        error,
-        fetchDocuments,
-        getDocument,
-        fetchSingleDocument,
-        invalidateCache,
+        useDocs,
+        useDocument,
         updateDocumentInCache,
         addDocumentToCache,
         removeDocumentFromCache,
+        invalidateCache,
       }}
     >
       {children}

@@ -32,7 +32,8 @@ import Link from "next/link"
 import { Header } from "@/components/layout/header"
 import { useAuth } from "@/hooks/use-auth"
 import { BrowseCourseCard } from "@/components/course/browse-course-card"
-import { useCourses } from "@/hooks/use-courses"
+import { Course } from "@/types"
+
 
 export default function CoursesPage() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -43,13 +44,36 @@ export default function CoursesPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(6)
   const { token, user } = useAuth()
-  const { fetchCourses, courses, loading } = useCourses()
+  const [ loading, setLoading ] = useState(false)
+  const [ courses, setCourses ] = useState<Course[]>([])
 
   useEffect(() => {
     if (user && token) {
-      fetchCourses(false, "org")
+      const fetchCourses = async () => {
+        setLoading(true)
+        try {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/organization/${user.organization!.id}/courses`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            setCourses(data.courses || data)
+          } else {
+            throw new Error("Failed to fetch courses")
+          }
+        } catch (err) {
+          console.error(" Error fetching courses:", err)
+        } finally {
+          setLoading(false)
+        }
+      }
+
+      fetchCourses()
     }
-  }, [])
+  }, [user, token])
   
   const filteredCourses = courses.filter((course) => {
     const matchesSearch =

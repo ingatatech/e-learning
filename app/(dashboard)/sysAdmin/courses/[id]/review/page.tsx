@@ -46,37 +46,38 @@ export default function CourseReviewPage() {
   const { fetchSingleCourse, getCourse } = useCourses()
 
    useEffect(() => {
-    const loadCourse = async () => {
-      setLoading(true)
+    const fetchCourseData = async () => {
       try {
-        if (params.id) {
-          const courseId = Array.isArray(params.id) ? params.id[0] : params.id
-          const courseData = await fetchSingleCourse(courseId, "draft") 
-          
-          if (courseData) {
-            setCourse(courseData)
-            setModules(courseData.modules || [])
-            setEditedCourse({
-              title: courseData.title,
-              description: courseData.description,
-              level: courseData.level,
-              price: courseData.price,
-              tags: courseData.tags,
-            })
-          } else {
-            toast.error("Course not found")
-          }
+        const [courseRes] = await Promise.all([
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/get/${params.id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ])
+
+        if (courseRes.ok) {
+          const courseData = await courseRes.json()
+          setCourse(courseData.course)
+          setModules(courseData.course.modules || [])
+          setEditedCourse({
+            title: courseData.course.title,
+            description: courseData.course.description,
+            level: courseData.course.level,
+            price: courseData.course.price,
+            tags: courseData.course.tags,
+          })
         }
       } catch (error) {
-        console.error("Failed to load course:", error)
+        console.error("Failed to fetch course data:", error)
         toast.error("Failed to load course data")
       } finally {
         setLoading(false)
       }
     }
 
-    loadCourse()
-  }, [params.id, token, fetchSingleCourse, getCourse])
+    if (params.id && token) {
+      fetchCourseData()
+    }
+  }, [params.id, token])
 
   const toggleModule = (moduleIndex: number) => {
     const newExpanded = new Set(expandedModules)

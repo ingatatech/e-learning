@@ -43,6 +43,7 @@ import {
   Cog,
   FileCog,
   Settings,
+  Boxes,
 } from "lucide-react"
 import React from "react"
 import { useAuth } from "@/hooks/use-auth"
@@ -151,6 +152,9 @@ const navigationItems: Record<string, NavigationItem[]> = {
       name: "Manage Organization",
       icon: Building,
       children: [{ name: "View Organization", href: "/sysAdmin/org", icon: Building }],
+    },
+    {
+      name: "Categories", href: "/sysAdmin/categories", icon: Boxes,
     },
     { name: "Settings", href: "/settings", icon: Cog },
   ],

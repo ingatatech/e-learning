@@ -112,7 +112,7 @@ export interface Course {
   finalAssessment?: FinalAssessment
 }
 
-export interface Module {
+export interface Module extends BaseEntity {
   id: string
   title: string
   description: string
@@ -141,7 +141,7 @@ export interface LessonContent {
   blocks: ContentBlock[]
 }
 
-export interface Lesson {
+export interface Lesson extends BaseEntity {
   id: string
   title: string
   content: string
@@ -165,7 +165,7 @@ export interface Lesson {
   }>
 }
 
-export interface Assessment {
+export interface Assessment extends BaseEntity {
   id: string
   title: string
   description: string
@@ -184,10 +184,11 @@ export interface Assessment {
 export interface AssessmentQuestion {
   id: string
   question: string
-  type: "multiple_choice" | "true_false" | "short_answer" | "essay"
+  type: "multiple_choice" | "true_false" | "short_answer" | "essay" | "matching"
   options?: string[]
   correctAnswer: string | string[]
   points: number
+  matchingPairs?: Array<{ id: string; left: string; right: string }>
 }
 
 export interface Answer {
@@ -215,7 +216,8 @@ export interface Enrollment {
   isCompleted: boolean
   certificateId?: string
   certificate?: Certificate
-  reviews?: Array<{ // Add this optional property
+  reviews?: Array<{
+    // Add this optional property
     id: string
     rating: number
     comment?: string
@@ -374,4 +376,12 @@ export interface FinalAssessment {
   questions?: AssessmentQuestion[]
   createdAt: Date
   updatedAt: Date
+}
+
+
+interface BaseEntity {
+  id: string
+  // Add these fields to track state
+  _status?: 'local' | 'synced' | 'modified' | 'deleting'
+  _tempId?: string // For tracking temporary IDs before BE assigns real ones
 }

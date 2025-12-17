@@ -110,7 +110,7 @@ function ContentBlockRenderer({ block }: { block: ContentBlock }) {
             <img
               src={block.data.url || "/placeholder.svg"}
               alt={block.data.alt || "Content image"}
-              className="w-full h-auto"
+              className="w-full max-w-3xl h-auto mx-auto rounded-lg object-contain"
             />
           </div>
           {block.data.caption && <p className="text-sm text-muted-foreground mt-2 text-center">{block.data.caption}</p>}

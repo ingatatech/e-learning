@@ -1,168 +1,177 @@
 "use client"
 
-import { useState, createContext, useContext, type ReactNode } from "react"
+import { createContext, useContext, type ReactNode } from "react"
 import { useAuth } from "./use-auth"
 import type { Course } from "@/types"
+import useSWR, { mutate } from "swr"
+import { fetcher, postFetcher } from "@/lib/fetcher"
 
 interface CoursesContextType {
-  courses: Course[]
-  loading: boolean
-  error: string | null
-  fetchCourses: (forceRefresh?: boolean, type?: string) => Promise<void>
-  getCourse: (id: string) => Course | undefined
-  fetchSingleCourse: (id: string, type?: string) => Promise<Course | null>
-  invalidateCache: () => void
-  updateCourseInCache: (id: string, updates: Partial<Course>, type?: string) => void
-}
-const CACHE_KEYS = {
-  live: "LIS_courses_live",
-  draft: "LIS_courses_draft",
-  enrolled: "LIS_courses_enrolled",
-  instructor: "LIS_courses_instructor",
-  org: "LIS_courses_org",
-};
-
-const loadFromLocal = (key: string): Course[] => {
-  try {
-    const raw = localStorage.getItem(key)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
+  // Fetch courses by type
+  useCoursesByType: (type: "live" | "draft" | "all" | "org" | "enrolled") => {
+    courses: Course[]
+    loading: boolean
+    error: any
+    mutate: () => void
   }
-}
-
-const saveToLocal = (key: string, data: Course[]) => {
-  try {
-    localStorage.setItem(key, JSON.stringify(data))
-  } catch {
-    console.error("Could not save to local")
+  // Get single course
+  useCourse: (id: string) => {
+    course: Course | undefined
+    loading: boolean
+    error: any
+    mutate: () => void
   }
+  // Update course in cache
+  updateCourseInCache: (id: string, updates: Partial<Course>, type?: string) => Promise<void>
+  // Invalidate all course caches
+  invalidateAllCaches: () => Promise<void>
 }
 
 const CoursesContext = createContext<CoursesContextType | undefined>(undefined)
 
 export function CoursesProvider({ children }: { children: ReactNode }) {
-  const [courses, setCourses] = useState<Course[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [hasFetched, setHasFetched] = useState(false)
   const { user, token } = useAuth()
 
-  const fetchCourses = async (forceRefresh = false, type="live") => {
+  const useCoursesByType = (type: "live" | "draft" | "all" | "org" | "enrolled") => {
+    // Generate cache key based on type and user
+    const getCacheKey = () => {
+      if (!user || !token) return null
 
-    if (!user || !token)return
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL
 
-    const cacheKey = CACHE_KEYS[type] || CACHE_KEYS.org;
-
-    if (!forceRefresh) {
-      const local = loadFromLocal(cacheKey)
-      if (local.length > 0) {
-        setCourses(local)
-        return
+      switch (type) {
+        case "live":
+          return `${baseUrl}/courses/instructor/${user.id}/live/courses`
+        case "all":
+          return `${baseUrl}/courses/instructor/${user.id}/courses`
+        case "org":
+          return `${baseUrl}/courses/organization/${user.organization?.id}/courses`
+        case "draft":
+          return `${baseUrl}/courses/organization/${user.organization?.id}/draft/courses`
+        case "enrolled":
+          return `${baseUrl}/enrollments/user-enrollments`
+        default:
+          return null
       }
     }
 
-    setLoading(true)
-    setError(null)
-
-    try {
-      let url = ""
-
-        if (type === "live") {
-          url = `${process.env.NEXT_PUBLIC_API_URL}/courses/instructor/${user.id}/live/courses`
-        } else if (type === "all") {
-          url = `${process.env.NEXT_PUBLIC_API_URL}/courses/instructor/${user?.id}/courses`
-        } else if (type === "org") {
-          url = `${process.env.NEXT_PUBLIC_API_URL}/courses/organization/${user.organization?.id}/courses`
-        } else if (type === "draft") {
-          url = `${process.env.NEXT_PUBLIC_API_URL}/courses/organization/${user?.organization?.id}/draft/courses`
+    const { data, error, isLoading, mutate } = useSWR(
+      getCacheKey(), 
+      (url: string) => {
+        if (type === 'enrolled') {
+        return postFetcher(url, { arg: { userId: user!.id } }, token!)
+        } else {
+          return fetcher(url, token!)
         }
-        
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      if (response.ok) {
-        const data = (await response.json()).courses || []
-        saveToLocal(cacheKey, data)
-        setCourses(data)
-      } else {
-        throw new Error("Failed to fetch courses")
-      }
-    } catch (err) {
-      console.error(" Error fetching courses:", err)
-      setError(err instanceof Error ? err.message : "Failed to fetch courses")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const getCourse = (id: string, cacheKey = CACHE_KEYS.org) => {
-    const store = loadFromLocal(cacheKey)
-    const course = store.find((course) => Number(course.id) === Number(id))
-    return course
-  }
-
-  const fetchSingleCourse = async (id: string, type="org"): Promise<Course | null> => {
-    // First check cache
-    const cacheKey = CACHE_KEYS[type] || CACHE_KEYS.org;
-
-    const cachedCourse = getCourse(id, cacheKey)
-    if (cachedCourse) return cachedCourse
-
-    // If not in cache, fetch it
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/get/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      if (response.ok) {
-        const course = await response.json()
-        // Add to cache
-        saveToLocal(cacheKey, [
-          ...loadFromLocal(cacheKey),
-          course.course,
-        ])
-
-        return course.course
-
-      }
-      return null
-    } catch (err) {
-      console.error(" Error fetching single course:", err)
-      return null
-    }
-  }
-
-  const invalidateCache = () => {
-    setCourses([])
-    setHasFetched(false)
-    localStorage.removeItem(LS_KEY)
-  }
-
-  const updateCourseInCache = (id: string, updates: Partial<Course>, type="org") => {
-    setCourses(prev => {
-      const updated = prev.map(c => (c.id === id ? { ...c, ...updates } : c))
-      saveToLocal(type, updated)
-      return updated
+      }, {
+      // Revalidate on focus (when user switches back to tab)
+      revalidateOnFocus: true,
+      // Revalidate on reconnect
+      revalidateOnReconnect: true,
+      // Dedupe requests within 2 seconds
+      dedupingInterval: 2000,
+      // Cache data for 5 minutes
+      focusThrottleInterval: 5 * 60 * 1000,
+      // Retry on error
+      shouldRetryOnError: true,
+      errorRetryCount: 3,
     })
+
+    return {
+      courses: data?.courses || data?.enrollments || [],
+      loading: isLoading,
+      error,
+      mutate,
+    }
+  }
+
+  const useCourse = (id: string) => {
+    const getCacheKey = () => {
+      if (!token || !id) return null
+      return `${process.env.NEXT_PUBLIC_API_URL}/courses/get/${id}`
+    }
+
+    const {
+      data,
+      error,
+      isLoading,
+      mutate: mutateCourse,
+    } = useSWR(getCacheKey(), (url: string) => fetcher(url, token!), {
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      dedupingInterval: 2000,
+    })
+
+    return {
+      course: data?.course,
+      loading: isLoading,
+      error,
+      mutate: mutateCourse,
+    }
+  }
+
+  const updateCourseInCache = async (id: string, updates: Partial<Course>, type = "org") => {
+    // Get all possible cache keys for this course
+    const cacheKeys = [
+      `${process.env.NEXT_PUBLIC_API_URL}/courses/get/${id}`,
+      `${process.env.NEXT_PUBLIC_API_URL}/courses/instructor/${user?.id}/live/courses`,
+      `${process.env.NEXT_PUBLIC_API_URL}/courses/instructor/${user?.id}/courses`,
+      `${process.env.NEXT_PUBLIC_API_URL}/courses/organization/${user?.organization?.id}/courses`,
+      `${process.env.NEXT_PUBLIC_API_URL}/courses/organization/${user?.organization?.id}/draft/courses`,
+    ]
+
+    // Optimistically update all caches
+    await Promise.all(
+      cacheKeys.map((key) =>
+        mutate(
+          key,
+          (data: any) => {
+            if (!data) return data
+
+            // Update single course
+            if (data.course) {
+              return {
+                ...data,
+                course: { ...data.course, ...updates },
+              }
+            }
+
+            // Update course in list
+            if (data.courses) {
+              return {
+                ...data,
+                courses: data.courses.map((course: Course) => (course.id === id ? { ...course, ...updates } : course)),
+              }
+            }
+
+            return data
+          },
+          { revalidate: false }, // Don't revalidate immediately
+        ),
+      ),
+    )
+  }
+
+  const invalidateAllCaches = async () => {
+    const cacheKeys = [
+      `${process.env.NEXT_PUBLIC_API_URL}/courses/instructor/${user?.id}/live/courses`,
+      `${process.env.NEXT_PUBLIC_API_URL}/courses/instructor/${user?.id}/courses`,
+      `${process.env.NEXT_PUBLIC_API_URL}/courses/organization/${user?.organization?.id}/courses`,
+      `${process.env.NEXT_PUBLIC_API_URL}/courses/organization/${user?.organization?.id}/draft/courses`,
+      `${process.env.NEXT_PUBLIC_API_URL}/enrollments/user-enrollments`,
+    ]
+
+    // Invalidate all caches
+    await Promise.all(cacheKeys.map((key) => mutate(key)))
   }
 
   return (
     <CoursesContext.Provider
       value={{
-        courses,
-        loading,
-        error,
-        fetchCourses,
-        getCourse,
-        fetchSingleCourse,
-        invalidateCache,
+        useCoursesByType,
+        useCourse,
         updateCourseInCache,
+        invalidateAllCaches,
       }}
     >
       {children}

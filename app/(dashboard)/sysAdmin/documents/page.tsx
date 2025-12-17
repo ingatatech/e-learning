@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 
+
 const SkeletonDocumentCard = () => (
   <Card>
     <CardContent className="p-0">
@@ -38,15 +39,12 @@ const SkeletonDocumentCard = () => (
 
 export default function SysAdminDocumentsPage() {
   const router = useRouter()
-  const { documents, loading, fetchDocuments } = useDocuments()
+  const { useDocs } = useDocuments()
+  const { documents, loading } = useDocs()
   const [activeTab, setActiveTab] = useState("submitted")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [searchQuery, setSearchQuery] = useState("")
   const [filteredDocuments, setFilteredDocuments] = useState<Document[]>([])
-
-  useEffect(() => {
-    fetchDocuments()
-  }, [])
 
   // Filter documents based on active tab and search query
   useEffect(() => {

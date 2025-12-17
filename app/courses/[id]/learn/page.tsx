@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import type { Assessment } from "@/types"
 
 interface LearningStep {
   id: string
@@ -25,7 +26,7 @@ interface LearningStep {
   lessonId: string
   moduleId: string
   lesson: any
-  assessment?: any
+  assessment?: Assessment
   duration?: number
 }
 
@@ -238,13 +239,39 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
           })
         })
       })
+
+      if (module.finalAssessment) {
+        const finalAssessmentQuestions =
+          module.finalAssessment.assessment?.questions || module.finalAssessment.questions || []
+
+        steps.push({
+          id: `${module.id}-final-assessment`,
+          dbId: module.finalAssessment.assessment?.id || module.finalAssessment.id,
+          type: "assessment",
+          title: `${module.title} - Final ${module.finalAssessment.type === "assessment" ? "Assessment" : "Project"}`,
+          lessonId: module.id.toString(),
+          moduleId: module.id.toString(),
+          lesson: {} as any,
+          assessment: {
+            id: module.finalAssessment.assessment?.id || module.finalAssessment.id,
+            title: module.finalAssessment.title,
+            description: module.finalAssessment.description || module.finalAssessment.instructions || "",
+            type: module.finalAssessment.type,
+            questions: finalAssessmentQuestions,
+            passingScore: module.finalAssessment.passingScore,
+            timeLimit: module.finalAssessment.timeLimit,
+            createdAt: module.finalAssessment.createdAt,
+            updatedAt: module.finalAssessment.updatedAt,
+          } as Assessment,
+          duration: module.finalAssessment.timeLimit,
+        })
+      }
     })
 
     return steps
   }
 
   const handleStepComplete = async (score?: number, passed?: boolean) => {
-    setIsStepping(true)
     const currentStep = allSteps[currentStepIndex]
     if (!currentStep) return
 
@@ -285,8 +312,6 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
       nextStepTitle: allSteps[currentStepIndex + 1]?.title,
       nextStepId: allSteps[currentStepIndex + 1]?.id,
     })
-
-    setIsStepping(false)
 
     if (currentStep.type !== "assessment" || passed) {
       if (currentStepIndex < allSteps.length - 1) {
@@ -451,7 +476,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
           getStepScore={getStepScore}
         />
 
-        <div className="flex-1 ml-80 overflow-y-auto">
+        <div className="flex-1 ml-0 lg:ml-[340px] overflow-y-auto">
           <div className="py-8 max-w-full mx-auto">
             {isOnCompletionStep ? (
               <div className="space-y-8">
@@ -488,62 +513,68 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
                   </div>
                 )}
 
-                
-                    {currentStep.type === "content" && (
-                      <ContentScreen
-                        lesson={{
-                          id: currentStep.lessonId,
-                          title: currentStep.lesson.title,
-                          content: currentStep.lesson.content,
-                          duration: currentStep.duration || 0,
-                          resources: currentStep.lesson.resources,
-                        }}
-                        onComplete={(score, passed) => handleStepComplete(score, passed)}
-                        isCompleted={isStepCompleted(currentStep.id)}
-                        isStepping={isStepping}
-                      />
-                    )}
+                {currentStep.type === "content" && (
+                  <ContentScreen
+                    lesson={{
+                      id: currentStep.lessonId,
+                      title: currentStep.lesson.title,
+                      content: currentStep.lesson.content,
+                      duration: currentStep.duration || 0,
+                      resources: currentStep.lesson.resources,
+                    }}
+                    onComplete={(score, passed) => handleStepComplete(score, passed)}
+                    isCompleted={isStepCompleted(currentStep.id)}
+                    isStepping={isStepping}
+                  />
+                )}
 
-                    {currentStep.type === "video" && (
-                      <VideoScreen
-                        lesson={{
-                          id: currentStep.lessonId,
-                          title: currentStep.lesson.title,
-                          videoUrl: currentStep.lesson.videoUrl,
-                          duration: currentStep.duration || 0,
-                        }}
-                        onComplete={() => handleStepComplete()}
-                        isCompleted={isStepCompleted(currentStep.id)}
-                      />
-                    )}
+                {currentStep.type === "video" && (
+                  <VideoScreen
+                    lesson={{
+                      id: currentStep.lessonId,
+                      title: currentStep.lesson.title,
+                      videoUrl: currentStep.lesson.videoUrl,
+                      duration: currentStep.duration || 0,
+                    }}
+                    onComplete={() => handleStepComplete()}
+                    isCompleted={isStepCompleted(currentStep.id)}
+                  />
+                )}
 
-                    {currentStep.type === "assessment" && currentStep.assessment && (
-                      <AssessmentScreen
-                        key={`${currentStep.assessment.id}-${currentStepIndex}`}
-                        assessment={currentStep.assessment}
-                        onComplete={(score, passed) => handleStepComplete(score, passed)}
-                        onPending={handleStepPending}
-                        isCompleted={isStepCompleted(currentStep.id)}
-                        isPending={isStepPending(currentStep.id)}
-                        isFailed={isStepFailed(currentStep.id)}
-                        markStepPending={markStepPending}
-                        previousScore={getStepScore(currentStep.dbId)}
-                        previousPassed={isStepCompleted(currentStep.id)}
-                        isStepping={isStepping}
-                        refetch={refetch}
-                      />
-                    )}
+                {currentStep.type === "assessment" && currentStep.assessment && (
+                  <AssessmentScreen
+                    key={`${currentStep.assessment.id}-${currentStepIndex}`}
+                    assessment={currentStep.assessment}
+                    onComplete={(score, passed) => handleStepComplete(score, passed)}
+                    onPending={handleStepPending}
+                    isCompleted={isStepCompleted(currentStep.id)}
+                    isPending={isStepPending(currentStep.id)}
+                    isFailed={isStepFailed(currentStep.id)}
+                    markStepPending={markStepPending}
+                    previousScore={getStepScore(currentStep.dbId)}
+                    previousPassed={isStepCompleted(currentStep.id)}
+                    isStepping={isStepping}
+                    refetch={refetch}
+                  />
+                )}
               </>
             )}
           </div>
         </div>
       </div>
 
-      <CompletionCelebration
-        isVisible={showCelebration}
-        onClose={() => setShowCelebration(false)}
-        {...celebrationData}
-      />
+      {showCelebration && (
+        <CompletionCelebration
+          data={celebrationData}
+          onClose={() => setShowCelebration(false)}
+          onNext={() => {
+            setShowCelebration(false)
+            if (celebrationData.isCourseComplete) {
+              setShowRating(true)
+            }
+          }}
+        />
+      )}
     </div>
   )
 }

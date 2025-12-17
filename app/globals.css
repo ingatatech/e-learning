@@ -208,3 +208,16 @@
   .animate-streak-fire {
     animation: streak-fire 1s ease-in-out infinite;
   }
+
+
+  /* Remove the green focus border */
+.ProseMirror-focused {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  ring: none !important;
+}
+
+.rich-text-content p:empty {
+  min-height: 1em;
+}

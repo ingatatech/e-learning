@@ -47,8 +47,6 @@ import { CourseBasicInfoModal } from "@/components/course/course-basic-info-moda
 import { useCourses } from "@/hooks/use-courses"
 
 export default function InstructorCourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const [course, setCourse] = useState<Course | null>(null)
-  const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("overview")
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
   const { token } = useAuth()
@@ -60,58 +58,8 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null)
   const [isLessonModalOpen, setIsLessonModalOpen] = useState(false)
   const [isEditCourseOpen, setIsEditCourseOpen] = useState(false)
-  const { fetchSingleCourse } = useCourses()
-
-  useEffect(() => {
-    let isMounted = true
-    const fetchData = async () => {
-      try {
-        setLoading(true)
-        
-        // Fetch course data
-        const courseResponse = await fetchSingleCourse(id)
-        
-        if (!isMounted) return
-        
-        if (courseResponse) {
-          const data = await courseResponse
-          setCourse(data)
-        } else {
-          setCourse(null)
-        }
-
-        // Fetch students data
-        const studentsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/get/${id}/students`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        })
-        
-        if (!isMounted) return
-        
-        if (studentsResponse.ok) {
-          const data = await studentsResponse.json()
-          setStudents(data.students)
-        }
-      } catch (error) {
-        console.error("Failed to fetch data:", error)
-        if (isMounted) {
-          setCourse(null)
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false)
-        }
-      }
-    }
-
-    fetchData()
-
-    return () => {
-      isMounted = false
-    }
-  }, [id, token])
+  const { useCourse, updateCourseInCache } = useCourses()
+  const { course, loading } = useCourse(id)
 
   const getTotalLessons = () => {
     return course?.modules?.reduce((acc, module) => acc + (module.lessons?.length || 0), 0) || 0
@@ -167,7 +115,7 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
 
       if (response.ok) {
         const data = await response.json()
-        setCourse(data.course)
+        await updateCourseInCache(id, data.course)
       }
     } catch (error) {
       console.error("Failed to update course:", error)

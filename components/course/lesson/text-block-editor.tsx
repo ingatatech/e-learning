@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
-import { X, Type } from 'lucide-react'
+import { X, Type } from "lucide-react"
 
 interface TextBlockEditorProps {
   blockId: string
@@ -13,13 +13,19 @@ interface TextBlockEditorProps {
   onDelete: () => void
 }
 
-export function TextBlockEditor({
-  blockId,
-  content,
-  onUpdate,
-  onDelete,
-}: TextBlockEditorProps) {
+export function TextBlockEditor({ blockId, content, onUpdate, onDelete }: TextBlockEditorProps) {
   const [isEditing, setIsEditing] = useState(false)
+  const richTextRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (isEditing && richTextRef.current) {
+      // Auto-focus the editor when entering edit mode
+      const editor = richTextRef.current.querySelector(".ProseMirror") as HTMLElement
+      if (editor) {
+        editor.focus()
+      }
+    }
+  }, [isEditing])
 
   return (
     <Card className="p-4 border border-gray-200 dark:border-gray-700 relative group">
@@ -46,16 +52,10 @@ export function TextBlockEditor({
         />
       ) : (
         <div className="space-y-3">
-          <RichTextEditor
-            value={content}
-            onChange={onUpdate}
-            className="border-0"
-          />
-          <Button
-            onClick={() => setIsEditing(false)}
-            className="w-full"
-            variant="outline"
-          >
+          <div ref={richTextRef}>
+            <RichTextEditor value={content} onChange={onUpdate} className="border-0" />
+          </div>
+          <Button onClick={() => setIsEditing(false)} className="w-full" variant="outline">
             Done Editing
           </Button>
         </div>

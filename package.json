@@ -94,7 +94,8 @@
     "vaul": "^0.9.9",
     "vue": "latest",
     "vue-router": "latest",
-    "zod": "3.25.67"
+    "zod": "3.25.67",
+    "swr": "2.3.8"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.9",

@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Plus, Trash2, GripVertical, Target, X } from "lucide-react"
 import type { Assessment, AssessmentQuestion } from "@/types"
+import { generateTempId } from "@/lib/utils"
 
 interface AssessmentEditorProps {
   assessment: Assessment
@@ -19,19 +20,19 @@ interface AssessmentEditorProps {
   onDelete: () => void
 }
 
-export function AssessmentEditor({ assessment, onUpdate, onDelete }: AssessmentEditorProps) {
+export function AssessmentEditor({ assessment, onUpdate }: AssessmentEditorProps) {
   const [activeTab, setActiveTab] = useState("questions")
 
   const addQuestion = () => {
     const newQuestion: AssessmentQuestion = {
-      id: `question-${Date.now()}`,
+      id: generateTempId(),
       question: "",
       type: "multiple_choice",
       options: ["", "", "", ""],
       correctAnswer: "",
       points: 1,
     }
-    onUpdate({ questions: [...assessment.questions || [], newQuestion] })
+    onUpdate({ questions: [...(assessment.questions || []), newQuestion] })
   }
 
   const updateQuestion = (index: number, updates: Partial<AssessmentQuestion>) => {
@@ -129,6 +130,7 @@ export function AssessmentEditor({ assessment, onUpdate, onDelete }: AssessmentE
                     <SelectItem value="true_false">True/False</SelectItem>
                     <SelectItem value="short_answer">Short Answer</SelectItem>
                     <SelectItem value="essay">Essay</SelectItem>
+                    <SelectItem value="matching">Matching</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -222,6 +224,71 @@ export function AssessmentEditor({ assessment, onUpdate, onDelete }: AssessmentE
                 placeholder="Provide a sample answer or grading guidelines..."
                 rows={3}
               />
+            </div>
+          )}
+
+          {question.type === "matching" && (
+            <div className="space-y-4">
+              <Label>Matching Pairs</Label>
+              <p className="text-xs text-muted-foreground">
+                Create pairs of items for students to match. Each left item will be matched to a right item.
+              </p>
+              <div className="space-y-3">
+                {question.matchingPairs?.map((pair, pairIndex) => (
+                  <div key={pair.id} className="flex gap-2 items-end">
+                    <div className="flex-1 space-y-1">
+                      <Label className="text-xs">Left Item</Label>
+                      <Input
+                        value={pair.left}
+                        onChange={(e) => {
+                          const newPairs = [...(question.matchingPairs || [])]
+                          newPairs[pairIndex].left = e.target.value
+                          updateQuestion(index, { matchingPairs: newPairs })
+                        }}
+                        placeholder="e.g., Term or definition"
+                      />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <Label className="text-xs">Right Item</Label>
+                      <Input
+                        value={pair.right}
+                        onChange={(e) => {
+                          const newPairs = [...(question.matchingPairs || [])]
+                          newPairs[pairIndex].right = e.target.value
+                          updateQuestion(index, { matchingPairs: newPairs })
+                        }}
+                        placeholder="e.g., Matching answer"
+                      />
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const newPairs = question.matchingPairs?.filter((_, i) => i !== pairIndex) || []
+                        updateQuestion(index, { matchingPairs: newPairs })
+                      }}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const newPairs = [
+                    ...(question.matchingPairs || []),
+                    { id: `pair-${Date.now()}`, left: "", right: "" },
+                  ]
+                  updateQuestion(index, { matchingPairs: newPairs })
+                }}
+                className="w-full bg-transparent"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Pair
+              </Button>
             </div>
           )}
         </CardContent>

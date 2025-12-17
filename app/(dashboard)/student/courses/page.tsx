@@ -59,6 +59,10 @@ interface EnrolledCourse {
       lastName: string
     }
     language: string
+    duration: string
+    rating: number
+    reviewCount: number
+    lastAccessed: string
   }
   thumbnail: string
   instructor: {
@@ -98,20 +102,14 @@ interface EnrolledCourse {
 }
 
 export default function MyCoursesPage() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [activeTab, setActiveTab] = useState("all")
+  const { useCoursesByType } = useCourses()
+  const { courses: rawEnrollments, loading: swrLoading, mutate: refetchEnrollments } = useCoursesByType("enrolled")
+
   const [enrollments, setEnrollments] = useState<EnrolledCourse[]>([])
-  const [loading, setLoading] = useState(false)
-  const [stats, setStats] = useState({
-    totalCourses: 0,
-    completedCourses: 0,
-    inProgressCourses: 0,
-    totalHoursSpent: 0,
-    averageProgress: 0,
-    certificatesEarned: 0,
-  })
-  const { token, user } = useAuth()
-  const { fetchSingleCourse } = useCourses()
+  const [selectedTab, setSelectedTab] = useState<"all" | "in_progress" | "completed" | "not_started">("all")
+  const [searchTerm, setSearchTerm] = useState("")
+  const [sortBy, setSortBy] = useState<"recent" | "progress" | "title">("recent")
+  const { user, token } = useAuth()
 
   // Function to generate learning steps (same as in the first file)
   const generateLearningSteps = (course: EnrolledCourse["course"]) => {
@@ -228,92 +226,37 @@ export default function MyCoursesPage() {
   }
 
   useEffect(() => {
-    const fetchMyCourses = async () => {
-      if (!user || !token) return
-      setLoading(true)
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/enrollments/user-enrollments`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            userId: user.id,
-          }),
-          method: "POST",
-        })
-        if (response.ok) {
-          const data = await response.json()
-          setEnrollments(data.enrollments)
+    const processEnrollments = async () => {
+      if (!user || !token || !rawEnrollments) return
 
-          const enrollmentsWithProgress = await Promise.all(
-            data.enrollments.map(async (enrollment: any) => {
-              // Calculate progress for each course
-              const progress = await calculateCourseProgress(enrollment.course.id, user.id)
+      const enrollmentsWithProgress = await Promise.all(
+        rawEnrollments.map(async (enrollment: any) => {
+          const progress = await calculateCourseProgress(enrollment.course.id, user.id)
+          return {
+            ...enrollment,
+            progress,
+            status: progress === 0 ? "not_started" : progress === 100 ? "completed" : "in_progress",
+            totalLessons:
+              enrollment.course.modules?.reduce(
+                (total: number, module: any) => total + (module.lessons?.length || 0),
+                0,
+              ) || 0,
+            completedLessons: Math.floor(
+              (progress / 100) *
+                (enrollment.course.modules?.reduce(
+                  (total: number, module: any) => total + (module.lessons?.length || 0),
+                  0,
+                ) || 0),
+            ),
+          }
+        }),
+      )
 
-              return {
-                ...enrollment,
-                progress,
-                status: progress === 0 ? "not_started" : progress === 100 ? "completed" : "in_progress",
-                totalLessons:
-                  enrollment.course.modules?.reduce(
-                    (total: number, module: any) => total + (module.lessons?.length || 0),
-                    0,
-                  ) || 0,
-                completedLessons: Math.floor(
-                  (progress / 100) *
-                    (enrollment.course.modules?.reduce(
-                      (total: number, module: any) => total + (module.lessons?.length || 0),
-                      0,
-                    ) || 0),
-                ),
-              }
-            }),
-          )
-
-          setEnrollments(enrollmentsWithProgress)
-
-          // Calculate stats
-          const totalCourses = data.enrollments.length
-          const completedCourses = data.enrollments.filter(
-            (c: EnrolledCourse) => c.course.status === "completed",
-          ).length
-          const inProgressCourses = data.enrollments.filter(
-            (c: EnrolledCourse) => c.course.status === "in_progress",
-          ).length
-          const certificatesEarned = data.enrollments.filter((c: EnrolledCourse) => c.course.certificateIncluded).length
-          const averageProgress =
-            totalCourses > 0
-              ? data.enrollments.reduce((sum: number, c: EnrolledCourse) => sum + c.progress, 0) / totalCourses
-              : 0
-
-          setStats({
-            totalCourses,
-            completedCourses,
-            inProgressCourses,
-            totalHoursSpent: Math.floor(Math.random() * 100) + 50, // Mock data
-            averageProgress: Math.round(averageProgress),
-            certificatesEarned,
-          })
-        }
-      } catch (error) {
-        console.error("Failed to fetch enrolled enrollments:", error)
-
-        setStats({
-          totalCourses: 3,
-          completedCourses: 1,
-          inProgressCourses: 1,
-          totalHoursSpent: 67,
-          averageProgress: 58,
-          certificatesEarned: 1,
-        })
-      } finally {
-        setLoading(false)
-      }
+      setEnrollments(enrollmentsWithProgress)
     }
 
-    fetchMyCourses()
-  }, [user, token])
+    processEnrollments()
+  }, [rawEnrollments, user, token])
 
   const filteredEnrollments = enrollments.filter((enrollment) => {
     const matchesSearch =
@@ -321,10 +264,10 @@ export default function MyCoursesPage() {
       enrollment.course.description.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesTab =
-      activeTab === "all" ||
-      (activeTab === "in_progress" && enrollment.status === "in_progress") ||
-      (activeTab === "completed" && enrollment.status === "completed") ||
-      (activeTab === "not_started" && enrollment.status === "not_started")
+      selectedTab === "all" ||
+      (selectedTab === "in_progress" && enrollment.status === "in_progress") ||
+      (selectedTab === "completed" && enrollment.status === "completed") ||
+      (selectedTab === "not_started" && enrollment.status === "not_started")
 
     return matchesSearch && matchesTab
   })
@@ -385,7 +328,7 @@ export default function MyCoursesPage() {
     return null
   }
 
-  if (loading) {
+  if (swrLoading) {
     return (
       <div className="min-h-screen bg-background">
         <div className="flex justify-center items-center h-screen">
@@ -420,7 +363,7 @@ export default function MyCoursesPage() {
               <div className="bg-card border-2 border-primary/10 rounded-xl p-4 hover:border-primary/20 transition-colors">
                 <div className="flex items-center gap-2 mb-2">
                   <BookOpen className="w-5 h-5 text-blue-500" />
-                  <span className="text-2xl font-bold text-primary">{stats.totalCourses}</span>
+                  <span className="text-2xl font-bold text-primary">{enrollments.length}</span>
                 </div>
                 <p className="text-sm text-muted-foreground">Total Courses</p>
               </div>
@@ -428,7 +371,9 @@ export default function MyCoursesPage() {
               <div className="bg-card border-2 border-green-500/10 rounded-xl p-4 hover:border-green-500/20 transition-colors">
                 <div className="flex items-center gap-2 mb-2">
                   <CheckCircle className="w-5 h-5 text-green-500" />
-                  <span className="text-2xl font-bold text-green-600">{stats.completedCourses}</span>
+                  <span className="text-2xl font-bold text-green-600">
+                    {enrollments.filter((c) => c.status === "completed").length}
+                  </span>
                 </div>
                 <p className="text-sm text-muted-foreground">Completed</p>
               </div>
@@ -436,7 +381,9 @@ export default function MyCoursesPage() {
               <div className="bg-card border-2 border-blue-500/10 rounded-xl p-4 hover:border-blue-500/20 transition-colors">
                 <div className="flex items-center gap-2 mb-2">
                   <PlayCircle className="w-5 h-5 text-blue-500" />
-                  <span className="text-2xl font-bold text-blue-600">{stats.inProgressCourses}</span>
+                  <span className="text-2xl font-bold text-blue-600">
+                    {enrollments.filter((c) => c.status === "in_progress").length}
+                  </span>
                 </div>
                 <p className="text-sm text-muted-foreground">In Progress</p>
               </div>
@@ -444,7 +391,9 @@ export default function MyCoursesPage() {
               <div className="bg-card border-2 border-yellow-500/10 rounded-xl p-4 hover:border-yellow-500/20 transition-colors">
                 <div className="flex items-center gap-2 mb-2">
                   <Award className="w-5 h-5 text-yellow-500" />
-                  <span className="text-2xl font-bold text-yellow-600">{stats.certificatesEarned}</span>
+                  <span className="text-2xl font-bold text-yellow-600">
+                    {enrollments.filter((c) => c.course.certificateIncluded).length}
+                  </span>
                 </div>
                 <p className="text-sm text-muted-foreground">Certificates</p>
               </div>
@@ -466,7 +415,7 @@ export default function MyCoursesPage() {
             </div>
           </div>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
             <TabsList className="grid w-full grid-cols-4 lg:w-fit">
               <TabsTrigger value="all" className="flex items-center gap-2">
                 <BookOpen className="w-4 h-4" />
@@ -486,7 +435,7 @@ export default function MyCoursesPage() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value={activeTab} className="mt-6">
+            <TabsContent value={selectedTab} className="mt-6">
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {filteredEnrollments.map((enrollment) => (
                   <Card
@@ -579,26 +528,29 @@ export default function MyCoursesPage() {
                         <div className="flex items-center gap-1">
                           {(() => {
                             // Check if we have reviews array
-                            const reviews = enrollment.course.reviews || [];
-                            
+                            const reviews = enrollment.course.reviews || []
+
                             // Determine average rating
-                            let avg = 0;
-                            let reviewCount = 0;
-                            
+                            let avg = 0
+                            let reviewCount = 0
+
                             if (reviews.length > 0) {
                               // Use reviews array if available
-                              avg = reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length;
-                              reviewCount = reviews.length;
-                            } else if (enrollment.course.rating !== undefined && enrollment.course.reviewCount !== undefined) {
+                              avg = reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length
+                              reviewCount = reviews.length
+                            } else if (
+                              enrollment.course.rating !== undefined &&
+                              enrollment.course.reviewCount !== undefined
+                            ) {
                               // Fallback to existing rating and reviewCount properties
-                              avg = enrollment.course.rating;
-                              reviewCount = enrollment.course.reviewCount;
+                              avg = enrollment.course.rating
+                              reviewCount = enrollment.course.reviewCount
                             }
-                            
+
                             // Round to nearest star (0-5)
-                            const filled = Math.round(Math.min(Math.max(avg, 0), 5));
-                            const total = 5;
-                            const empty = total - filled;
+                            const filled = Math.round(Math.min(Math.max(avg, 0), 5))
+                            const total = 5
+                            const empty = total - filled
 
                             return (
                               <>
@@ -612,12 +564,12 @@ export default function MyCoursesPage() {
                                   {reviewCount > 0 ? `${avg.toFixed(1)} (${reviewCount})` : "No reviews"}
                                 </span>
                               </>
-                            );
+                            )
                           })()}
                         </div>
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Calendar className="w-3 h-3" />
-                          Enrolled {new Date(enrollment.enrolledAt).toLocaleDateString()}
+                          Enrolled {new Date(enrollment.enrollmentDate).toLocaleDateString()}
                         </div>
                       </div>
                       <CardTitle className="text-lg line-clamp-2 group-hover:text-primary transition-colors">
@@ -670,7 +622,7 @@ export default function MyCoursesPage() {
                         </div> */}
                         <Button size="sm" className="bg-primary hover:bg-primary/90 shadow-md rounded" asChild>
                           <Link href={`/courses/${enrollment.course.id}/learn`}>
-                            {enrollment.course.status === "not_started" ? "Start" : "Continue"}
+                            {enrollment.status === "not_started" ? "Start" : "Continue"}
                           </Link>
                         </Button>
                       </div>
@@ -686,15 +638,15 @@ export default function MyCoursesPage() {
                     <GraduationCap className="w-12 h-12 text-muted-foreground" />
                   </div>
                   <h3 className="text-xl font-bold mb-3">
-                    {activeTab === "all" ? "No enrollments found" : `No ${activeTab.replace("_", " ")} enrollments`}
+                    {selectedTab === "all" ? "No enrollments found" : `No ${selectedTab.replace("_", " ")} enrollments`}
                   </h3>
                   <p className="text-muted-foreground mb-6">
-                    {activeTab === "all"
-                      ? "Start your learning journey by enrolling in some enrollments"
-                      : `You don't have any ${activeTab.replace("_", " ")} enrollments yet`}
+                    {selectedTab === "all"
+                      ? "Start your learning journey by enrolling in some courses"
+                      : `You don't have any ${selectedTab.replace("_", " ")} courses yet`}
                   </p>
                   <Button asChild>
-                    <Link href="/enrollments">
+                    <Link href="/courses">
                       <BookOpen className="w-4 h-4 mr-2" />
                       Browse Courses
                     </Link>

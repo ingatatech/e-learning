@@ -35,11 +35,13 @@ export function CourseCreationWizard() {
   const [isThumbnailUploading, setIsThumbnailUploading] = useState(false)
   const [thumbnailUploadError, setThumbnailUploadError] = useState<string>("")
   const [instructors, setInstructors] = useState([])
+  const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(false)
+  const [inLoading, setInLoading] = useState(false)
 
   useEffect(() => {
     const fetchInstructors = async () => {
-      setLoading(true)
+      setInLoading(true)
       if (!token || !user) return
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/instructors/org/${user.organization?.id}`, {
         headers: {
@@ -50,10 +52,26 @@ export function CourseCreationWizard() {
         const data = await response.json()
         setInstructors(data.instructors)
       }
-      setLoading(false)
+      setInLoading(false)
+    }
+
+    const fetchCategories = async () => {
+      setInLoading(true)
+      if (!token || !user) return
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setCategories(data.categories)
+      }
+      setInLoading(false)
     }
     if (user && token) {
       fetchInstructors()
+      fetchCategories()
     }
   }, [user, token])
 
@@ -303,8 +321,10 @@ export function CourseCreationWizard() {
                 onThumbnailUploadError={handleThumbnailUploadError}
                 isThumbnailUploading={isThumbnailUploading}
                 instructors={instructors}
+                categories={categories}
                 user={user}
                 loading={loading}
+                inLoading={inLoading}
               />
             </motion.div>
           </AnimatePresence>

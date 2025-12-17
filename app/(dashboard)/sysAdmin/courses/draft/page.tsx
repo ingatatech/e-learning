@@ -45,14 +45,8 @@ export default function CourseOverviewPage() {
   const [sortBy, setSortBy] = useState<"title" | "students" | "rating" | "created">("created")
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(6)
-  const { token, user } = useAuth()
-  const { fetchCourses, courses, loading } = useCourses()
-  
-
-  useEffect(() => {
-    fetchCourses(false, "draft")
-  }, [])
-
+  const { useCoursesByType } = useCourses()
+  const { courses, loading } = useCoursesByType("draft")  
 
   const filteredCourses = courses
     .filter((course) => {

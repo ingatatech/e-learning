@@ -1,5 +1,9 @@
 "use client"
-import { Clock, Lock } from "lucide-react"
+import { Clock, Eye, Lock } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+
 
 interface BrowseCourseCardProps {
   id: number | string
@@ -39,6 +43,8 @@ export function BrowseCourseCard({
     }
   }
 
+  const router = useRouter()
+
   return (
     <div className="bg-white dark:bg-accent rounded overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-200 dark:border-gray-800">
       {/* Course Image */}
@@ -72,6 +78,12 @@ export function BrowseCourseCard({
         <h3 className="text-lg font-bold mb-3 text-foreground leading-tight line-clamp-2">{title}</h3>
 
         <p className="text-sm text-muted-foreground mb-4 line-clamp-3 min-h-[3.75rem]">{description}</p>
+        <Link href={`/courses/${id}`}>
+        <Button className="w-full" size="lg">
+          <Eye className="w-4 h-4 mr-2" />
+          View Course
+        </Button>
+        </Link>
 
         <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-1 text-sm text-foreground">
