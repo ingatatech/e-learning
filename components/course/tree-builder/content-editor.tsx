@@ -271,7 +271,7 @@ export function ContentEditor({ item, modules, onUpdate, onDelete }: ContentEdit
                 </div>
 
                 <div className="space-y-3">
-                  {(lesson.resources || []).map((resource, index) => (
+                  {(typeof lesson.resources === "string" ? JSON.parse(lesson.resources) : lesson.resources).map((resource: any, index: any) => (
                     <Card key={index} className="p-4 border">
                       <div className="space-y-3">
                         <div className="space-y-2">

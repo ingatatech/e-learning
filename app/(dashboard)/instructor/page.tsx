@@ -208,22 +208,22 @@ export default function InstructorDashboard() {
               </div>
             ) : courses.length > 0 ? (
               courses.map((course) => (
-                <div key={course.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex-1">
+                <div key={course.id} className="flex items-start justify-between p-4 border rounded-lg">
+                  <div className="flex-1 min-w-0">
                     <div className="mb-1">
-                      <h4 className="font-medium">{course.title}</h4>
+                      <h4 className="font-medium truncate">{course.title}</h4>
                       <p className="text-xs truncate line-clamp-1">{course.description}</p>
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span>{course.enrollmentCount} students</span>
-                      <span>${Number.parseFloat(course.price.toString() || "0").toLocaleString()}</span>
-                      {course.rating > 0 && <span>⭐ {course.rating}</span>}
-                      <Badge variant={course.isPublished ? "default" : "secondary"}>
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                      <span className="whitespace-nowrap">{course.enrollmentCount} students</span>
+                      <span className="whitespace-nowrap">${Number.parseFloat(course.price.toString() || "0").toLocaleString()}</span>
+                      {course.rating > 0 && <span className="whitespace-nowrap">⭐ {course.rating}</span>}
+                      <Badge variant={course.isPublished ? "default" : "secondary"} className="rounded">
                         {course.isPublished ? "Published" : "Draft"}
                       </Badge>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     <Button variant="ghost" size="sm" asChild>
                       <Link href={`/instructor/courses/${course.id}`}>
                         <Eye className="w-4 h-4" />

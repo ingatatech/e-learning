@@ -7,14 +7,15 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/hooks/use-auth"
 import { AuthGuard } from "@/components/auth/auth-guard"
 import { CoursesProvider } from "@/hooks/use-courses"
-import { Suspense } from "react"
+import { Suspense, useEffect } from "react"
 import Script from "next/script"
 import "./globals.css"
 import { Toaster } from "sonner"
+import { SocketProvider } from "@/components/socket/socket-provider"
 
 export const metadata: Metadata = {
   title: "Ingata E-learning - Learning Management System",
-  description: "A comprehensive Learning Management System with gamification, and advanced analytics",
+  description: "A comprehensive Learning Management System",
   generator: "GagiN",
 }
 
@@ -29,6 +30,7 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
             <AuthProvider>
+                <SocketProvider />
               <CoursesProvider>
                 <AuthGuard>{children}</AuthGuard>
               </CoursesProvider>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Plus, Trash2, GripVertical, Target, X } from "lucide-react"
+import { Plus, Trash2, GripVertical, Target, X, AlertCircle } from "lucide-react"
 import type { Assessment, AssessmentQuestion } from "@/types"
 import { generateTempId } from "@/lib/utils"
 
@@ -22,6 +22,42 @@ interface AssessmentEditorProps {
 
 export function AssessmentEditor({ assessment, onUpdate }: AssessmentEditorProps) {
   const [activeTab, setActiveTab] = useState("questions")
+  const [validationErrors, setValidationErrors] = useState<Record<number, string>>({})
+
+  const validateQuestions = () => {
+    const errors: Record<number, string> = {}
+
+    assessment.questions?.forEach((question, index) => {
+      if (question.type === "multiple_choice" || question.type === "true_false" || question.type === "matching") {
+        if (question.type === "multiple_choice") {
+          const hasCorrectAnswer = Array.isArray(question.correctAnswer)
+            ? question.correctAnswer.length > 0
+            : question.correctAnswer !== "" && question.correctAnswer !== undefined
+
+          if (!hasCorrectAnswer) {
+            errors[index] = "Please select at least one correct answer"
+          }
+        } else if (question.type === "true_false") {
+          if (question.correctAnswer !== "true" && question.correctAnswer !== "false") {
+            errors[index] = "Please select the correct answer (True or False)"
+          }
+        } else if (question.type === "matching") {
+          if (!question.pairs || question.pairs.length === 0) {
+            errors[index] = "Please add at least one matching pair"
+          } else if (question.pairs.some((pair) => !pair.left.trim() || !pair.right.trim())) {
+            errors[index] = "All matching pairs must have both items filled"
+          }
+        }
+      }
+    })
+
+    setValidationErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  useEffect(() => {
+    validateQuestions()
+  }, [assessment.questions])
 
   const addQuestion = () => {
     const newQuestion: AssessmentQuestion = {
@@ -68,7 +104,6 @@ export function AssessmentEditor({ assessment, onUpdate }: AssessmentEditorProps
 
     const removeOption = (optionIndex: number) => {
       const newOptions = question.options?.filter((_, i) => i !== optionIndex) || []
-      // Remove from correct answers if it was selected
       const optionToRemove = question.options?.[optionIndex]
       if (optionToRemove && correctAnswers.includes(optionToRemove)) {
         const newCorrectAnswers = correctAnswers.filter((a) => a !== optionToRemove)
@@ -93,6 +128,11 @@ export function AssessmentEditor({ assessment, onUpdate }: AssessmentEditorProps
               <Badge variant="secondary" className="text-xs">
                 {question.points} pt{question.points !== 1 ? "s" : ""}
               </Badge>
+              {validationErrors[index] && (
+                <Badge variant="destructive" className="text-xs">
+                  Missing Correct Answer
+                </Badge>
+              )}
             </div>
             <Button
               variant="ghost"
@@ -105,6 +145,15 @@ export function AssessmentEditor({ assessment, onUpdate }: AssessmentEditorProps
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {validationErrors[index] && (
+            <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                <AlertCircle className="w-4 h-4" />
+                <span className="text-sm font-medium">{validationErrors[index]}</span>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="md:col-span-3 space-y-2">
               <Label>Question</Label>
@@ -146,7 +195,6 @@ export function AssessmentEditor({ assessment, onUpdate }: AssessmentEditorProps
             </div>
           </div>
 
-          {/* Question Options */}
           {question.type === "multiple_choice" && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -231,31 +279,43 @@ export function AssessmentEditor({ assessment, onUpdate }: AssessmentEditorProps
             <div className="space-y-4">
               <Label>Matching Pairs</Label>
               <p className="text-xs text-muted-foreground">
-                Create pairs of items for students to match. Each left item will be matched to a right item.
+                Create pairs of items for students to match. The pairs will be scrambled during the assessment.
               </p>
               <div className="space-y-3">
-                {question.matchingPairs?.map((pair, pairIndex) => (
+                {question.pairs?.map((pair, pairIndex) => (
                   <div key={pair.id} className="flex gap-2 items-end">
                     <div className="flex-1 space-y-1">
                       <Label className="text-xs">Left Item</Label>
                       <Input
                         value={pair.left}
                         onChange={(e) => {
-                          const newPairs = [...(question.matchingPairs || [])]
+                          const newPairs = [...(question.pairs || [])]
                           newPairs[pairIndex].left = e.target.value
-                          updateQuestion(index, { matchingPairs: newPairs })
+                          updateQuestion(index, {
+                            pairs: newPairs,
+                            correctAnswer: newPairs.map((_, idx) => ({
+                              left: newPairs[idx].left,
+                              right: newPairs[idx].right,
+                            })),
+                          })
                         }}
                         placeholder="e.g., Term or definition"
                       />
                     </div>
                     <div className="flex-1 space-y-1">
-                      <Label className="text-xs">Right Item</Label>
+                      <Label className="text-xs">Right Item (Correct Match)</Label>
                       <Input
                         value={pair.right}
                         onChange={(e) => {
-                          const newPairs = [...(question.matchingPairs || [])]
+                          const newPairs = [...(question.pairs || [])]
                           newPairs[pairIndex].right = e.target.value
-                          updateQuestion(index, { matchingPairs: newPairs })
+                          updateQuestion(index, {
+                            pairs: newPairs,
+                            correctAnswer: newPairs.map((_, idx) => ({
+                              left: newPairs[idx].left,
+                              right: newPairs[idx].right,
+                            })),
+                          })
                         }}
                         placeholder="e.g., Matching answer"
                       />
@@ -264,8 +324,17 @@ export function AssessmentEditor({ assessment, onUpdate }: AssessmentEditorProps
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        const newPairs = question.matchingPairs?.filter((_, i) => i !== pairIndex) || []
-                        updateQuestion(index, { matchingPairs: newPairs })
+                        const newPairs = question.pairs?.filter((_, i) => i !== pairIndex) || []
+                        updateQuestion(index, {
+                          pairs: newPairs,
+                          correctAnswer:
+                  newPairs.length > 0
+                    ? newPairs.map((_, idx) => ({
+                        left: newPairs[idx].left,
+                        right: newPairs[idx].right,
+                      }))
+                    : [],
+                        })
                       }}
                       className="text-red-500 hover:text-red-700"
                     >
@@ -279,10 +348,16 @@ export function AssessmentEditor({ assessment, onUpdate }: AssessmentEditorProps
                 size="sm"
                 onClick={() => {
                   const newPairs = [
-                    ...(question.matchingPairs || []),
+                    ...(question.pairs || []),
                     { id: `pair-${Date.now()}`, left: "", right: "" },
                   ]
-                  updateQuestion(index, { matchingPairs: newPairs })
+                  updateQuestion(index, {
+                    pairs: newPairs,
+                     correctAnswer: newPairs.map((_, idx) => ({
+            left: newPairs[idx].left,
+            right: newPairs[idx].right,
+          })),
+                  })
                 }}
                 className="w-full bg-transparent"
               >
@@ -306,7 +381,6 @@ export function AssessmentEditor({ assessment, onUpdate }: AssessmentEditorProps
 
         <TabsContent value="questions" className="flex-1 overflow-y-auto">
           <div className="space-y-4">
-            {/* Assessment Title */}
             <div className="space-y-2">
               <Label>Assessment Title</Label>
               <Input
@@ -327,7 +401,6 @@ export function AssessmentEditor({ assessment, onUpdate }: AssessmentEditorProps
               />
             </div>
 
-            {/* Questions */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">Questions</h3>
@@ -338,7 +411,6 @@ export function AssessmentEditor({ assessment, onUpdate }: AssessmentEditorProps
 
               {assessment.questions?.map((question, index) => renderQuestionEditor(question, index))}
 
-              {/* Add Question */}
               <Card className="border-dashed border-2 border-gray-300 hover:border-primary-400 transition-colors">
                 <CardContent className="p-6 text-center">
                   <Target className="w-12 h-12 text-gray-400 mx-auto mb-4" />

@@ -82,11 +82,11 @@ export function Header({ user }: HeaderProps) {
 
                 {/* User Profile Section with Dropdown */}
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-auto p-0 hover:bg-transparent">
+                  <DropdownMenuTrigger asChild className="rounded">
+                    <Button variant="ghost" className="h-auto p-0 hover:bg-transparent rounded">
                       <div className="flex items-center gap-3">
                         {/* Desktop User Info Display */}
-                        <div className="hidden md:flex items-center gap-3 bg-muted/50 hover:bg-muted/70 transition-colors rounded-lg px-3 py-2">
+                        <div className="hidden md:flex items-center gap-3 bg-muted/50 hover:bg-muted/70 transition-colors rounded px-3 py-2">
                           <div className="flex items-center gap-3">
                             {user.profilePicture ? (
                               <img
@@ -112,7 +112,7 @@ export function Header({ user }: HeaderProps) {
                         </div>
 
                         {/* Mobile User Avatar */}
-                        <div className="md:hidden h-9 w-9 rounded-lg flex items-center justify-center">
+                        <div className="md:hidden h-9 w-9 rounded flex items-center justify-center">
                           {user.profilePicture ? (
                             <img
                               src={user.profilePicture}
@@ -128,7 +128,7 @@ export function Header({ user }: HeaderProps) {
                       </div>
                     </Button>
                   </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <DropdownMenuContent className="w-56 rounded" align="end" forceMount>
                       <DropdownMenuLabel className="font-normal">
                         <div className="flex flex-col space-y-1">
                           <p className="text-sm font-medium leading-none">

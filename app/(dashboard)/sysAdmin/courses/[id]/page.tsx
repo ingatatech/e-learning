@@ -28,6 +28,7 @@ import {
   ChevronDown,
   ChevronUp,
   Briefcase,
+  EyeIcon,
 } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
@@ -47,7 +48,7 @@ import { CourseBasicInfoModal } from "@/components/course/course-basic-info-moda
 import { useCourses } from "@/hooks/use-courses"
 
 export default function InstructorCourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const [activeTab, setActiveTab] = useState("overview")
+  const [activeTab, setActiveTab] = useState("curriculum")
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
   const { token } = useAuth()
   const { id } = use(params)
@@ -262,116 +263,26 @@ export default function InstructorCourseDetailPage({ params }: { params: Promise
           </div>
   
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setIsEditCourseOpen(true)}>
+            <Button variant="outline" className="rounded" size="sm" onClick={() => setIsEditCourseOpen(true)}>
               <Edit className="w-4 h-4 mr-2" />
               Edit Content
             </Button>
+            <Button variant="outline" className="rounded" size="sm" onClick={() => router.push(`/courses/${course.id}/learn`)}>
+              <EyeIcon className="w-4 h-4 mr-2" />
+              View as a student
+            </Button>
           </div>
         </div>
-  
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <BookOpen className="w-8 h-8 text-primary" />
-                <div>
-                  <div className="text-2xl font-bold">{course.modules?.length || 0}</div>
-                  <div className="text-sm text-muted-foreground">Modules</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-  
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Play className="w-8 h-8 text-blue-500" />
-                <div>
-                  <div className="text-2xl font-bold">{getTotalLessons()}</div>
-                  <div className="text-sm text-muted-foreground">Lessons</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-  
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Trophy className="w-8 h-8 text-yellow-500" />
-                <div>
-                  <div className="text-2xl font-bold">{getTotalAssessments()}</div>
-                  <div className="text-sm text-muted-foreground">Assessments</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-  
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Target className="w-8 h-8 text-green-500" />
-                <div>
-                  <div className="text-2xl font-bold">${(course.price * course.enrollmentCount).toLocaleString()}</div>
-                  <div className="text-sm text-muted-foreground">Revenue</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+
   
         {/* Course Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="curriculum">Curriculum</TabsTrigger>
             <TabsTrigger value="students">Students</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
   
-          <TabsContent value="overview" className="space-y-6">
-            {/* Course Tags */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Course Tags</CardTitle>
-                <CardDescription>Topics and skills covered in this course</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {course?.tags.map((tag, index) => (
-                    <Badge key={index} className="text-sm rounded bg-primary">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-  
-            {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardContent className="p-6 text-center">
-                  <Plus className="w-12 h-12 text-primary mx-auto mb-4" />
-                  <h3 className="font-semibold mb-2">Add Content</h3>
-                  <p className="text-sm text-muted-foreground mb-4">Create new lessons and modules</p>
-                  <Button size="sm" asChild>
-                    <Link href={`/sysAdmin/courses/${course.id}/modules`}>Add Content</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-  
-              <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardContent className="p-6 text-center">
-                  <Users className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                  <h3 className="font-semibold mb-2">Manage Students</h3>
-                  <p className="text-sm text-muted-foreground mb-4">View enrolled students and their progress</p>
-                  <Button size="sm" variant="outline" onClick={() => setActiveTab("students")}>
-                    View Students
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
   
           <TabsContent value="curriculum">
             <Card>

@@ -68,42 +68,44 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
       setLoading(true)
 
       try {
-        const enrollmentsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/enrollments/user-enrollments`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          method: "POST",
-          body: JSON.stringify({
-            userId: user.id,
-          }),
-        })
+        if (user.role == "student") {
+          const enrollmentsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/enrollments/user-enrollments`, {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            method: "POST",
+            body: JSON.stringify({
+              userId: user.id,
+            }),
+          })
 
-        if (enrollmentsResponse.ok) {
-          const enrollmentsData = await enrollmentsResponse.json()
+          if (enrollmentsResponse.ok) {
+            const enrollmentsData = await enrollmentsResponse.json()
 
-          const enrolledCourse = enrollmentsData.enrollments.find(
-            (enrollment: any) => enrollment.course.id.toString() === id,
-          )
+            const enrolledCourse = enrollmentsData.enrollments.find(
+              (enrollment: any) => enrollment.course.id.toString() === id,
+            )
 
-          if (!enrolledCourse) {
-            router.push("/student/courses")
-            return
-          }
-
-          if (enrolledCourse.deadline && enrolledCourse.status !== "completed") {
-            const expiryDate = new Date(enrolledCourse.deadline)
-            const now = new Date()
-
-            if (now > expiryDate) {
-              setAccessExpired(true)
-              setLoading(false)
+            if (!enrolledCourse) {
+              router.push("/student/courses")
               return
             }
 
-            const timeDiff = expiryDate.getTime() - now.getTime()
-            const daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24))
-            setDaysRemaining(daysLeft)
+            if (enrolledCourse.deadline && enrolledCourse.status !== "completed") {
+              const expiryDate = new Date(enrolledCourse.deadline)
+              const now = new Date()
+
+              if (now > expiryDate) {
+                setAccessExpired(true)
+                setLoading(false)
+                return
+              }
+
+              const timeDiff = expiryDate.getTime() - now.getTime()
+              const daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24))
+              setDaysRemaining(daysLeft)
+            }
           }
         }
 
@@ -179,7 +181,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
     if (!allSteps.length || !progressData) return
 
     const lastStep = getCurrentStep(allSteps, progressData)
-    if (!lastStep) return
+    if (!lastStep || user?.role !== 'student') return
 
     const lastIndex = allSteps.findIndex((step) => step.id === lastStep.id)
     const startStepIndex =
@@ -272,6 +274,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
   }
 
   const handleStepComplete = async (score?: number, passed?: boolean) => {
+    if (user?.role !== "student") return
     const currentStep = allSteps[currentStepIndex]
     if (!currentStep) return
 
@@ -355,6 +358,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
   }
 
   const checkAllStepsCompleted = (): boolean => {
+  if (user?.role !== "student") return true
     return allSteps.every((step) => isStepCompleted(step.id))
   }
 

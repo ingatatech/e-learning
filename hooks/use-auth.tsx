@@ -4,6 +4,7 @@ import { useState, useEffect, createContext, useContext, type ReactNode } from "
 import { useRouter } from "next/navigation"
 import type { User } from "@/types"
 import Auth from "@/components/weblack/auth"
+import { getSocket } from "@/lib/socket"
 
 interface AuthContextType {
   user: User | null
@@ -44,6 +45,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(JSON.parse(localStorage.getItem("LIS_Etoken") || ""))
     }
   }, [])
+
+  useEffect(() => {
+  if (!user?.id) return
+
+  const socket = getSocket()
+
+  socket.emit("join", {
+    userId: user.id,
+    orgId: user.organizationId,
+  })
+}, [user?.id])
 
   const login = async (email: string, password: string) => {
     setIsLoading(true)

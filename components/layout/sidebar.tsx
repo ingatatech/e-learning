@@ -381,7 +381,7 @@ export function Sidebar({ userRole, className }: SidebarProps) {
       {/* Sidebar */}
       <div
         className={cn(
-          "bg-background border border-border h-full flex flex-col transition-all duration-300 shadow-xl rounded-2xl m-4",
+          "bg-background border border-border h-full flex flex-col transition-all duration-300 shadow-xl rounded-lg m-4",
           isCollapsed ? "w-16" : "w-72",
           className,
         )}

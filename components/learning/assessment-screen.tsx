@@ -66,7 +66,7 @@ interface Question {
   options: string[]
   correctAnswer: string | string[]
   points: number
-  matchingPairs?: MatchingPair[]
+  pairs?: MatchingPair[]
 }
 
 interface Assessment {
@@ -146,16 +146,34 @@ export function AssessmentScreen({
   const [uploadingFile, setUploadingFile] = useState(false)
   const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null)
   const [isActive, setIsActive] = useState(false)
+  const [scrambledMatchingPairs, setScrambledMatchingPairs] = useState<Record<string, MatchingPair[]>>({})
+  const [expanded, setExpanded] = useState(false)
+  const [submitted, setSubmitted] = useState([])
+
 
   const { token, user } = useAuth()
 
   useEffect(() => {
     const correctAnswersMap: Record<string, string | string[]> = {}
 
+    const scrambled: Record<string, MatchingPair[]> = {}
+
     assessment.questions.forEach((question) => {
       correctAnswersMap[question.id] = question.correctAnswer
+
+      // Scramble right items for matching questions
+      if (question.type === "matching" && question.pairs) {
+        const rightItems = [...question.pairs]
+        // Fisher-Yates shuffle
+        for (let i = rightItems.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1))
+          ;[rightItems[i], rightItems[j]] = [rightItems[j], rightItems[i]]
+        }
+        scrambled[question.id] = rightItems
+      }
     })
 
+    setScrambledMatchingPairs(scrambled)
     setCurrentQuestionIndex(0)
     setAnswers({})
     setTimeRemaining(assessment.timeLimit * 60)
@@ -281,33 +299,53 @@ export function AssessmentScreen({
           }
         }
       } else if (question.type === "matching") {
-        const userMatches = Array.isArray(userAnswer) ? userAnswer : userAnswer ? userAnswer.split(",") : []
-        const correctMatches = Array.isArray(question.correctAnswer)
-          ? question.correctAnswer
-          : question.correctAnswer
-            ? [question.correctAnswer]
-            : []
+        if (question.pairs && question.pairs.length > 0) {
+          let allCorrect = true
+          
+          // Check each pair - user should have selected the right item that matches the original pair
+          question.pairs.forEach((pair, pairIndex) => {
+            const userSelection = answers[`${question.id}-match-${pairIndex}`] as string
 
-        const isCorrect =
-          userMatches.length === correctMatches.length &&
-          userMatches.every((match, idx) => match === correctMatches[idx])
+            // The correct answer is when the user selects the right item from the same pair
+            if (userSelection !== pair.right) {
+              allCorrect = false
+            }
+          })
 
-        if (isCorrect) {
-          earnedPoints += question.points
+          if (allCorrect) {
+            earnedPoints += question.points
+          }
         }
       }
     })
 
     try {
       setLoading(true)
-      const answersToSubmit = assessment.questions.map((question) => ({
+      const answersToSubmit = assessment.questions.map((question) => {
+        if (question.type === "matching") {
+          const matchingAnswers: Record<string, string> = {}
+
+          Object.entries(answers).forEach(([key, value]) => {
+            if (key.startsWith(`${question.id}-match-`)) {
+              const index = key.split("-match-")[1]
+              matchingAnswers[index] = value as string
+            }
+          })
+
+          return {
+            questionId: question.id,
+            answer: JSON.stringify(matchingAnswers),
+          }
+        }
+        return {
         questionId: question.id,
         answer: Array.isArray(answers[question.id])
           ? (answers[question.id] as string[]).join(",")
           : answers[question.id] || "",
-      }))
+        }
+      })
 
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/answers/submit`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/answers/submit`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -319,6 +357,8 @@ export function AssessmentScreen({
           answers: answersToSubmit,
         }),
       })
+      var data = await res.json()
+      setSubmitted(data.answers)
     } catch (error) {
       console.error("Failed to save answers:", error)
       toast({
@@ -391,6 +431,26 @@ export function AssessmentScreen({
   const currentQuestion = assessment.questions[currentQuestionIndex]
   const currentAnswerValue = answers[currentQuestion?.id] || ""
 
+const getUserAnswer = (question: Question, answers: Record<string, any>) => {
+  if (question.type !== "matching") {
+    return answers[question.id] ?? "Not answered"
+  }
+
+  if (!question.pairs || question.pairs.length === 0) {
+    return "Not answered"
+  }
+
+  const result = question.pairs.map((pair, index) => {
+    const userAnswer = answers[`${question.id}-match-${index}`]
+
+    return [`${index + 1}. ${pair.right} => ${pair.left}`]
+  })
+
+  return result.some((r) => r.right !== null) ? result : "Not answered"
+}
+
+
+
   // Handle file upload specifically for assessments with fileRequired flag
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
@@ -447,13 +507,20 @@ export function AssessmentScreen({
       <div className="max-w-4xl mx-auto p-6">
         <Pssnt onComplete={(score, passed) => onComplete(score, passed)} />
         <Dialog open={showStartModal} onOpenChange={() => {}}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-xl">
                 <Award className="w-6 h-6 text-primary" />
                 {assessment.title}
               </DialogTitle>
-              <DialogDescription className="text-base mt-4">{assessment.description}</DialogDescription>
+              <DialogDescription className={`text-base mt-4 transition-all ${expanded ? "" : "line-clamp-3"}`}>{assessment.description}</DialogDescription>
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                className="mt-1 text-sm text-primary hover:underline self-start"
+              >
+                {expanded ? "Show less" : "Show more"}
+              </button>
             </DialogHeader>
 
             <div className="space-y-4 py-4">
@@ -639,7 +706,7 @@ export function AssessmentScreen({
               <h3 className="text-lg font-semibold mb-4">Your Submitted Answers</h3>
               <div className="space-y-4">
                 {assessment.questions.map((question: any, index) => {
-                  const userAnswer = answers[question.id] || "Not answered"
+                  const userAnswer = getUserAnswer(question, answers)
                   const correctAnswer = question.correctAnswer
                   const savedAnswer = savedAnswers.find((a) => a.question.id === question.id)
                   const isCorrect = savedAnswer?.isCorrect
@@ -816,13 +883,10 @@ export function AssessmentScreen({
                 <h3 className="text-lg font-semibold mb-4">Review Your Answers</h3>
                 <div className="space-y-4">
                   {assessment.questions.map((question, index) => {
-                    const userAnswer = answers[question.id] || "Not answered"
+                    const userAnswer = getUserAnswer(question, answers)
                     const correctAnswer = correctAnswers[question.id]
-                    const isCorrect = Array.isArray(correctAnswer)
-                      ? Array.isArray(userAnswer) &&
-                        correctAnswer.every((answer) => userAnswer.includes(answer)) &&
-                        userAnswer.every((answer) => correctAnswer.includes(answer))
-                      : userAnswer === correctAnswer
+                    const ans = submitted.find((sa) => sa.question.id === question.id)
+                    const isCorrect = ans && ans.isCorrect
 
                     return (
                       <div key={question.id} className="p-4 border rounded-lg">
@@ -843,7 +907,9 @@ export function AssessmentScreen({
                             <div className="text-sm space-y-1">
                               <p>
                                 <span className="font-medium">Your answer:</span>{" "}
-                                {(Array.isArray(userAnswer) ? userAnswer.join(", ") : userAnswer) || "Not answered"}
+                                {question.type === "matching" ? "Matching" : 
+                                  (Array.isArray(userAnswer) ? userAnswer.join(", ") : userAnswer)
+                                }
                               </p>
 
                               {correctAnswer !== null && correctAnswer !== undefined && correctAnswer !== "" && (
@@ -1025,14 +1091,10 @@ export function AssessmentScreen({
                 <h3 className="text-lg font-semibold mb-4">Review Your Answers</h3>
                 <div className="space-y-4">
                   {assessment.questions.map((question, index) => {
-                    const userAnswer = answers[question.id] || "Not answered"
-                    const correctAnswer = correctAnswers[question.id]
-                    const isCorrect = Array.isArray(correctAnswer)
-                      ? Array.isArray(userAnswer) &&
-                        correctAnswer.every((answer) => userAnswer.includes(answer)) &&
-                        userAnswer.every((answer) => correctAnswer.includes(answer))
-                      : userAnswer === correctAnswer
-                    const pointsEarned = savedAnswers.find((sa) => sa.question.id === question.id)?.pointsEarned ?? 0
+                    const userAnswer = getUserAnswer(question, answers)
+                    const ans = submitted.find((sa) => sa.question.id === question.id)
+                    const isCorrect = ans && ans.isCorrect
+                    const pointsEarned = ans && ans.pointsEarned
                     return (
                       <div key={question.id} className="p-4 border rounded-lg">
                         <div className="flex items-start gap-3">
@@ -1052,14 +1114,8 @@ export function AssessmentScreen({
                             <div className="text-sm space-y-1">
                               <p>
                                 <span className="font-medium">Your answer:</span>{" "}
-                                {(Array.isArray(userAnswer) ? userAnswer.join(", ") : userAnswer) || "Not answered"}
+                                {(Array.isArray(userAnswer) ? userAnswer.join(", ") : userAnswer)}
                               </p>
-                              {(question.type === "multiple_choice" || question.type === "true_false") && (
-                                <p>
-                                  <span className="font-medium">Correct answer:</span>{" "}
-                                  {Array.isArray(correctAnswer) ? correctAnswer.join(", ") : correctAnswer}
-                                </p>
-                              )}
                               <p
                                 className={`font-medium ${question.type === "essay" || question.type === "short_answer" ? "text-gray-600" : isCorrect ? "text-green-600" : "text-red-600"}`}
                               >
@@ -1186,13 +1242,20 @@ export function AssessmentScreen({
 
         {currentQuestion.type === "matching" && (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <Label className="text-sm font-semibold mb-3 block">Items to Match</Label>
-                <div className="space-y-2">
-                  {currentQuestion.matchingPairs?.map((pair, pairIdx) => (
-                    <div key={pair.id} className="p-3 bg-muted rounded-lg border">
-                      <p className="text-sm">{pair.left}</p>
+            <p className="text-sm text-muted-foreground mb-3">
+              Match each item on the left with the correct item on the right
+            </p>
+            <div className="space-y-3">
+              {currentQuestion.pairs?.map((pair, pairIdx) => (
+                <div key={pair.id} className="p-4 border rounded-lg bg-muted/30">
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1">
+                      <Label className="text-sm font-medium mb-2 block">{pair.left}</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">matches with</span>
+                    </div>
+                    <div className="flex-1">
                       <Select
                         value={(answers[`${currentQuestion.id}-match-${pairIdx}`] as string) || ""}
                         onValueChange={(value) => {
@@ -1202,21 +1265,21 @@ export function AssessmentScreen({
                         }}
                         disabled={isSubmitted}
                       >
-                        <SelectTrigger className="mt-2">
+                        <SelectTrigger>
                           <SelectValue placeholder="Select match..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {currentQuestion.matchingPairs?.map((p) => (
-                            <SelectItem key={p.id} value={p.right}>
-                              {p.right}
+                          {scrambledMatchingPairs[currentQuestion.id]?.map((scrambledPair) => (
+                            <SelectItem key={scrambledPair.id} value={scrambledPair.right}>
+                              {scrambledPair.right}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
-                  ))}
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
           </div>
         )}
@@ -1229,19 +1292,22 @@ export function AssessmentScreen({
       <Pssnt onComplete={(score, passed) => onComplete(score, passed)} />
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start gap-3">
               <Award className="w-6 h-6 text-primary" />
-              <div>
+              <div className="mb-4">
                 <CardTitle className="text-2xl">{assessment.title}</CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">{assessment.description}</p>
+                <p className={`text-sm text-muted-foreground mt-1 ${expanded ? "" : "line-clamp-3"}`}>{assessment.description}</p>
+                <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                className="mt-1 text-sm text-primary hover:underline self-start"
+              >
+                {expanded ? "Show less" : "Show more"}
+              </button>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <Badge variant="outline" className="flex items-center gap-1">
-                <Target className="w-3 h-3" />
-                {assessment.passingScore}% to pass
-              </Badge>
+            <div className="flex items-start gap-4">
               <Badge
                 variant="outline"
                 className={`flex items-center gap-1 ${timeRemaining <= 300 ? "text-red-600 border-red-200" : ""}`}

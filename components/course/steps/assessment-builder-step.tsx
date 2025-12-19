@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Trophy, Target, Clock } from "lucide-react"
+import { Plus, Trophy, Target, Clock, AlertCircle } from "lucide-react"
 import { AssessmentEditor } from "../assessment/assessment-editor"
 import { AssessmentPreview } from "../assessment/assessment-preview"
 import type { Module, Assessment } from "@/types"
@@ -19,6 +19,8 @@ interface AssessmentBuilderStepProps {
 export function AssessmentBuilderStep({ modules, setModules, onNext, onPrevious }: AssessmentBuilderStepProps) {
   const [selectedAssessment, setSelectedAssessment] = useState<string | null>(null)
   const [previewMode, setPreviewMode] = useState(false)
+  const [canProceed, setCanProceed] = useState(true)
+  const [validationMessage, setValidationMessage] = useState<string>("")
 
   const allAssessments = modules.flatMap((module) =>
     (module.lessons || []).flatMap((lesson) => lesson.assessments || []),
@@ -84,6 +86,49 @@ export function AssessmentBuilderStep({ modules, setModules, onNext, onPrevious 
     )
     setSelectedAssessment(null)
   }
+
+  useEffect(() => {
+    const invalidQuestions: string[] = []
+
+    allAssessments.forEach((assessment) => {
+      assessment.questions?.forEach((question, qIndex) => {
+        if (question.type === "multiple_choice" || question.type === "true_false" || question.type === "matching") {
+          if (question.type === "multiple_choice") {
+            const hasCorrectAnswer = Array.isArray(question.correctAnswer)
+              ? question.correctAnswer.length > 0
+              : question.correctAnswer !== "" && question.correctAnswer !== undefined
+
+            if (!hasCorrectAnswer) {
+              invalidQuestions.push(
+                `"${assessment.title}" - Question ${qIndex + 1}: Multiple choice question missing correct answer`,
+              )
+            }
+          } else if (question.type === "true_false") {
+            if (question.correctAnswer !== "true" && question.correctAnswer !== "false") {
+              invalidQuestions.push(
+                `"${assessment.title}" - Question ${qIndex + 1}: True/False question missing correct answer`,
+              )
+            }
+          } else if (question.type === "matching") {
+            if (!question.matchingPairs || question.matchingPairs.length === 0) {
+              invalidQuestions.push(`"${assessment.title}" - Question ${qIndex + 1}: Matching question has no pairs`)
+            } else if (question.matchingPairs.some((pair) => !pair.left.trim() || !pair.right.trim())) {
+              invalidQuestions.push(
+                `"${assessment.title}" - Question ${qIndex + 1}: Matching question has incomplete pairs`,
+              )
+            }
+          }
+        }
+      })
+    })
+
+    setCanProceed(invalidQuestions.length === 0)
+    setValidationMessage(
+      invalidQuestions.length > 0
+        ? `Please fix the following issues before proceeding:\n${invalidQuestions.slice(0, 3).join("\n")}${invalidQuestions.length > 3 ? `\n...and ${invalidQuestions.length - 3} more` : ""}`
+        : "",
+    )
+  }, [allAssessments])
 
   return (
     <div className="space-y-6">
@@ -230,8 +275,21 @@ export function AssessmentBuilderStep({ modules, setModules, onNext, onPrevious 
           Previous Step
         </Button>
 
-        <div className="text-center">
-          {allAssessments.length > 0 && (
+        <div className="text-center flex-1 mx-4">
+          {!canProceed && validationMessage && (
+            <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg px-4 py-3 max-w-2xl mx-auto">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <div className="text-left">
+                  <p className="text-red-800 dark:text-red-200 text-sm font-medium mb-1">
+                    Cannot proceed - please fix validation errors:
+                  </p>
+                  <p className="text-red-700 dark:text-red-300 text-xs whitespace-pre-line">{validationMessage}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          {allAssessments.length > 0 && canProceed && (
             <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg px-4 py-2">
               <p className="text-green-800 dark:text-green-200 text-sm">
                 Excellent! You've created {allAssessments.length} assessment{allAssessments.length !== 1 ? "s" : ""}{" "}
@@ -241,7 +299,7 @@ export function AssessmentBuilderStep({ modules, setModules, onNext, onPrevious 
           )}
         </div>
 
-        <Button onClick={onNext} size="lg" className="px-8">
+        <Button onClick={onNext} size="lg" className="px-8" disabled={!canProceed}>
           Final Review
         </Button>
       </div>

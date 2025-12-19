@@ -61,7 +61,7 @@ export function CourseRating({
   return (
     <div className="space-y-6">
       {/* Rating Form */}
-      <Card>
+      <Card className="mx-24">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Star className="w-5 h-5 text-yellow-500" />

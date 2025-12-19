@@ -98,7 +98,6 @@ const [expandedModules, setExpandedModules] = useState<Set<string>>(
     isLocal: false 
   })
   const { token } = useAuth()
-  console.log("modules on render:", modules, Array.isArray(modules))
 
 
   // Toggle module expansion

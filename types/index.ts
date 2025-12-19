@@ -186,9 +186,9 @@ export interface AssessmentQuestion {
   question: string
   type: "multiple_choice" | "true_false" | "short_answer" | "essay" | "matching"
   options?: string[]
-  correctAnswer: string | string[]
+  correctAnswer: string | string[] 
   points: number
-  matchingPairs?: Array<{ id: string; left: string; right: string }>
+  pairs?: Array<{ id: string; left: string; right: string }>
 }
 
 export interface Answer {

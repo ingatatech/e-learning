@@ -90,6 +90,7 @@ import { useRouter } from "next/navigation"
                       question: question.question,
                       type: question.type,
                       options: question.options || [],
+                      pairs: question.pairs || [],
                       correctAnswer: question.correctAnswer,
                       points: question.points || 1,
                       ...(question.id && !isTempId(question.id) && { id: question.id }),
@@ -109,7 +110,7 @@ import { useRouter } from "next/navigation"
           if (module.finalAssessment) {
             const finalAssessmentData: any = {
               title: module.finalAssessment.title,
-              type: module.finalAssessment.type,
+              type: "assessment",
               description: module.finalAssessment.description || "",
               passingScore: module.finalAssessment.passingScore || 0,
               timeLimit: module.finalAssessment.timeLimit || null,

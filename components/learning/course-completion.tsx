@@ -216,14 +216,6 @@ export function CourseCompletion({
       <div className="max-w-4xl mx-auto p-6">
         <Card className="border-0 shadow-none">
           <CardHeader className="text-center pb-8">
-            <div className="flex justify-center mb-6">
-              <div className="relative">
-                <Trophy className="w-20 h-20 text-yellow-500" />
-                <div className="absolute -top-2 -right-2 w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                  <Star className="w-4 h-4 text-white fill-white" />
-                </div>
-              </div>
-            </div>
             <CardTitle className="text-3xl mb-2">Congratulations!</CardTitle>
             <p className="text-xl text-muted-foreground">You have successfully completed</p>
             <p className="text-2xl font-bold text-primary mt-2">{courseTitle}</p>
@@ -235,45 +227,6 @@ export function CourseCompletion({
               <div className="text-6xl font-bold text-primary mb-2">{stats.percentage}%</div>
               <p className="text-lg text-muted-foreground">Overall Score</p>
               <Progress value={stats.percentage} className="w-full max-w-md mx-auto mt-4" />
-            </div>
-
-            {/* Detailed Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <Target className="w-8 h-8 mx-auto mb-2 text-green-600" />
-                  <div className="text-2xl font-bold text-green-600">{stats.totalScore}</div>
-                  <div className="text-sm text-muted-foreground">Total Score</div>
-                  <div className="text-xs text-muted-foreground">out of {stats.totalMarks} marks</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <BookOpen className="w-8 h-8 mx-auto mb-2 text-blue-600" />
-                  <div className="text-2xl font-bold text-blue-600">{stats.completedLessons}</div>
-                  <div className="text-sm text-muted-foreground">Lessons Completed</div>
-                  <div className="text-xs text-muted-foreground">out of {stats.totalLessons}</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <Award className="w-8 h-8 mx-auto mb-2 text-purple-600" />
-                  <div className="text-2xl font-bold text-purple-600">{stats.completedAssessments}</div>
-                  <div className="text-sm text-muted-foreground">Assessments Passed</div>
-                  <div className="text-xs text-muted-foreground">out of {stats.totalAssessments}</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <Clock className="w-8 h-8 mx-auto mb-2 text-orange-600" />
-                  <div className="text-2xl font-bold text-orange-600">{formatTime(stats.timeSpent)}</div>
-                  <div className="text-sm text-muted-foreground">Time Invested</div>
-                  <div className="text-xs text-muted-foreground">learning time</div>
-                </CardContent>
-              </Card>
             </div>
 
             {/* Certificate Section */}

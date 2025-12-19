@@ -12,6 +12,7 @@ import {
   BookOpen,
   Video,
   Award,
+  ShieldQuestion,
   Clock,
   FileDown,
   Download,
@@ -22,10 +23,11 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { useAuth } from "@/hooks/use-auth"
 
 interface LearningStep {
   id: string
-  type: "content" | "video" | "assessment"
+  type: "content" | "video" | "assessment" 
   title: string
   duration?: number
   isCompleted: boolean
@@ -90,6 +92,7 @@ export function LearningSidebar({
   const [expandedModules, setExpandedModules] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [isMobileOpen, setIsMobileOpen] = useState(false)
+  const { user } = useAuth()
 
   // Generate learning steps from lessons
   const generateLearningSteps = (lesson: Lesson): LearningStep[] => {
@@ -127,7 +130,7 @@ export function LearningSidebar({
         steps.push({
           id: `${lesson.id}-assessment-${assessment.id}`,
           type: "assessment",
-          title: `${lesson.title} - Assessment`,
+          title: `${assessment.title}`,
           duration: assessment.timeLimit,
           isCompleted: isStepCompleted(`${lesson.id}-${index}-assessment`),
           isLocked: false,
@@ -140,6 +143,7 @@ export function LearningSidebar({
 
 
   const calculateStepLocks = () => {
+    if (user?.role !== "student") return
     const allStepsWithLocks: (LearningStep & { moduleId: string; lessonId: string })[] = []
 
     modules.forEach((module) => {
@@ -179,7 +183,7 @@ export function LearningSidebar({
       const isCurrentOrBefore = index <= currentStepIndex
       const allPreviousCompleted = index === 0 || allStepsWithLocks.slice(0, index).every((s) => s.isCompleted)
 
-      step.isLocked = !isCompleted && !isCurrentOrBefore && !allPreviousCompleted
+      step.isLocked = !isCompleted && !isCurrentOrBefore && !allPreviousCompleted && user?.role==="student"
     })
 
     return allStepsWithLocks
@@ -370,28 +374,28 @@ export function LearningSidebar({
                   className="border rounded bg-muted/30 hover:bg-muted/50 transition-colors overflow-hidden"
                 >
                   <AccordionTrigger
-  className="px-4 py-3 hover:bg-muted/40 rounded-t-lg transition-colors"
-  onClick={() => toggleModule(module.id)}
->
-<div className="grid items-center gap-3 w-full">
+                    className="px-4 py-3 hover:bg-muted/40 rounded-t-lg transition-colors"
+                    onClick={() => toggleModule(module.id)}
+                  >
+                  <div className="grid items-center gap-3 w-full">
 
-    {/* Module Info */}
-    <div className="min-w-0 overflow-hidden">
-      <p className="font-semibold text-sm truncate">{module.title}</p>
-      <p className="text-xs text-muted-foreground mt-0.5 truncate">
-        {completedSteps} of {moduleSteps.length} complete
-      </p>
-    </div>
+                      {/* Module Info */}
+                      <div className="min-w-0 overflow-hidden">
+                        <p className="font-semibold text-sm truncate">{module.title}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                          {completedSteps} of {moduleSteps.length} complete
+                        </p>
+                      </div>
 
-    {/* Module Progress Bar */}
-    <div className="w-full h-1.5 bg-primary/10 rounded overflow-hidden">
-      <div
-        className="h-full bg-primary transition-all duration-300"
-        style={{ width: `${moduleProgress}%` }}
-      />
-    </div>
-  </div>
-</AccordionTrigger>
+                      {/* Module Progress Bar */}
+                      <div className="w-full h-1.5 bg-primary/10 rounded overflow-hidden">
+                        <div
+                          className="h-full bg-primary transition-all duration-300"
+                          style={{ width: `${moduleProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  </AccordionTrigger>
 
                   <AccordionContent className="px-4 pb-3 pt-2 bg-background">
                     <div className="space-y-1.5">
@@ -401,7 +405,7 @@ export function LearningSidebar({
                         return (
                           <div key={lesson.id} className="space-y-1">
                             {lessonSteps.map((step) => {
-                              const stepWithLock = allStepsWithLocks.find((s) => s.id === step.id)
+                              const stepWithLock = allStepsWithLocks?.find((s) => s.id === step.id)
                               const isLocked = stepWithLock?.isLocked || false
                               const isActive = currentStepId === step.id
                               const isCompleted = stepWithLock?.isCompleted || false
@@ -416,7 +420,7 @@ export function LearningSidebar({
                                     }
                                   }}
                                   disabled={isLocked}
-                                  className={`w-full text-left p-2.5 rounded-md border transition-all ${
+                                  className={`w-full text-left p-2.5 rounded border transition-all ${
                                     isActive
                                       ? "bg-primary text-primary-foreground border-primary shadow-sm"
                                       : isLocked
@@ -442,20 +446,23 @@ export function LearningSidebar({
 
                                     {/* Content */}
                                     <div className="flex-1 min-w-0 ">
-                                      <p className="text-sm font-medium truncate">{step.title}</p>
+                                      <p className={`text-sm font-medium truncate ${step.type === 'assessment' ? "text-chart-5" : ""}`}>{step.title}</p>
                                       <div className="flex items-center gap-2 mt-1">
                                         <Badge
                                           variant={isActive ? "default" : "outline"}
-                                          className={`text-xs font-medium ${isActive && "bg-primary-foreground/20 rounded"}`}
+                                          className={`text-xs font-medium ${isActive && "bg-primary-foreground/20 rounded"} rounded`}
                                         >
                                           {getStepTypeLabel(step.type)}
                                         </Badge>
-                                        {step.duration && (
+                                        {step.duration ? (
                                           <span className="text-xs text-muted-foreground flex items-center gap-0.5">
                                             <Clock className="w-3 h-3" />
                                             {step.duration}m
                                           </span>
-                                        )}
+                                        ): <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                                            Self Paced
+                                          </span>
+                                        }
                                       </div>
                                     </div>
                                   </div>
@@ -471,17 +478,17 @@ export function LearningSidebar({
                           <button
                             onClick={() => {
                               const stepId = `${module.id}-final-assessment`
-                              const stepWithLock = allStepsWithLocks.find((s) => s.id === stepId)
+                              const stepWithLock = allStepsWithLocks?.find((s) => s.id === stepId)
                               if (!stepWithLock?.isLocked) {
                                 onStepSelect(stepId)
                                 setIsMobileOpen(false)
                               }
                             }}
-                            disabled={allStepsWithLocks.find((s) => s.id === `${module.id}-final-assessment`)?.isLocked}
+                            disabled={allStepsWithLocks?.find((s) => s.id === `${module.id}-final-assessment`)?.isLocked}
                             className={`w-full text-left p-2.5 rounded-md border transition-all ${
                               currentStepId === `${module.id}-final-assessment`
                                 ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                                : allStepsWithLocks.find((s) => s.id === `${module.id}-final-assessment`)?.isLocked
+                                : allStepsWithLocks?.find((s) => s.id === `${module.id}-final-assessment`)?.isLocked
                                   ? "opacity-50 cursor-not-allowed"
                                   : "hover:bg-muted border-transparent hover:border-primary/20"
                             }`}
@@ -490,21 +497,21 @@ export function LearningSidebar({
                               <div className="flex-shrink-0 mt-0.5">
                                 {isStepCompleted(`${module.id}-final-assessment`) ? (
                                   <CheckCircle className="w-4 h-4 text-green-600" />
-                                ) : allStepsWithLocks.find((s) => s.id === `${module.id}-final-assessment`)
+                                ) : allStepsWithLocks?.find((s) => s.id === `${module.id}-final-assessment`)
                                     ?.isLocked ? (
                                   <Lock className="w-4 h-4 text-muted-foreground" />
                                 ) : (
-                                  <Award className="w-4 h-4 text-orange-500" />
+                                  <ShieldQuestion className="w-4 h-4 text-ring" />
                                 )}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate">
-                                  Final {module.finalAssessment.type === "assessment" ? "Assessment" : "Project"}
+                                <p className="text-sm font-medium truncate text-chart-2">
+                                  {module.finalAssessment.title || "Final Assessment"}
                                 </p>
                                 <div className="flex items-center gap-2 mt-1">
                                   <Badge
                                     variant={currentStepId === `${module.id}-final-assessment` ? "default" : "outline"}
-                                    className={`text-xs font-medium ${currentStepId === `${module.id}-final-assessment` && "bg-primary-foreground/20"}`}
+                                    className={`text-xs font-medium ${currentStepId === `${module.id}-final-assessment` && "bg-primary-foreground/20 rounded"}`}
                                   >
                                     {module.finalAssessment.type === "assessment" ? "Quiz" : "Project"}
                                   </Badge>

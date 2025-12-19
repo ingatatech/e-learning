@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { CheckCircle, BookOpen, Clock, FileDown } from "lucide-react"
+import "react-quill/dist/quill.bubble.css" // Or quill.snow.css for full editor styling
 
 interface ContentBlock {
   type: "text" | "video" | "image"
@@ -62,19 +63,19 @@ function parseContentBlocks(content: string): ContentBlock[] {
 
 function ContentBlockRenderer({ block }: { block: ContentBlock }) {
   switch (block.type) {
-    case "text":
-      return (
-        <div className="prose prose-lg max-w-none mb-6">
-          <div
-            dangerouslySetInnerHTML={{ __html: block.data.text || "" }}
-            className="rich-text-content"
-            style={{
-              lineHeight: "1.6",
-              fontSize: "16px",
-            }}
-          />
-        </div>
-      )
+   case "text":
+    return (
+      <div className="ql-editor rich-text-content" style={{ 
+        padding: 0,
+        backgroundColor: 'transparent',
+        border: 'none',
+        minHeight: 'auto'
+      }}>
+        <div
+          dangerouslySetInnerHTML={{ __html: block.data.text || "" }}
+        />
+      </div>
+    )
 
     case "video":
       if (!block.data.url) {
@@ -173,17 +174,17 @@ export function ContentScreen({ lesson, onComplete, isCompleted, isStepping }: C
       </Card>
 
       {lesson.resources && lesson.resources.length > 0 && (
-        <Card>
+        <Card className="px-3 shadow-none mx-12">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileDown className="w-5 h-5 text-primary" />
               Lesson Resources
             </CardTitle>
-            <CardDescription>Download additional materials and resources for this lesson</CardDescription>
+            <CardDescription>Additional materials and resources for this lesson</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4">
-              {lesson.resources.map((resource, index) => (
+              {(typeof lesson.resources === "string" ? JSON.parse(lesson.resources) : lesson.resources).map((resource: any, index: any) => (
                 <div
                   key={index}
                   className="flex items-start gap-3 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -197,7 +198,7 @@ export function ContentScreen({ lesson, onComplete, isCompleted, isStepping }: C
                   </div>
                   <Button variant="outline" size="sm" asChild className="flex-shrink-0 bg-transparent">
                     <a href={resource.url} target="_blank" rel="noopener noreferrer">
-                      Download
+                      View Resource
                     </a>
                   </Button>
                 </div>
