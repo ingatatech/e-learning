@@ -18,35 +18,12 @@ import { useAuth } from "@/hooks/use-auth"
 
 interface LearningNavigationProps {
   courseTitle: string
-  courseId: string
   currentStepTitle: string
-  currentStepIndex: number
-  totalSteps: number
-  canGoNext: boolean
-  canGoPrevious: boolean
-  onNext: () => void
-  onPrevious: () => void
-  user?: {
-    id: string
-    firstName: string
-    lastName: string
-    avatar?: string
-    role: string
-    totalPoints: number
-    level: number
-  }
 }
 
 export function LearningNavigation({
   courseTitle,
-  courseId,
   currentStepTitle,
-  currentStepIndex,
-  totalSteps,
-  canGoNext,
-  canGoPrevious,
-  onNext,
-  onPrevious,
 }: LearningNavigationProps) {
   const { theme, setTheme } = useTheme()
   const router = useRouter()

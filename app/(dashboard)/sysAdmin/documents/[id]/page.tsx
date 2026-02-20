@@ -28,51 +28,15 @@ export default function DocumentReviewPage({ params }: { params: Promise<{ id: s
   const { id } = use(params)
   const router = useRouter()
   const { token } = useAuth()
-  const { getDocument, updateDocumentInCache } = useDocuments()
-  const [document, setDocument] = useState<Document | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { useDocument, updateDocumentInCache } = useDocuments()
   const [reviewNotes, setReviewNotes] = useState("")
   const [approveDialogOpen, setApproveDialogOpen] = useState(false)
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false)
   const [isApproving, setIsApproving] = useState(false)
   const [isRejecting, setIsRejecting] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  const { document, loading } = useDocument(id)
 
-  useEffect(() => {
-    fetchDocument()
-  }, [id])
-
-  const fetchDocument = async () => {
-    try {
-      const cachedDoc = getDocument(id)
-      if (cachedDoc) {
-        setDocument(cachedDoc)
-        setReviewNotes(cachedDoc.reviewNotes || "")
-        setLoading(false)
-        return
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/docs/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setDocument(data)
-        setReviewNotes(data.reviewNotes || "")
-      } else {
-        toast.error("Failed to load document")
-        router.push("/sysAdmin/documents")
-      }
-    } catch (error) {
-      console.error("Error fetching document:", error)
-      toast.error("Failed to load document")
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const approveDocument = async () => {
     setIsApproving(true)

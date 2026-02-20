@@ -5,7 +5,7 @@ let socket: Socket | null = null
 export const getSocket = () => {
   if (!socket) {
     socket = io(
-      process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000",
+      "http://localhost:8000",
       {
         withCredentials: true,
         autoConnect: false,

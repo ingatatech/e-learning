@@ -270,6 +270,7 @@ export function ContentEditor({ item, modules, onUpdate, onDelete }: ContentEdit
                   </p>
                 </div>
 
+                {lesson.resources?.length === 0 && (
                 <div className="space-y-3">
                   {(typeof lesson.resources === "string" ? JSON.parse(lesson.resources) : lesson.resources).map((resource: any, index: any) => (
                     <Card key={index} className="p-4 border">
@@ -330,6 +331,7 @@ export function ContentEditor({ item, modules, onUpdate, onDelete }: ContentEdit
                     </Card>
                   ))}
                 </div>
+                )}
 
                 <Button
                   variant="outline"

@@ -10,7 +10,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import {
   Play,
-  Clock,
   Users,
   Star,
   Share2,
@@ -34,6 +33,13 @@ import { useAuth } from "@/hooks/use-auth"
 import type { Course } from "@/types"
 import { CoursePaymentDialog } from "@/components/payment/course-payment-dialog"
 
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { toast } from "@/hooks/use-toast"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { AlertCircle, Calendar, Clock } from "lucide-react"
+
 export default function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const [isEnrolled, setIsEnrolled] = useState(false)
   const [isEnrolling, setIsEnrolling] = useState(false)
@@ -45,6 +51,19 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [insCourses, setInsCourses] = useState(0)
+  const [enrollment, setEnrollment] = useState<Enrollment | null>(null)
+  // Add these state variables inside the component
+const [accessExpired, setAccessExpired] = useState(false)
+const [daysRemaining, setDaysRemaining] = useState<number | null>(null)
+const [enrollmentData, setEnrollmentData] = useState<Enrollment | null>(null)
+const [showExtendModal, setShowExtendModal] = useState(false)
+const [extendDays, setExtendDays] = useState<number>(30)
+const [isExtending, setIsExtending] = useState(false)
+// Add these state variables inside the component
+const [userRating, setUserRating] = useState<{ rating: number; review: string } | null>(null)
+const [courseReviews, setCourseReviews] = useState<any[]>([])
+const [showRating, setShowRating] = useState(false)
+  
 
   useEffect(() => {
     const fetchCourseAndEnrollment = async () => {
@@ -52,6 +71,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
 
       try {
         setLoading(true)
+
 
         // Fetch course details
         const courseResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/get/${id}`, {
@@ -65,6 +85,8 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
           const courseData = await courseResponse.json()
           setCourse(courseData.course)
           setError(null)
+            await fetchCourseRating()
+
 
           // Fetch user enrollments
           const enrollmentsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/enrollments/user-enrollments`, {
@@ -78,18 +100,33 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
             }),
           })
 
-          if (enrollmentsResponse.ok) {
-            const enrollmentsData = await enrollmentsResponse.json()
+          
+        if (enrollmentsResponse.ok) {
+          const enrollmentsData = await enrollmentsResponse.json()
 
-            // Check if current course is in user's enrollments
-            const enrolledCourse = enrollmentsData.enrollments.find(
-              (enrollment: any) => enrollment.course.id.toString() === id,
-            )
+          // Check if current course is in user's enrollments
+          const enrolledCourse = enrollmentsData.enrollments.find(
+            (enrollment: any) => enrollment.course.id.toString() === id,
+          )
 
-            if (enrolledCourse) {
-              setIsEnrolled(true)
+          if (enrolledCourse) {
+            setIsEnrolled(true)
+            setEnrollmentData(enrolledCourse)
 
               try {
+                if (enrolledCourse.deadline && enrolledCourse.status !== "completed") {
+                const expiryDate = new Date(enrolledCourse.deadline)
+                const now = new Date()
+                console.log(now, expiryDate)
+
+                if (now > expiryDate) {
+                  setAccessExpired(true)
+                } else {
+                  const timeDiff = expiryDate.getTime() - now.getTime()
+                  const daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24))
+                  setDaysRemaining(daysLeft)
+                }
+              }
                 const progressResponse = await fetch(
                   `${process.env.NEXT_PUBLIC_API_URL}/progress/course/${id}/user/${user.id}`,
                   {
@@ -157,6 +194,142 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
 
     fetchCourseAndEnrollment()
   }, [token, id, user])
+
+  const fetchCourseRating = async () => {
+  if (!token) return
+  
+  try {
+    // Fetch user's rating
+    const userRatingRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reviews/course/${id}`, {
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    })
+    if (userRatingRes.ok) {
+      const userRatingData = await userRatingRes.json()
+      setUserRating(userRatingData.rating)
+    }
+
+    // Fetch all reviews for the course
+    const reviewsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reviews/course/${id}`, {
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    })
+    if (reviewsRes.ok) {
+      const reviewsData = await reviewsRes.json()
+      setCourseReviews(reviewsData.reviews || [])
+    }
+  } catch (error) {
+    console.error("Failed to fetch rating data:", error)
+  }
+}
+
+const handleRatingSubmit = async (rating: number, review: string) => {
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reviews`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        userId: user?.id,
+        courseId: id,
+        rating,
+        comment: review,
+      }),
+    })
+
+    if (response.ok) {
+      setUserRating({ rating, review })
+      await fetchCourseRating()
+      setShowRating(false)
+      toast({
+        title: "Rating submitted",
+        description: "Thank you for your review!",
+      })
+    }
+  } catch (error) {
+    console.error("Failed to submit rating:", error)
+    toast({
+      title: "Error",
+      description: "Failed to submit rating. Please try again.",
+      variant: "destructive",
+    })
+  }
+}
+
+  const handleExtendAccess = async () => {
+  if (!token || !user || !enrollmentData) return
+  
+  setIsExtending(true)
+  
+  try {
+    // Calculate days user has already had access
+    const enrolledDate = new Date(enrollmentData.enrolledAt)
+    const today = new Date()
+    const daysAccessed = Math.ceil((today.getTime() - enrolledDate.getTime()) / (1000 * 3600 * 24))
+    
+    const maxAllowedDays = 365
+    const totalDaysWithExtension = daysAccessed + extendDays
+    
+    if (totalDaysWithExtension > maxAllowedDays) {
+      const maxExtension = maxAllowedDays - daysAccessed
+      toast({
+        title: "Extension limit exceeded",
+        description: `You can only extend up to ${maxExtension} days to stay within the one-year limit.`,
+        variant: "destructive",
+      })
+      setIsExtending(false)
+      return
+    }
+    
+    // Call the endpoint to extend access
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/access/request`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        enrollmentId: enrollmentData.id,
+        userId: user.id,
+        extensionDays: extendDays,
+      }),
+    })
+    
+    if (response.ok) {
+      const result = await response.json()
+      
+      toast({
+        title: "Access extended successfully",
+        description: `Your course access has been extended by ${extendDays} days.`,
+      })
+      
+      // Update local state
+      if (result.newDeadline) {
+        const newDeadline = new Date(result.newDeadline)
+        const now = new Date()
+        const timeDiff = newDeadline.getTime() - now.getTime()
+        const daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24))
+        setDaysRemaining(daysLeft)
+        setAccessExpired(false)
+      }
+      
+      setShowExtendModal(false)
+    } else {
+      const errorData = await response.json()
+      toast({
+        title: "Failed to extend access",
+        description: errorData.message || "An error occurred while extending access.",
+        variant: "destructive",
+      })
+    }
+  } catch (error) {
+    console.error("Error extending access:", error)
+    toast({
+      title: "Error",
+      description: "An unexpected error occurred.",
+      variant: "destructive",
+    })
+  } finally {
+    setIsExtending(false)
+  }
+}
 
   const handleEnroll = async () => {
     if (course!.price > 0) {
@@ -450,6 +623,77 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                     </Badge>
                   )}
                 </div>
+
+                {isEnrolled && enrollmentData && (
+        <div className="mb-6">
+          <Card className="border-2">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                Course Access Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {accessExpired ? (
+                <div className="space-y-2">
+                  <Alert variant="destructive" className="py-2">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Access Expired</AlertTitle>
+                    <AlertDescription>
+                      Your access to this course has expired. Extend your access to continue learning.
+                    </AlertDescription>
+                  </Alert>
+                  <Button 
+                    className="w-full" 
+                    onClick={() => setShowExtendModal(true)}
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    Extend Access
+                  </Button>
+                </div>
+              ) : daysRemaining !== null ? (
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Days Remaining</span>
+                      <span className="font-semibold">{daysRemaining} days</span>
+                    </div>
+                    <Progress 
+                      value={Math.max(0, Math.min(100, (daysRemaining / 30) * 100))} 
+                      className="h-2" 
+                    />
+                  </div>
+                  <div className="text-sm space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Enrolled On</span>
+                      <span>{new Date(enrollmentData.enrolledAt).toLocaleDateString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Deadline</span>
+                      <span>{new Date(enrollmentData.deadline).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                  {daysRemaining <= 7 && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full"
+                      onClick={() => setShowExtendModal(true)}
+                    >
+                      <Calendar className="mr-2 h-3 w-3" />
+                      Extend Access
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-4 text-muted-foreground">
+                  No deadline set for this course
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
                 {/* Enrollment Section */}
                 {isEnrolled ? (
@@ -775,101 +1019,157 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
           </TabsContent>
 
           <TabsContent value="reviews">
-            <Card>
-              <CardHeader>
-                <CardTitle>Student Reviews</CardTitle>
-                <CardDescription>
-                  {course.rating} average rating • {course.reviewCount} reviews
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {/* Rating Summary */}
-                  <div className="flex items-center gap-8">
-                    <div className="text-center">
-                      <div className="text-4xl font-bold">{course.rating}</div>
-                      <div className="flex items-center gap-1 mb-2">
+  <Card>
+    <CardHeader>
+      <CardTitle>Student Reviews</CardTitle>
+      <CardDescription>
+        {course.rating} average rating • {course.reviewCount || courseReviews.length} reviews
+      </CardDescription>
+    </CardHeader>
+    <CardContent>
+      <div className="space-y-6">
+        {/* Rating Summary */}
+        <div className="flex flex-col md:flex-row items-start gap-8">
+          <div className="text-center md:text-left">
+            <div className="text-4xl font-bold">{course.rating || 0}</div>
+            <div className="flex items-center justify-center md:justify-start gap-1 mb-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  className={`w-5 h-5 ${
+                    star <= Math.round(course.rating || 0)
+                      ? "fill-yellow-400 text-yellow-400"
+                      : "text-muted-foreground"
+                  }`}
+                />
+              ))}
+            </div>
+            <div className="text-sm text-muted-foreground">Course Rating</div>
+            
+            {/* Add Rating Button - Show only if user is enrolled but hasn't rated yet */}
+            {isEnrolled && !userRating && (
+              <Button 
+                onClick={() => setShowRating(true)} 
+                className="mt-4"
+                size="sm"
+              >
+                <Star className="w-4 h-4 mr-2" />
+                Add Your Review
+              </Button>
+            )}
+          </div>
+
+          <div className="flex-1 space-y-2">
+            {[5, 4, 3, 2, 1].map((rating) => {
+              // Calculate percentage for each star rating
+              const ratingCount = courseReviews.filter(r => Math.round(r.rating) === rating).length
+              const percentage = courseReviews.length > 0 ? (ratingCount / courseReviews.length) * 100 : 0
+              
+              return (
+                <div key={rating} className="flex items-center gap-2">
+                  <span className="text-sm w-8">{rating}★</span>
+                  <Progress value={percentage} className="flex-1" />
+                  <span className="text-sm text-muted-foreground w-16">
+                    {ratingCount} ({Math.round(percentage)}%)
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Your Rating Section */}
+        {userRating && (
+          <div className="border rounded-lg p-4 bg-primary/5">
+            <div className="flex items-center gap-2 mb-2">
+              <Avatar className="w-8 h-8">
+                <AvatarImage src={user?.avatar || "/placeholder.svg"} />
+                <AvatarFallback>{user?.firstName?.[0] || "Y"}</AvatarFallback>
+              </Avatar>
+              <div>
+                <div className="font-medium">Your Review</div>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      className={`w-4 h-4 ${
+                        star <= userRating.rating
+                          ? "fill-yellow-400 text-yellow-400"
+                          : "text-muted-foreground"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+            <p className="text-muted-foreground mt-2">{userRating.review}</p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-3"
+              onClick={() => setShowRating(true)}
+            >
+              Edit Review
+            </Button>
+          </div>
+        )}
+
+        {/* Individual Reviews */}
+        {courseReviews.length > 0 ? (
+          <div className="space-y-6">
+            {courseReviews.map((review, index) => (
+              <div key={index} className="border-b pb-6 last:border-b-0">
+                <div className="flex items-start gap-4">
+                  <Avatar>
+                    <AvatarImage src={review.user?.profilePicUrl || "/placeholder.svg"} />
+                    <AvatarFallback>
+                      {review.user?.firstName?.[0] || "U"}
+                      {review.user?.lastName?.[0] || "S"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-medium">
+                        {review.user?.firstName} {review.user?.lastName}
+                      </span>
+                      <div className="flex items-center gap-1">
                         {[1, 2, 3, 4, 5].map((star) => (
-                          <Star key={star} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                          <Star
+                            key={star}
+                            className={`w-4 h-4 ${
+                              star <= review.rating
+                                ? "fill-yellow-400 text-yellow-400"
+                                : "text-muted-foreground"
+                            }`}
+                          />
                         ))}
                       </div>
-                      <div className="text-sm text-muted-foreground">Course Rating</div>
+                      <span className="text-sm text-muted-foreground">
+                        {new Date(review.createdAt).toLocaleDateString()}
+                      </span>
                     </div>
-
-                    <div className="flex-1 space-y-2">
-                      {[5, 4, 3, 2, 1].map((rating) => (
-                        <div key={rating} className="flex items-center gap-2">
-                          <span className="text-sm w-8">{rating}★</span>
-                          <Progress value={rating === 5 ? 80 : rating === 4 ? 15 : 3} className="flex-1" />
-                          <span className="text-sm text-muted-foreground w-12">
-                            {rating === 5 ? "80%" : rating === 4 ? "15%" : "3%"}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Individual Reviews */}
-                  <div className="space-y-6">
-                    {[
-                      {
-                        name: "John Smith",
-                        avatar: "/placeholder.svg?height=40&width=40",
-                        rating: 5,
-                        date: "2 weeks ago",
-                        review:
-                          "Excellent course! Sarah explains everything clearly and the projects are really helpful for understanding the concepts.",
-                      },
-                      {
-                        name: "Emily Davis",
-                        avatar: "/placeholder.svg?height=40&width=40",
-                        rating: 5,
-                        date: "1 month ago",
-                        review:
-                          "This course transformed my understanding of React. The hands-on approach and real-world examples made all the difference.",
-                      },
-                      {
-                        name: "Michael Chen",
-                        avatar: "/placeholder.svg?height=40&width=40",
-                        rating: 4,
-                        date: "2 months ago",
-                        review:
-                          "Great content and well-structured. Would love to see more advanced topics covered in future updates.",
-                      },
-                    ].map((review, index) => (
-                      <div key={index} className="border-b pb-6 last:border-b-0">
-                        <div className="flex items-start gap-4">
-                          <Avatar>
-                            <AvatarImage src={review.avatar || "/placeholder.svg"} />
-                            <AvatarFallback>{review.name[0]}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="font-medium">{review.name}</span>
-                              <div className="flex items-center gap-1">
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                  <Star
-                                    key={star}
-                                    className={`w-4 h-4 ${
-                                      star <= review.rating
-                                        ? "fill-yellow-400 text-yellow-400"
-                                        : "text-muted-foreground"
-                                    }`}
-                                  />
-                                ))}
-                              </div>
-                              <span className="text-sm text-muted-foreground">{review.date}</span>
-                            </div>
-                            <p className="text-muted-foreground">{review.review}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                    <p className="text-muted-foreground">{review.comment}</p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <Star className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">No reviews yet. Be the first to review this course!</p>
+            {isEnrolled && !userRating && (
+              <Button onClick={() => setShowRating(true)} className="mt-4">
+                <Star className="w-4 h-4 mr-2" />
+                Add Review
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+    </CardContent>
+  </Card>
+</TabsContent>
         </Tabs>
       </div>
 
@@ -883,6 +1183,159 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
           userId={user!.id}
         />
       )}
+
+      {/* Extend Access Modal */}
+<Dialog open={showExtendModal} onOpenChange={setShowExtendModal}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Extend Course Access</DialogTitle>
+      <DialogDescription>
+        Choose how many days you want to extend your access. Maximum total access: 365 days.
+      </DialogDescription>
+    </DialogHeader>
+    
+    <div className="space-y-4 py-4">
+      <div className="space-y-2">
+        <Label htmlFor="days">Days to extend</Label>
+        <Input
+          id="days"
+          type="number"
+          min="1"
+          max="365"
+          value={extendDays}
+          onChange={(e) => setExtendDays(Math.min(365, parseInt(e.target.value) || 1))}
+        />
+      </div>
+      
+      {enrollmentData && (
+        <div className="p-3 bg-muted rounded-lg space-y-2">
+          <p className="text-sm font-medium">Current Status:</p>
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div>
+              <span className="text-muted-foreground">Enrolled:</span>
+              <span className="ml-2">{new Date(enrollmentData.enrolledAt).toLocaleDateString()}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Deadline:</span>
+              <span className="ml-2">{new Date(enrollmentData.deadline).toLocaleDateString()}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Days Used:</span>
+              <span className="ml-2">
+                {Math.ceil((new Date().getTime() - new Date(enrollmentData.enrolledAt).getTime()) / (1000 * 3600 * 24))}
+              </span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Max Days:</span>
+              <span className="ml-2">365</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+    
+    <DialogFooter>
+      <Button
+        variant="outline"
+        onClick={() => setShowExtendModal(false)}
+        disabled={isExtending}
+      >
+        Cancel
+      </Button>
+      <Button
+        onClick={handleExtendAccess}
+        disabled={isExtending}
+      >
+        {isExtending ? "Extending..." : `Extend by ${extendDays} days`}
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+
+{/* Rating Dialog */}
+<Dialog open={showRating} onOpenChange={setShowRating}>
+  <DialogContent className="sm:max-w-md">
+    <DialogHeader>
+      <DialogTitle>Rate this Course</DialogTitle>
+      <DialogDescription>
+        Share your experience with this course to help other learners.
+      </DialogDescription>
+    </DialogHeader>
+    
+    <div className="space-y-4 py-4">
+      <div className="space-y-2">
+        <Label>Your Rating</Label>
+        <div className="flex items-center gap-1">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <Button
+              key={star}
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                const newRating = star
+                // Handle star rating selection
+                const tempRating = userRating ? { ...userRating, rating: newRating } : { rating: newRating, review: "" }
+                setUserRating(tempRating)
+              }}
+              className="hover:bg-transparent"
+            >
+              <Star
+                className={`w-8 h-8 ${
+                  star <= (userRating?.rating || 0)
+                    ? "fill-yellow-400 text-yellow-400"
+                    : "text-muted-foreground"
+                }`}
+              />
+            </Button>
+          ))}
+        </div>
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="review">Your Review</Label>
+        <textarea
+          id="review"
+          className="w-full min-h-[100px] p-3 border rounded-md"
+          placeholder="Share your thoughts about the course..."
+          value={userRating?.review || ""}
+          onChange={(e) => {
+            if (userRating) {
+              setUserRating({ ...userRating, review: e.target.value })
+            } else {
+              setUserRating({ rating: 0, review: e.target.value })
+            }
+          }}
+        />
+      </div>
+    </div>
+    
+    <DialogFooter>
+      <Button
+        variant="outline"
+        onClick={() => setShowRating(false)}
+      >
+        Cancel
+      </Button>
+      <Button
+        onClick={() => {
+          if (userRating?.rating && userRating.rating > 0) {
+            handleRatingSubmit(userRating.rating, userRating.review)
+          } else {
+            toast({
+              title: "Rating required",
+              description: "Please select a star rating.",
+              variant: "destructive",
+            })
+          }
+        }}
+        disabled={!userRating?.rating || userRating.rating === 0}
+      >
+        Submit Review
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
     </div>
   )
 }

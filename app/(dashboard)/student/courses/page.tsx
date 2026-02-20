@@ -569,7 +569,7 @@ export default function MyCoursesPage() {
                         </div>
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Calendar className="w-3 h-3" />
-                          Enrolled {new Date(enrollment.enrollmentDate).toLocaleDateString()}
+                          {new Date(enrollment.enrolledAt).toLocaleDateString()}
                         </div>
                       </div>
                       <CardTitle className="text-lg line-clamp-2 group-hover:text-primary transition-colors">

@@ -3,6 +3,7 @@ export enum UserRole {
   INSTRUCTOR = "instructor",
   STUDENT = "student",
   SYSADMIN = "sysAdmin",
+  REGISTRAR = "registrar", // Organization-based registrar
 }
 
 export enum CourseLevel {
@@ -186,7 +187,7 @@ export interface AssessmentQuestion {
   question: string
   type: "multiple_choice" | "true_false" | "short_answer" | "essay" | "matching"
   options?: string[]
-  correctAnswer: string | string[] 
+  correctAnswer: string | string[]
   points: number
   pairs?: Array<{ id: string; left: string; right: string }>
 }
@@ -212,12 +213,14 @@ export interface Enrollment {
   enrolledAt: Date
   completedAt?: Date
   accessExpiresAt?: Date
+  accessExtensions?: AccessExtension[]
+  totalAccessDays: number // Track total days of access (max 365 days = 1 year)
   progress: number
   isCompleted: boolean
+  isAccessRevoked: boolean // True when 1 year has passed and access is revoked
   certificateId?: string
   certificate?: Certificate
   reviews?: Array<{
-    // Add this optional property
     id: string
     rating: number
     comment?: string
@@ -378,10 +381,135 @@ export interface FinalAssessment {
   updatedAt: Date
 }
 
+export enum MessageStatus {
+  SENT = "sent",
+  DELIVERED = "delivered",
+  READ = "read",
+}
+
+export enum CommentStatus {
+  ACTIVE = "active",
+  FLAGGED = "flagged",
+  HIDDEN = "hidden",
+  DELETED = "deleted",
+}
+
+export interface PrivateMessage {
+  conversationId: string | undefined
+  id: string
+  senderId: string
+  sender?: User
+  recipientId: string
+  recipient?: User
+  courseId: string
+  course?: Course
+  content: string
+  status: MessageStatus
+  attachments?: string[]
+  createdAt: Date
+  updatedAt: Date
+  readAt?: Date
+}
+
+export interface CourseComment {
+  id: string
+  authorId: string
+  author?: User
+  courseId: string
+  course?: Course
+  content: string
+  status: CommentStatus
+  parentCommentId?: string // For nested comments/replies
+  replies?: CourseComment[]
+  flagReports?: CommentReport[]
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface CommentReport {
+  id: string
+  reporterId: string
+  reporter?: User
+  commentId: string
+  comment?: CourseComment
+  reason: "inappropriate" | "spam" | "offensive" | "plagiarism" | "other"
+  description: string
+  status: "pending" | "reviewed" | "resolved"
+  reviewedBy?: string
+  registrar?: User
+  resolutionNotes?: string
+  createdAt: Date
+  updatedAt: Date
+  resolvedAt?: Date
+}
+
+export interface AccessExtension {
+  id: string
+  enrollmentId: string
+  enrollment?: Enrollment
+  requestedAt: Date
+  approvedAt?: Date
+  newExpiryDate: Date
+  daysAdded: number
+  status: "pending" | "approved" | "rejected"
+  approvedBy?: string
+  approverNotes?: string
+}
+
+export interface InstructorActivity {
+  id: string
+  instructorId: string
+  instructor?: User
+  organizationId: string
+  organization?: Organization
+  activityType: "message_sent" | "message_read" | "response_time" | "comment_moderation"
+  relatedId?: string // ID of the message, comment, etc.
+  metadata?: Record<string, any>
+  createdAt: Date
+}
+
+// Course Space Types (for group course messaging like Google Spaces)
+export interface CourseSpace {
+  id: string
+  courseId: string
+  course?: Course
+  title: string
+  description?: string
+  allowStudentPosts: boolean // Can students post or only see instructor posts
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface CourseSpaceMessage {
+  id: string
+  courseSpaceId: string
+  courseSpace?: CourseSpace
+  senderId: string
+  sender?: User
+  content: string
+  attachments?: string[]
+  parentMessageId?: string // For nested replies
+  replies?: CourseSpaceMessage[]
+  readBy?: Array<{
+    userId: string
+    readAt: Date
+  }>
+  createdAt: Date
+  updatedAt: Date
+}
+
+// Read status tracking for course space messages
+export interface CourseSpaceMessageReadStatus {
+  id: string
+  messageId: string
+  userId: string
+  user?: User
+  readAt: Date
+}
 
 interface BaseEntity {
   id: string
   // Add these fields to track state
-  _status?: 'local' | 'synced' | 'modified' | 'deleting'
+  _status?: "local" | "synced" | "modified" | "deleting"
   _tempId?: string // For tracking temporary IDs before BE assigns real ones
 }

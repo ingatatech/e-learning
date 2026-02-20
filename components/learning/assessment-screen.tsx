@@ -449,6 +449,15 @@ const getUserAnswer = (question: Question, answers: Record<string, any>) => {
   return result.some((r) => r.right !== null) ? result : "Not answered"
 }
 
+const getSelectedValuesForQuestion = (questionId: string) => {
+  const selectedValues: string[] = []
+  Object.entries(answers).forEach(([key, value]) => {
+    if (key.startsWith(`${questionId}-match-`) && value) {
+      selectedValues.push(value as string)
+    }
+  })
+  return selectedValues
+}
 
 
   // Handle file upload specifically for assessments with fileRequired flag
@@ -1246,40 +1255,66 @@ const getUserAnswer = (question: Question, answers: Record<string, any>) => {
               Match each item on the left with the correct item on the right
             </p>
             <div className="space-y-3">
-              {currentQuestion.pairs?.map((pair, pairIdx) => (
-                <div key={pair.id} className="p-4 border rounded-lg bg-muted/30">
-                  <div className="flex items-center gap-4">
-                    <div className="flex-1">
-                      <Label className="text-sm font-medium mb-2 block">{pair.left}</Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">matches with</span>
-                    </div>
-                    <div className="flex-1">
-                      <Select
-                        value={(answers[`${currentQuestion.id}-match-${pairIdx}`] as string) || ""}
-                        onValueChange={(value) => {
-                          const newAnswers = { ...answers }
-                          newAnswers[`${currentQuestion.id}-match-${pairIdx}`] = value
-                          setAnswers(newAnswers)
-                        }}
-                        disabled={isSubmitted}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select match..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {scrambledMatchingPairs[currentQuestion.id]?.map((scrambledPair) => (
-                            <SelectItem key={scrambledPair.id} value={scrambledPair.right}>
-                              {scrambledPair.right}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+              {currentQuestion.pairs?.map((pair, pairIdx) => {
+                const selectedValues = getSelectedValuesForQuestion(currentQuestion.id)
+                const currentValue = (answers[`${currentQuestion.id}-match-${pairIdx}`] as string) || ""
+                
+                return (
+                  <div key={pair.id} className="p-4 border rounded-lg bg-muted/30">
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1">
+                        <Label className="text-sm font-medium mb-2 block">{pair.left}</Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">matches with</span>
+                      </div>
+                      <div className=" flex flex-1 items-center">
+                        <Select
+                          value={currentValue}
+                          onValueChange={(value) => {
+                            const newAnswers = { ...answers }
+                            newAnswers[`${currentQuestion.id}-match-${pairIdx}`] = value
+                            setAnswers(newAnswers)
+                          }}
+                          disabled={isSubmitted}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select match...">
+                              {currentValue || "Select match..."}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {scrambledMatchingPairs[currentQuestion.id]?.map((scrambledPair) => (
+                              <SelectItem 
+                                key={scrambledPair.id} 
+                                value={scrambledPair.right}
+                                disabled={selectedValues.includes(scrambledPair.right) && currentValue !== scrambledPair.right}
+                              >
+                                {scrambledPair.right}
+                                {selectedValues.includes(scrambledPair.right) && currentValue !== scrambledPair.right && " (already selected)"}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const newAnswers = { ...answers }
+                            newAnswers[`${currentQuestion.id}-match-${pairIdx}`] = ""
+                            setAnswers(newAnswers)
+                          }}
+                          disabled={!currentValue || isSubmitted}
+                          className="ml-2"
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         )}

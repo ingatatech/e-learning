@@ -12,22 +12,43 @@ import { LearningNavigation } from "@/components/learning/learning-navigation"
 import { CompletionCelebration } from "@/components/learning/completion-celebration"
 import { CourseCompletion } from "@/components/learning/course-completion"
 import { CourseRating } from "@/components/learning/course-rating"
+import { LearningMessagingPanel } from "@/components/learning/learning-messaging-panel"
 import { useRouter } from "next/navigation"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertCircle, Clock } from "lucide-react"
+import { AlertCircle, Clock, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import type { Assessment } from "@/types"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { toast } from "@/hooks/use-toast"
+import { Loader2 } from "lucide-react"
 
-interface LearningStep {
+// Add this interface for enrollment data
+interface EnrollmentData {
   id: string
-  dbId: string
-  type: "content" | "video" | "assessment"
-  title: string
-  lessonId: string
-  moduleId: string
-  lesson: any
-  assessment?: Assessment
-  duration?: number
+  enrolledAt: string
+  deadline: string
+  status: string
+  course: {
+    id: string
+  }
+}
+
+interface Instructor {
+  id: string
+  name: string
+  email: string
+  avatar?: string
 }
 
 export default function CourseLearningPage({ params }: { params: Promise<{ id: string }> }) {
@@ -41,6 +62,10 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
   const [courseReviews, setCourseReviews] = useState<any[]>([])
   const [accessExpired, setAccessExpired] = useState(false)
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null)
+  const [enrollmentData, setEnrollmentData] = useState<EnrollmentData | null>(null) // Store enrollment data
+  const [showExtendModal, setShowExtendModal] = useState(false)
+  const [extendDays, setExtendDays] = useState<number>(30)
+  const [isExtending, setIsExtending] = useState(false)
 
   const [allSteps, setAllSteps] = useState<LearningStep[]>([])
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
@@ -48,6 +73,9 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
   const [celebrationData, setCelebrationData] = useState<any>({})
   const [isStepping, setIsStepping] = useState(false)
   const router = useRouter()
+  const [instructor, setInstructor] = useState<Instructor | null>(null)
+  const [showMessagingSheet, setShowMessagingSheet] = useState(false)
+
 
   const {
     progressData,
@@ -62,73 +90,84 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
     refetch,
   } = useLearningProgress(id)
 
-  useEffect(() => {
-    const fetchCourse = async () => {
-      if (!token || !user) return
-      setLoading(true)
+  const fetchCourse = async () => {
+    if (!token || !user) return
+    setLoading(true)
 
-      try {
-        if (user.role == "student") {
-          const enrollmentsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/enrollments/user-enrollments`, {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            method: "POST",
-            body: JSON.stringify({
-              userId: user.id,
-            }),
+    try {
+      if (user.role == "student") {
+        const enrollmentsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/enrollments/user-enrollments`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          method: "POST",
+          body: JSON.stringify({
+            userId: user.id,
+          }),
+        })
+
+        if (enrollmentsResponse.ok) {
+          const enrollmentsData = await enrollmentsResponse.json()
+
+          const enrolledCourse = enrollmentsData.enrollments.find(
+            (enrollment: any) => enrollment.course.id.toString() === id,
+          )
+
+          if (!enrolledCourse) {
+            router.push("/student/courses")
+            return
+          }
+
+          // Store enrollment data
+          setEnrollmentData({
+            id: enrolledCourse.id,
+            enrolledAt: enrolledCourse.enrolledAt,
+            deadline: enrolledCourse.deadline,
+            status: enrolledCourse.status,
+            course: enrolledCourse.course
           })
 
-          if (enrollmentsResponse.ok) {
-            const enrollmentsData = await enrollmentsResponse.json()
+          if (enrolledCourse.deadline && enrolledCourse.status !== "completed") {
+            const expiryDate = new Date(enrolledCourse.deadline)
+            const now = new Date()
 
-            const enrolledCourse = enrollmentsData.enrollments.find(
-              (enrollment: any) => enrollment.course.id.toString() === id,
-            )
-
-            if (!enrolledCourse) {
-              router.push("/student/courses")
+            if (now > expiryDate) {
+              setAccessExpired(true)
+              setLoading(false)
               return
             }
 
-            if (enrolledCourse.deadline && enrolledCourse.status !== "completed") {
-              const expiryDate = new Date(enrolledCourse.deadline)
-              const now = new Date()
-
-              if (now > expiryDate) {
-                setAccessExpired(true)
-                setLoading(false)
-                return
-              }
-
-              const timeDiff = expiryDate.getTime() - now.getTime()
-              const daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24))
-              setDaysRemaining(daysLeft)
-            }
+            const timeDiff = expiryDate.getTime() - now.getTime()
+            const daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24))
+            setDaysRemaining(daysLeft)
           }
         }
-
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/get/${id}`, {
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        })
-        if (res.ok) {
-          const data = await res.json()
-          setCourse(data.course)
-          setAllSteps(generateLearningSteps(data.course))
-          setError(null)
-          await fetchCourseRating()
-        } else {
-          setError("Failed to fetch course details")
-        }
-      } catch (err) {
-        console.error(err)
-        setError("Error fetching course")
-      } finally {
-        setLoading(false)
       }
-    }
 
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/courses/get/${id}`, {
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setCourse(data.course)
+        if (data.course.instructor) {
+          setInstructor(data.course.instructor)
+        }
+        setAllSteps(generateLearningSteps(data.course))
+        setError(null)
+        await fetchCourseRating()
+      } else {
+        setError("Failed to fetch course details")
+      }
+    } catch (err) {
+      console.error(err)
+      setError("Error fetching course")
+    } finally {
+      setLoading(false)
+    }
+  }
+  useEffect(() => {
     fetchCourse()
   }, [token, user, id])
 
@@ -151,6 +190,86 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
       }
     } catch (error) {
       console.error("Failed to fetch rating data:", error)
+    }
+  }
+
+  const handleExtendAccess = async () => {
+    if (!token || !user || !enrollmentData) return
+    
+    setIsExtending(true)
+    
+    try {
+      // First, check if extension is valid (doesn't exceed one year)
+      const enrolledDate = new Date(enrollmentData.enrolledAt)
+      const today = new Date()
+      const daysSinceEnrollment = Math.ceil((today.getTime() - enrolledDate.getTime()) / (1000 * 3600 * 24))
+      
+      const maxAllowedDays = 365
+      const totalDaysWithExtension = daysSinceEnrollment + extendDays
+      
+      if (totalDaysWithExtension > maxAllowedDays) {
+        const maxExtension = maxAllowedDays - daysSinceEnrollment
+        toast({
+          title: "Extension limit exceeded",
+          description: `You can only extend up to ${maxExtension} days to stay within the one-year limit.`,
+          variant: "destructive",
+        })
+        setIsExtending(false)
+        return
+      }
+      
+      // Call the endpoint to extend access
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/access/request`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          enrollmentId: enrollmentData.id, // You might need to pass enrollment ID instead
+          userId: user.id,
+          extensionDays: extendDays,
+        }),
+      })
+      
+      if (response.ok) {
+        const result = await response.json()
+        
+        toast({
+          title: "Access extended successfully",
+          description: `Your course access has been extended by ${extendDays} days.`,
+        })
+        
+        // Update local state
+        if (result.newDeadline) {
+          const newDeadline = new Date(result.newDeadline)
+          const now = new Date()
+          const timeDiff = newDeadline.getTime() - now.getTime()
+          const daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24))
+          setDaysRemaining(daysLeft)
+          setAccessExpired(false)
+        }
+        
+        setShowExtendModal(false)
+        setAccessExpired(false)
+        fetchCourse()
+      } else {
+        const errorData = await response.json()
+        toast({
+          title: "Failed to extend access",
+          description: errorData.message || "An error occurred while extending access.",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error extending access:", error)
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsExtending(false)
     }
   }
 
@@ -271,6 +390,12 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
     })
 
     return steps
+  }
+
+  const handleOpenInbox = () => {
+    if (!instructor) return
+    // Open the messaging sheet instead of navigating away
+    setShowMessagingSheet(true)
   }
 
   const handleStepComplete = async (score?: number, passed?: boolean) => {
@@ -402,6 +527,11 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
   }
 
   if (accessExpired) {
+    // Calculate days user has already had access
+    const daysAccessed = enrollmentData ? 
+      Math.ceil((new Date().getTime() - new Date(enrollmentData.enrolledAt).getTime()) / (1000 * 3600 * 24)) : 0
+    const maxExtension = 365 - daysAccessed
+    
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="max-w-md w-full">
@@ -413,11 +543,78 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
                 Your access to this course has expired. The course deadline has passed and you can no longer access the
                 course content.
               </p>
+              
+              <Dialog open={showExtendModal} onOpenChange={setShowExtendModal}>
+                <DialogTrigger asChild>
+                  <Button className="w-full">
+                    <Calendar className="mr-2 h-4 w-4" />
+                    Extend Access
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Extend Course Access</DialogTitle>
+                    <DialogDescription>
+                      Choose how many days you want to extend your access. You can extend up to {maxExtension} days to stay within the one-year limit.
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="days">Days to extend</Label>
+                      <Input
+                        id="days"
+                        type="number"
+                        min="1"
+                        max={maxExtension}
+                        value={extendDays}
+                        onChange={(e) => setExtendDays(Math.min(maxExtension, parseInt(e.target.value) || 1))}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        You've had access for {daysAccessed} days. Maximum total access: 365 days.
+                      </p>
+                    </div>
+                    
+                    <div className="p-3 bg-muted rounded-lg">
+                      <p className="text-sm font-medium">Summary:</p>
+                      <p className="text-sm">
+                        Current access: {daysAccessed} days<br />
+                        Extension: {extendDays} days<br />
+                        Total access after extension: {daysAccessed + extendDays} days
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowExtendModal(false)}
+                      disabled={isExtending}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleExtendAccess}
+                      disabled={isExtending || extendDays < 1 || extendDays > maxExtension}
+                    >
+                      {isExtending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Extending...
+                        </>
+                      ) : (
+                        `Extend by ${extendDays} days`
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
               <div className="flex gap-3 mt-4">
-                <Button onClick={() => router.push("/student/courses")} className="flex-1">
+                <Button onClick={() => router.push("/student/courses")} className="flex-1" variant="outline">
                   My Courses
                 </Button>
-                <Button onClick={() => router.push("/courses")} variant="outline" className="flex-1 bg-transparent">
+                <Button onClick={() => router.push("/courses")} variant="outline" className="flex-1">
                   Browse Courses
                 </Button>
               </div>
@@ -457,14 +654,7 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
     <div className="min-h-screen bg-background">
       <LearningNavigation
         courseTitle={course.title}
-        courseId={id}
         currentStepTitle={isOnCompletionStep ? "Course Completion" : currentStep.title}
-        currentStepIndex={currentStepIndex}
-        totalSteps={allSteps.length + 1}
-        canGoNext={currentStepIndex < allSteps.length}
-        canGoPrevious={currentStepIndex > 0}
-        onNext={handleNextStep}
-        onPrevious={handlePreviousStep}
       />
 
       <div className="">
@@ -478,6 +668,9 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
           isStepCompleted={isStepCompleted}
           allStepsCompleted={allStepsCompleted}
           getStepScore={getStepScore}
+           instructor={instructor}
+          onMessageInstructor={handleOpenInbox}
+          showMessageButton={user?.role === "student"}
         />
 
         <div className="flex-1 ml-0 lg:ml-[340px] overflow-y-auto">
@@ -513,6 +706,50 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
                         You have {daysRemaining} {daysRemaining === 1 ? "day" : "days"} remaining to complete this
                         course before access expires.
                       </AlertDescription>
+                      <div className="mt-2">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm">
+                              <Calendar className="mr-2 h-3 w-3" />
+                              Extend Access
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Extend Course Access</DialogTitle>
+                              <DialogDescription>
+                                Extend your course access period to continue learning.
+                              </DialogDescription>
+                            </DialogHeader>
+                            
+                            <div className="space-y-4 py-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="extend-days">Days to extend</Label>
+                                <Input
+                                  id="extend-days"
+                                  type="number"
+                                  min="1"
+                                  max="365"
+                                  value={extendDays}
+                                  onChange={(e) => setExtendDays(Math.min(365, parseInt(e.target.value) || 1))}
+                                />
+                              </div>
+                            </div>
+                            
+                            <DialogFooter>
+                              <Button
+                                variant="outline"
+                                onClick={() => setShowExtendModal(false)}
+                              >
+                                Cancel
+                              </Button>
+                              <Button onClick={handleExtendAccess}>
+                                Extend Access
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
                     </Alert>
                   </div>
                 )}
@@ -579,6 +816,20 @@ export default function CourseLearningPage({ params }: { params: Promise<{ id: s
           }}
         />
       )}
+
+      {/* Messaging Sheet */}
+      <Sheet open={showMessagingSheet} onOpenChange={setShowMessagingSheet}>
+        <SheetContent side="right" className="w-full sm:w-[600px] p-0 flex flex-col">
+          {course && instructor && (
+            <LearningMessagingPanel
+              course={course}
+              instructor={instructor}
+              userId={user?.id || ""}
+              onClose={() => setShowMessagingSheet(false)}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

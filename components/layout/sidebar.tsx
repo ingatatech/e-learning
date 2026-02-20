@@ -25,8 +25,6 @@ import {
   GraduationCap,
   Building,
   UserPlus,
-  DollarSign,
-  PieChart,
   BookPlus,
   UserRoundCheck,
   Shield,
@@ -34,16 +32,15 @@ import {
   LogOut,
   User,
   HelpCircle,
-  Bell,
   Search,
   BookMarked,
   Users2,
-  BarChart2,
   Wallet,
   Cog,
   FileCog,
   Settings,
   Boxes,
+  MessagesSquare,
 } from "lucide-react"
 import React from "react"
 import { useAuth } from "@/hooks/use-auth"
@@ -70,6 +67,8 @@ const navigationItems: Record<string, NavigationItem[]> = {
     { name: "Dashboard", href: "/student", icon: Home },
     { name: "My Courses", href: "/student/courses", icon: BookMarked },
     { name: "Explore Courses", href: "/courses", icon: Search },
+    { name: "Messages", href: "/student/messages", icon: MessagesSquare },
+
   ],
   instructor: [
     { name: "Dashboard", href: "/instructor", icon: Home },
@@ -85,6 +84,7 @@ const navigationItems: Record<string, NavigationItem[]> = {
     { name: "Submissions", href: "/instructor/assessments", icon: FileCog },
 
     { name: "Students", href: "/instructor/students", icon: Users },
+    { name: "Messages", href: "/instructor/messages", icon: MessagesSquare },
     { name: "Settings", href: "/settings", icon: Cog },
   ],
   gdv: [

@@ -19,6 +19,7 @@ import {
   Search,
   X,
   Menu,
+  MessageSquare, 
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -76,6 +77,14 @@ interface LearningSidebarProps {
   isStepCompleted: (stepId: string) => boolean
   allStepsCompleted: boolean
   getStepScore?: (stepId: string) => number | undefined
+  instructor?: {
+    id: string
+    name: string
+    email?: string
+    avatar?: string
+  } | null
+  onMessageInstructor?: () => void
+  showMessageButton?: boolean
 }
 
 export function LearningSidebar({
@@ -88,6 +97,9 @@ export function LearningSidebar({
   isStepCompleted,
   allStepsCompleted,
   getStepScore,
+  instructor,
+  onMessageInstructor,
+  showMessageButton = false,
 }: LearningSidebarProps) {
   const [expandedModules, setExpandedModules] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState("")
@@ -299,7 +311,7 @@ export function LearningSidebar({
 
       {/* Tabs Navigation */}
       <Tabs defaultValue="outline" className="flex-1 flex flex-col overflow-hidden">
-        <TabsList className="grid w-full grid-cols-3 bg-background px-4 pt-4">
+        <TabsList className={`grid w-full grid-cols-3 bg-background px-4 pt-4`}>
           <TabsTrigger value="outline" className="flex items-center gap-1.5 text-xs font-medium rounded">
             <BookOpen className="w-4 h-4" />
             <span className="hidden sm:inline">Outline</span>
@@ -652,6 +664,34 @@ export function LearningSidebar({
             </div>
           </div>
         </TabsContent>
+
+        {/* Messages Tab */}
+        {showMessageButton && (
+          <TabsContent value="messages" className="flex-1 overflow-y-auto p-4">
+            <div className="space-y-4">
+              <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-primary" />
+                  Send a Message
+                </h4>
+                <p className="text-xs text-muted-foreground mb-4">
+                  Send a message to your instructor or post in the course discussion space.
+                </p>
+                <Button
+                  onClick={() => {
+                    onMessageInstructor?.()
+                    setIsMobileOpen(false)
+                  }}
+                  className="w-full"
+                  size="sm"
+                >
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Open Messages
+                </Button>
+              </div>
+            </div>
+          </TabsContent>
+        )}
       </Tabs>
     </>
   )
@@ -666,14 +706,44 @@ export function LearningSidebar({
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-80 p-0 flex flex-col">
-            <SidebarContent />
+            <div className="flex-1 overflow-hidden flex flex-col">
+              <SidebarContent />
+              {showMessageButton && instructor && (
+                <div className="border-t p-4 mt-auto">
+                  <Button
+                    onClick={() => {
+                      onMessageInstructor?.()
+                      setIsMobileOpen(false)
+                    }}
+                    variant="default"
+                    className="w-full gap-2"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    Message Instructor
+                  </Button>
+                </div>
+              )}
+            </div>
           </SheetContent>
         </Sheet>
       </div>
 
       <div className="hidden lg:flex fixed left-0 top-[73px] w-85 border-r bg-background h-[calc(100vh-73px)] overflow-hidden z-[5] flex-col">
         <SidebarContent />
+      {showMessageButton && instructor && (
+      <div className="border-t p-4 mt-auto">
+        <Button
+          onClick={onMessageInstructor}
+          variant="default"
+          className="w-full gap-2"
+        >
+          <MessageSquare className="w-4 h-4" />
+          Message Instructor
+        </Button>
       </div>
+    )}
+      </div>
+
     </>
   )
 }
