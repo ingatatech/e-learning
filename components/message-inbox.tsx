@@ -147,10 +147,26 @@ useEffect(() => {
     }
   })
 
+  socket.on("new-space-message", (message: CourseSpaceMessage) => {
+    if (message.space === selectedSpace?.id) {
+      // Check if message already exists to prevent duplicates
+      setSpaceMessages((prevMessages) => {
+        // If message already exists, don't add it again
+        const exists = prevMessages.some(m => m.id === message.id)
+        console.log('exists', exists)
+        if (exists) {
+          return prevMessages
+        }
+        return [...prevMessages, message]
+      })
+    }
+  })
+
   return () => {
     socket.off("new-message")
+    socket.off("new-space-message")
   }
-}, [selectedConversation?.id])
+}, [selectedConversation?.id, selectedSpace])
 
   
   // Add ref for auto-scrolling
@@ -171,6 +187,12 @@ useEffect(() => {
     }
   }, [messages])
 
+  useEffect(() => {
+    if (spaceMessages.length > 0) {
+      scrollToBottom()
+    }
+  }, [spaceMessages])
+
   // Also scroll when fetching is complete
   useEffect(() => {
     if (!isFetchingMessages && messages.length > 0) {
@@ -181,22 +203,42 @@ useEffect(() => {
     }
   }, [isFetchingMessages, messages.length])
 
-  // Fetch conversations on load
   useEffect(() => {
-    const fetchConversations = async () => {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/conversations`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      })
-      const data = await res.json()
-      setConversations(data.sanitized || [])
+    if (!isFetchingMessages && spaceMessages.length > 0) {
+      setTimeout(() => {
+        scrollToBottom()
+      }, 100)
     }
-    if (token) {
-      fetchConversations()
+  }, [isFetchingMessages, spaceMessages.length])
+
+  // Fetch conversations on load
+  // When fetching conversations
+useEffect(() => {
+  const fetchConversations = async () => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/conversations`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    })
+    const data = await res.json()
+    // The data already has messages, so set them
+    setConversations(data.sanitized || [])
+    
+    // If there's a selected conversation, update its messages
+    if (selectedConversation?.id) {
+      const updatedConversation = data.sanitized?.find(
+        (c: Conversation) => c.id === selectedConversation.id
+      )
+      if (updatedConversation?.messages) {
+        setMessages(updatedConversation.messages)
+      }
     }
-  }, [token])
+  }
+  if (token) {
+    fetchConversations()
+  }
+}, [token])
 
   // Fetch spaces on load
   useEffect(() => {
@@ -210,6 +252,7 @@ useEffect(() => {
           },
         })
         const data = await res.json()
+        // Make sure messages are included in each space
         setSpaces(data.spaces)
       } catch (error) {
         console.error("Error fetching spaces:", error)
@@ -366,6 +409,7 @@ useEffect(() => {
     
     return combined
   }, [conversations, temporaryConversations, isStudent])
+
 
   // Get current conversation (real or temporary)
   const currentConversation = useMemo(() => {
@@ -618,46 +662,94 @@ useEffect(() => {
     }
   }
 
-  // Helper function to get course title
-  const getCourseTitle = () => {
-    console.log(selectedConversation)
-    if (isStudent && selectedUser) {
-      const instructor = selectedUser as Instructor
-      return instructor.courses.find(c => String(c.id) === String(selectedCourseId))?.title || "Course"
-    } else if (!isStudent && selectedUser) {
-      const student = selectedUser as Student
-      return student.courses.find(c => String(c.id) === String(selectedCourseId))?.title || "Course"
-    }
-    return "Course"
-  }
+  // Add this function to handle sending space messages
+const handleSendSpaceMessage = async () => {
+  if (!messageText.trim() || !selectedSpace || !token || !user) return
 
-  // Add useEffect to fetch messages when a conversation is selected
-  useEffect(() => {
-    if (selectedConversation?.id && !selectedConversation?.isTemporary) {
-      fetchMessages(selectedConversation.id)
+  setIsSubmitting(true)
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/space/send-message`, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json", 
+        Authorization: `Bearer ${token}` 
+      },
+      body: JSON.stringify({ 
+        spaceId: selectedSpace.id, 
+        content: messageText 
+      }),
+    })
+
+    if (!res.ok) {
+      throw new Error("Failed to send message")
     }
-  }, [selectedConversation?.id, token])
+
+    // Don't add the message to state here - let the socket event handle it
+    setMessageText("") // Just clear the input
+    
+    // Optional: Update the space's lastMessage in the sidebar
+    // You might want to fetch spaces again or update optimistically
+
+  } catch (error) {
+    console.error("Error sending space message:", error)
+    alert("Failed to post message. Please try again.")
+  } finally {
+    setIsSubmitting(false)
+  }
+}
 
   // Update the conversation selection to also fetch messages
-  const handleConversationSelect = async (conversation: Conversation) => {
-    setMessageText("")
-    setMessages([])
-    
-    // Set the selected user based on role
-    if (isStudent && conversation.instructor) {
-      setSelectedUser(conversation.instructor)
-    } else if (!isStudent && conversation.student) {
-      setSelectedUser(conversation.student)
-    }
-    
-    setSelectedCourseId(conversation.courseId)
-    setSelectedConversation(conversation)
-    
-    // If this is not a temporary conversation, fetch its messages
-    if (!conversation.isTemporary) {
-      await fetchMessages(conversation.id)
-    }
+  // Update the conversation selection to use existing messages
+const handleConversationSelect = async (conversation: Conversation) => {
+  
+  // Set messages from the conversation if they exist
+  if (conversation.messages && conversation.messages.length > 0) {
+    setMessages(conversation.messages)
+  } 
+  // else {
+  //   setMessages([])
+  // }
+  
+  // Set the selected user based on role
+  if (isStudent && conversation.instructor) {
+    setSelectedUser(conversation.instructor)
+  } else if (!isStudent && conversation.student) {
+    setSelectedUser(conversation.student)
   }
+  
+  setSelectedCourseId(conversation.courseId)
+  setSelectedConversation(conversation)
+  
+  // Only fetch if it's a real conversation and has no messages
+  // if (!conversation.isTemporary && (!conversation.messages || conversation.messages.length === 0)) {
+  //   await fetchMessages(conversation.id)
+  // }
+}
+
+// Handle space selection
+const handleSpaceSelect = (space: Space) => {
+  setSelectedSpace(space)
+  setCurrentType("space")
+  
+  // Set messages from the space if they exist
+  if (space.messages && space.messages.length > 0) {
+    setSpaceMessages(space.messages)
+    setTimeout(() => {
+      scrollToBottom()
+    }, 100)
+  } else {
+    setSpaceMessages([])
+    // Only fetch if no messages
+    fetchSpaceMessages(space.courseSpaceId)
+    setTimeout(() => {
+        scrollToBottom()
+      }, 100)
+  }
+  
+  setSelectedUser(null)
+  setSelectedCourseId(null)
+  setMessages([])
+}
 
   // Handle user selection from modal - create temporary conversation
   const handleSelectUser = (user: UserInfo) => {
@@ -1049,11 +1141,9 @@ useEffect(() => {
                 {/* Spaces */}
                 {spaces
                 .filter((space) => {
-                  const spaceName = space.course.title.toLowerCase()
                   const courseTitle = space.courseTitle?.toLowerCase() || ""
                   const searchLower = searchTerm.toLowerCase()
-                  
-                  return spaceName.includes(searchLower) || courseTitle.includes(searchLower)
+                  return courseTitle.includes(searchLower)
                 })
                 .map((space) => {
                   const isActive = currentType === "space" && selectedSpace?.courseSpaceId === space.courseSpaceId
@@ -1061,15 +1151,8 @@ useEffect(() => {
                   return (
                     <button
                       key={`space-${space.courseSpaceId}`}
-                      onClick={() => {
-                        setSelectedSpace(space)
-                        setCurrentType("space")
-                        fetchSpaceMessages(space.courseSpaceId)
-                        setSelectedUser(null)
-                        setSelectedCourseId(null)
-                        setMessages([])
-                      }}
-                      className={`w-full text-left p-3 rounded transition-all relative ${
+                      onClick={() => handleSpaceSelect(space)}
+                      className={`w-full text-left rounded transition-all relative p-3 ${
                         isActive
                           ? "bg-muted"
                           : "hover:bg-muted border-transparent hover:border-primary/20"
@@ -1078,12 +1161,12 @@ useEffect(() => {
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-start gap-3 min-w-0 flex-1">
                           <div className="h-8 w-8 flex-shrink-0 rounded bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                            <Zap className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                            {space.course.title.charAt(0).toUpperCase()}
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center justify-between gap-2">
                               <p className="font-medium text-sm truncate">
-                                {space.title}
+                                {space.course.title}
                               </p>
                               {space.unreadCount && space.unreadCount > 0 && (
                                 <Badge variant="destructive" className="flex-shrink-0 ml-2">
@@ -1092,8 +1175,7 @@ useEffect(() => {
                               )}
                             </div>
                             <div className="flex items-center gap-1 text-xs opacity-70 truncate mt-1">
-                              <Zap className="h-3 w-3 text-purple-600 dark:text-purple-400" />
-                              <span>{space.courseTitle}</span>
+                              <span>space</span>
                             </div>
                             {space.lastMessage && (
                               <p className="text-xs text-muted-foreground truncate mt-2">
@@ -1228,11 +1310,10 @@ useEffect(() => {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="flex items-center gap-2 text-base">
-                      <Zap className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                      {selectedSpace.title}
+                      {selectedSpace.course.title}
                     </CardTitle>
                     <CardDescription>
-                      {selectedSpace.courseTitle} • Course Space
+                      Course Space
                     </CardDescription>
                   </div>
                 </div>
@@ -1298,15 +1379,13 @@ useEffect(() => {
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && !e.shiftKey && !isSubmitting) {
                           e.preventDefault()
-                          // TODO: Implement sending space message
+                          handleSendSpaceMessage()
                         }
                       }}
                       className="min-h-[60px] max-h-[40px] resize-none rounded"
                     />
                     <Button
-                      onClick={() => {
-                        // TODO: Implement sending space message
-                      }}
+                      onClick={handleSendSpaceMessage}
                       disabled={isSubmitting || !messageText.trim()}
                       className="flex-shrink-0 self-end rounded"
                     >

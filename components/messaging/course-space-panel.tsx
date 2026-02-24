@@ -135,7 +135,7 @@ export function CourseSpacePanel({
   )
 
   return (
-    <div className="w-full h-full flex flex-col bg-white dark:bg-gray-950">
+    <div className="w-full h-full flex flex-col">
       <Tabs
         value={activeTab}
         onValueChange={(v) => setActiveTab(v as "messages" | "space")}
@@ -143,7 +143,7 @@ export function CourseSpacePanel({
       >
         {/* ── Tab bar ─────────────────────────────────────────────────────── */}
         <div
-          className="flex-shrink-0 border-b border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-green-300/20"
+          className="flex-shrink-0 bg-gray-50/60 dark:bg-green-300/20"
           onClick={stopProp}
         >
           <TabsList className="bg-transparent rounded-none p-0 h-auto w-full grid grid-cols-2 gap-0">
@@ -154,7 +154,7 @@ export function CourseSpacePanel({
                 rounded-none border-b-2 border-transparent px-4 py-3
                 text-sm font-medium text-gray-500 dark:text-gray-400
                 transition-all duration-150
-                data-[state=active]:border-green-500
+                data-[state=active]:border-b-green-500
                 data-[state=active]:text-green-600 dark:data-[state=active]:text-white
                 data-[state=active]:bg-white dark:data-[state=active]:bg-primary/40
                 hover:text-gray-800 dark:hover:text-gray-200
@@ -171,7 +171,7 @@ export function CourseSpacePanel({
                 rounded-none border-b-2 border-transparent px-4 py-3
                 text-sm font-medium text-gray-500 dark:text-gray-400
                 transition-all duration-150
-                data-[state=active]:border-green-500
+                data-[state=active]:border-b-green-500
                 data-[state=active]:text-green-600 dark:data-[state=active]:text-white
                 data-[state=active]:bg-white dark:data-[state=active]:bg-primary/40
                 hover:text-gray-800 dark:hover:text-gray-200
@@ -197,15 +197,7 @@ export function CourseSpacePanel({
           value="space"
           className="flex-1 min-h-0 overflow-hidden p-0 mt-0 data-[state=inactive]:hidden"
         >
-          {isFullscreen ? (
-            <div className="h-full flex justify-center overflow-hidden">
-              <div className="w-full max-w-4xl flex flex-col min-h-0 h-full">
-                {spaceContent}
-              </div>
-            </div>
-          ) : (
-            spaceContent
-          )}
+          {spaceContent}
         </TabsContent>
       </Tabs>
     </div>

@@ -47,15 +47,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-  if (!user?.id) return
+    if (!user?.id) return
 
-  const socket = getSocket()
+    const socket = getSocket()
 
-  socket.emit("join", {
-    userId: user.id,
-    orgId: user.organizationId,
-  })
-}, [user?.id])
+    socket.emit("join", {
+      userId: user.id,
+      orgId: user.organizationId,
+    })
+
+    // fetch and join spaces
+    const fetchSpaces = async () => {
+      const res = await fetch(`${API_BASE_URL}/space/user/${user.id}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      })
+      const spaces = res.ok ? await res.json() : []
+      const spacesArray = spaces.spaces
+      
+      spacesArray.forEach((space: any) => {
+        socket.emit("join", { spaceId: space.id })
+      })
+    }
+
+    fetchSpaces()
+  }, [user?.id])
 
   const login = async (email: string, password: string) => {
     setIsLoading(true)

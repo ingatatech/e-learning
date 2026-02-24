@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useAuth } from "@/hooks/use-auth"
 import { Course, CourseSpaceMessage, PrivateMessage } from "@/types"
 import { createPortal } from "react-dom"
+import { getSocket } from "@/lib/socket"
 
 interface Instructor {
   id: string
@@ -44,6 +45,43 @@ export function LearningMessagingPanel({
     getConvo(course.id)
     getSpace(course.id)
   }, [])
+
+  useEffect(() => {
+  const socket = getSocket()
+
+  // Define handlers
+  const handleNewMessage = (message: PrivateMessage) => {
+    if (message.conversationId === conversation?.id) {
+      setMessages((prevMessages) => {
+        // Check if message already exists to prevent duplicates
+        const exists = prevMessages.some(m => m.id === message.id)
+        if (exists) return prevMessages
+        return [...prevMessages, message]
+      })
+    }
+  }
+
+  const handleNewSpaceMessage = (message: CourseSpaceMessage) => {
+    if (message.courseSpaceId === space?.courseSpaceId) {
+      setSpaceMessages((prevMessages) => {
+        // Check if message already exists to prevent duplicates
+        const exists = prevMessages.some(m => m.id === message.id)
+        if (exists) return prevMessages
+        return [...prevMessages, message]
+      })
+    }
+  }
+
+  // Add listeners
+  socket.on("new-message", handleNewMessage)
+  socket.on("new-space-message", handleNewSpaceMessage)
+
+  // Clean up function - remove specific handlers
+  return () => {
+    socket.off("new-message", handleNewMessage)
+    socket.off("new-space-message", handleNewSpaceMessage)
+  }
+}, [conversation?.id, space?.courseSpaceId]) // Keep dependencies
 
   // Lock/unlock body scroll when fullscreen
   useEffect(() => {
@@ -115,7 +153,6 @@ export function LearningMessagingPanel({
       })
       if (!res.ok) throw new Error()
       const message = await res.json()
-      setSpaceMessages((prev) => [...prev, message.data])
     } catch {
       setError("Failed to post message. Please try again.")
     } finally {
@@ -140,15 +177,6 @@ export function LearningMessagingPanel({
     }
   }
 
-  const toggleFullscreen = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    setIsFullscreen(true)
-  }
-
-  const handleCloseFullscreen = () => {
-    setIsFullscreen(false)
-  }
-
   const errorBanner = error ? (
     <div className="flex-shrink-0 px-6 pt-3">
       <Alert variant="destructive" className="border-red-200 bg-red-50 py-2">
@@ -162,7 +190,7 @@ export function LearningMessagingPanel({
     <>
       {/* Sidebar panel view */}
       {!isFullscreen && (
-        <div className="h-full w-full flex flex-col bg-primary/20">
+        <div className="h-full w-full flex flex-col bg-white dark:bg-primary/20">
           <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
             <div className="min-w-0 flex-1">
               <h2 className="text-base font-semibold text-gray-900 dark:text-white truncate">

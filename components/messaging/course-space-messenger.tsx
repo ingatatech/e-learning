@@ -54,7 +54,7 @@ export function CourseSpaceMessenger({
   useEffect(() => {
     // Auto-scroll to bottom when messages change
     if (messageEndRef.current) {
-      messageEndRef.current.scrollIntoView({ behavior: 'smooth' })
+      messageEndRef.current.scrollIntoView()
     }
   }, [allMessages])
 
@@ -143,17 +143,17 @@ export function CourseSpaceMessenger({
   }
 
   return (
-    <Card className="h-full flex flex-col border-0">
-      <CardHeader className="border-b bg-gradient-to-r from-purple-500/5 to-pink-500/5 dark:from-purple-900/20 dark:to-pink-900/20">
+    <Card className="h-full flex flex-col border-0 p-0 rounded">
+      <CardHeader className="py-2 border-b bg-gradient-to-r from-green-500/5 to-cyan-500/5 dark:from-green-900/20 dark:to-cyan-900/20">
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
-              <MessageCircle className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              <MessageCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
               <CardTitle className="text-sm truncate font-semibold">{spaceName}</CardTitle>
             </div>
             <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
               <Users className="h-3 w-3" />
-              <span>{enrolledStudentCount} enrolled</span>
+              <span>{enrolledStudentCount} members</span>
             </div>
           </div>
         </div>
@@ -208,7 +208,7 @@ export function CourseSpaceMessenger({
                         <div className={`
                           p-3 rounded-lg break-words shadow-sm
                           ${isCurrentUser 
-                            ? 'bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-md' 
+                            ? 'bg-gradient-to-br from-green-500 to-green-600 text-white shadow-md' 
                             : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
                           }
                           ${msg.status === 'error' 
@@ -243,20 +243,20 @@ export function CourseSpaceMessenger({
           </div>
         </div>
 
-        <div className="flex gap-2 bg-gradient-to-r from-purple-50/50 to-pink-50/50 dark:from-gray-800/50 dark:to-gray-700/50 p-3 border-t">
+        <div className="flex gap-2 bg-accent/2 p-3 border-t">
           <Input
             placeholder= "Share with the class..." 
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={isSending}
-            className="text-xs h-8 bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 focus:border-purple-400 dark:focus:border-purple-400"
+            className="text-xs h-8 bg-white dark:bg-accent/40 border-gray-200 dark:border-gray-600 focus:border-green-400 dark:focus:border-green-400"
           />
           <Button
             size="sm"
             onClick={handleSend}
             disabled={!input.trim() || isSending}
-            className="h-8 min-w-[32px] bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+            className="h-8 min-w-[32px] bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white cursor-pointer"
           >
             {isSending ? (
               <div className="h-3 w-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
